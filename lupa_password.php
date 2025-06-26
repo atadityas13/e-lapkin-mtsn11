@@ -33,14 +33,6 @@
  * ========================================================
  */
 
-// Include konfigurasi aplikasi
-require_once __DIR__ . '/config/init.php';
-
-// Meta tags configuration
-$meta_title = 'Lupa Password - E-Lapkin MTSN 11 Majalengka';
-$meta_description = 'Reset password akun E-Lapkin MTSN 11 Majalengka jika lupa password';
-$meta_keywords = 'lupa password, reset password, e-lapkin, mtsn 11 majalengka';
-
 require_once 'config/database.php';
 
 $success_message = '';
