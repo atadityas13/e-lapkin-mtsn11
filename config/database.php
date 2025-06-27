@@ -40,9 +40,9 @@ if (!defined('ABSPATH')) {
 
 // Konfigurasi koneksi database
 $host = "localhost"; // Server database Anda (biasanya localhost di Laragon)
-$user = "root";      // Username default MySQL di Laragon
-$pass = "";          // Password default MySQL di Laragon (kosong)
-$db_name = "e-lapkin-mtsn11"; // Nama database yang baru saja Anda buat
+$user = "mtsnmaja_ataditya";      // Username default MySQL di Laragon
+$pass = "Admin021398";          // Password default MySQL di Laragon (kosong)
+$db_name = "mtsnmaja_e-lapkin"; // Nama database yang baru saja Anda buat
 
 // Buat koneksi baru menggunakan MySQLi
 $conn = new mysqli($host, $user, $pass, $db_name);
