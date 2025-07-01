@@ -268,9 +268,9 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->SetFont('Arial', '', 10);
 
     // Tanda tangan rata kiri namun tetap pada posisinya
-    $left_margin = 15;
+    $left_margin = 25;
     $col_width = 80;
-    $gap = 30;
+    $gap = 35;
 
     $pdf->SetX($left_margin);
     // Baris untuk titimangsa (di atas Pegawai yang dinilai)
