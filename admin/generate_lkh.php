@@ -65,20 +65,20 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $stmt->fetch();
     $stmt->close();
 
-    // Data LKH - simplified query without kegiatan_harian table
-    $stmt = $conn->prepare("
-        SELECT tanggal_lkh, uraian_kegiatan_lkh, 
-               jumlah_realisasi, satuan_realisasi
-        FROM lkh
-        WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?
-        ORDER BY tanggal_lkh ASC
-    ");
+    // Data LKH - Group by date
+    $stmt = $conn->prepare("SELECT tanggal_lkh, nama_kegiatan_harian, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=? ORDER BY tanggal_lkh");
     $stmt->bind_param("iii", $id_pegawai, $bulan, $tahun);
     $stmt->execute();
-    $result_lkh = $stmt->get_result();
+    $result = $stmt->get_result();
+    
+    // Group data by date
     $lkh_data = [];
-    while ($row = $result_lkh->fetch_assoc()) {
-        $lkh_data[] = $row;
+    while ($row = $result->fetch_assoc()) {
+        $date = $row['tanggal_lkh'];
+        if (!isset($lkh_data[$date])) {
+            $lkh_data[$date] = [];
+        }
+        $lkh_data[$date][] = $row;
     }
     $stmt->close();
 
@@ -91,7 +91,8 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
 
     // Header
     $pdf->SetFont('Arial', 'B', 13);
-    $pdf->Cell(0, 8, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
+    $pdf->Cell(0, 8, '    LAPORAN KINERJA HARIAN', 0, 1, 'C');
+    $pdf->Cell(0, 8, 'SASARAN KINERJA PEGAWAI', 0, 1, 'C');
     $pdf->Ln(4);
 
     // Biodata Pegawai dalam bentuk tabel
@@ -99,6 +100,7 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->SetFillColor(240, 240, 240);
     $pdf->Cell(40, 8, 'Nama', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
+    // Cetak Nama Pegawai tebal
     $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(0, 8, $nama_pegawai, 1, 1, 'L');
     $pdf->SetFont('Arial', '', 10);
@@ -116,14 +118,16 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->Cell(0, 8, $months[$bulan] . " " . $tahun, 1, 1, 'L');
     $pdf->Ln(6);
 
-    // Tabel LKH
-    $pdf->SetFont('Arial', 'B', 9);
+    // Table Header
+    $pdf->SetFont('Arial', 'B', 9); // Cetak header tabel tebal
     $pdf->SetFillColor(200, 220, 255);
     $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
-    $pdf->Cell(30, 10, 'Tanggal', 1, 0, 'C', true);
-    $pdf->Cell(120, 10, 'Uraian Kegiatan', 1, 0, 'C', true);
-    $pdf->Cell(20, 10, 'Realisasi', 1, 1, 'C', true);
+    $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
+    $pdf->Cell(35, 10, 'Kegiatan', 1, 0, 'C', true);
+    $pdf->Cell(75, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
+    $pdf->Cell(25, 10, 'Jumlah', 1, 1, 'C', true);
 
+    // Table Rows
     $pdf->SetFont('Arial', '', 9);
     $no = 1;
     $hari_indo = [
@@ -131,68 +135,105 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
         'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
     ];
 
-    foreach ($lkh_data as $row) {
-        $tanggal = date('d-m-Y', strtotime($row['tanggal_lkh']));
-        $jumlah_realisasi = ($row['jumlah_realisasi'] && $row['satuan_realisasi']) 
-                          ? $row['jumlah_realisasi'] . ' ' . $row['satuan_realisasi'] 
-                          : '-';
+    foreach ($lkh_data as $tanggal => $activities) {
+        $hari = $hari_indo[date('l', strtotime($tanggal))];
+        $tanggal_formatted = date('d-m-Y', strtotime($tanggal));
 
-        $cell_widths = [10, 30, 120, 20];
+        // Combine activities for the same date
+        $kegiatan_combined = '';
+        $uraian_combined = '';
+        $jumlah_combined = '';
+        
+        foreach ($activities as $index => $activity) {
+            $kegiatan_combined .= '- ' . $activity['nama_kegiatan_harian'];
+            $uraian_combined .= '- ' . $activity['uraian_kegiatan_lkh'];
+            
+            $jumlah_kegiatan = ($activity['jumlah_realisasi'] !== null && $activity['satuan_realisasi'] !== null) 
+                ? $activity['jumlah_realisasi'] . ' ' . $activity['satuan_realisasi'] 
+                : '-';
+            $jumlah_combined .= '- ' . $jumlah_kegiatan;
+            
+            if ($index < count($activities) - 1) {
+                $kegiatan_combined .= "\n";
+                $uraian_combined .= "\n";
+                $jumlah_combined .= "\n";
+            }
+        }
+
+        // Calculate max height for multi-line cells
+        $cell_widths = [10, 35, 35, 75, 25];
         $line_height = 6;
         
-        $uraian_lines = $pdf->GetStringWidth($row['uraian_kegiatan_lkh']) > $cell_widths[2] 
-                       ? ceil($pdf->GetStringWidth($row['uraian_kegiatan_lkh']) / ($cell_widths[2] - 2)) : 1;
+        // Count lines needed for each column
+        $kegiatan_lines = max(1, substr_count($kegiatan_combined, "\n") + 1);
+        $uraian_lines = max(1, substr_count($uraian_combined, "\n") + 1);
+        $jumlah_lines = max(1, substr_count($jumlah_combined, "\n") + 1);
         
-        $max_lines = max($uraian_lines, 1);
+        $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, 1);
         $row_height = $line_height * $max_lines;
+
+        // Check if we need a new page
+        if ($pdf->GetY() + $row_height > 270) {
+            $pdf->AddPage();
+        }
 
         $x = $pdf->GetX();
         $y = $pdf->GetY();
 
-        $pdf->MultiCell($cell_widths[0], $row_height, $no++, 1, 'C');
+        // Draw cells for one row per date
+        $pdf->Cell($cell_widths[0], $row_height, $no++, 1, 0, 'C');
         $pdf->SetXY($x + $cell_widths[0], $y);
-        $pdf->MultiCell($cell_widths[1], $row_height, $tanggal, 1, 'C');
+        $pdf->Cell($cell_widths[1], $row_height, "$hari, $tanggal_formatted", 1, 0, 'L');
         $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1], $y);
-        $pdf->MultiCell($cell_widths[2], $row_height, $row['uraian_kegiatan_lkh'], 1, 'L');
+        $pdf->MultiCell($cell_widths[2], $line_height, $kegiatan_combined, 1, 'L');
         $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y);
-        $pdf->Cell($cell_widths[3], $row_height, $jumlah_realisasi, 1, 0, 'C');
-        $pdf->Ln($row_height);
+        $pdf->MultiCell($cell_widths[3], $line_height, $uraian_combined, 1, 'L');
+        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + $cell_widths[3], $y);
+        $pdf->MultiCell($cell_widths[4], $line_height, $jumlah_combined, 1, 'L');
+        
+        // Move to next row
+        $pdf->SetXY($x, $y + $row_height);
     }
 
-    $pdf->Ln(10);
-
     // Footer Signatures
+    $pdf->Ln(10);
     $pdf->SetFont('Arial', '', 10);
+
     $nama_penilai = "H. JAJANG GUNAWAN, S.Ag., M.Pd.I";
     $nip_penilai = "196708251992031003";
 
+    // Tanda tangan rata kiri namun tetap pada posisinya
     $left_margin = 15;
+    $right_margin = 15;
+    $page_width = 210 - $left_margin - $right_margin;
     $col_width = 80;
     $gap = 30;
 
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, '', 0, 0, 'L');
-    $pdf->Cell($gap);
-    $pdf->Cell($col_width, 5, "Cingambul, " . date("d") . " " . $months[$bulan] . " " . $tahun, 0, 1, 'L');
+    // Baris untuk titimangsa (di atas Pegawai yang dinilai)
+    $pdf->Cell($col_width, 5, '', 0, 0, 'L'); // Kolom kiri kosong
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, "Cingambul, " . date("d") . " " . $months[$bulan] . " " . $tahun, 0, 1, 'L'); // Titimangsa
 
+    // Baris untuk Pejabat Penilai dan Pegawai yang dinilai (sejajar)
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, 'Pejabat Penilai,', 0, 0, 'L');
-    $pdf->Cell($gap);
-    $pdf->Cell($col_width, 5, "Pegawai yang dinilai,", 0, 1, 'L');
+    $pdf->Cell($col_width, 5, 'Pejabat Penilai,', 0, 0, 'L'); // Pejabat Penilai
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
 
-    $pdf->Ln(17);
+    $pdf->Ln(17); // Jarak antar baris untuk tanda tangan/nama
 
     $pdf->SetFont('Arial', 'BU', 10);
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, $nama_penilai, 0, 0, 'L');
-    $pdf->Cell($gap);
-    $pdf->Cell($col_width, 5, $nama_pegawai, 0, 1, 'L');
+    $pdf->Cell($col_width, 5, $nama_penilai, 0, 0, 'L'); // Nama Penilai
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, $nama_pegawai, 0, 1, 'L'); // Nama Pegawai
 
     $pdf->SetFont('Arial', '', 10);
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, 'NIP. ' . $nip_penilai, 0, 0, 'L');
-    $pdf->Cell($gap);
-    $pdf->Cell($col_width, 5, 'NIP. ' . $nip, 0, 1, 'L');
+    $pdf->Cell($col_width, 5, 'NIP. ' . $nip_penilai, 0, 0, 'L'); // NIP Penilai
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, 'NIP. ' . $nip, 0, 1, 'L'); // NIP Pegawai
 
     // Simpan PDF
     $dir = "../generated";
