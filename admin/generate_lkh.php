@@ -123,8 +123,8 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->SetFillColor(200, 220, 255);
     $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
     $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
-    $pdf->Cell(35, 10, 'Kegiatan', 1, 0, 'C', true);
-    $pdf->Cell(75, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
+    $pdf->Cell(45, 10, 'Kegiatan', 1, 0, 'C', true);
+    $pdf->Cell(65, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
     $pdf->Cell(25, 10, 'Jumlah', 1, 1, 'C', true);
 
     // Table Rows
@@ -153,7 +153,7 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
             $jumlah_text = '- ' . $jumlah_kegiatan;
 
             // Calculate max height for multi-line cells
-            $cell_widths = [10, 35, 35, 75, 25];
+            $cell_widths = [10, 35, 45, 65, 25];
             $line_height = 4;
             
             // Calculate lines needed for text wrapping
@@ -176,8 +176,8 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
             $pdf->SetFillColor(200, 220, 255);
             $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
             $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
-            $pdf->Cell(35, 10, 'Kegiatan', 1, 0, 'C', true);
-            $pdf->Cell(75, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
+            $pdf->Cell(40, 10, 'Kegiatan', 1, 0, 'C', true);
+            $pdf->Cell(70, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
             $pdf->Cell(25, 10, 'Jumlah', 1, 1, 'C', true);
             $pdf->SetFont('Arial', '', 9);
         }
@@ -238,7 +238,7 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
             $pdf->MultiCell($cell_widths[3] - 2, 4, $uraian_text, 0, 'L');
             
             $pdf->SetXY($jumlah_x + 1, $current_y + 1);
-            $pdf->MultiCell($cell_widths[4] - 2, 4, $jumlah_text, 0, 'C');
+            $pdf->MultiCell($cell_widths[4] - 2, 4, $jumlah_text, 0, 'L');
 
             $current_y += $row_height;
         }
@@ -270,7 +270,6 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->Cell($gap); // Jarak antar kolom
     $pdf->Cell($col_width, 5, "Cingambul, " . date("d") . " " . $months[$bulan] . " " . $tahun, 0, 1, 'L'); // Titimangsa
 
-    $pdf->Ln(3);
 
     // Baris untuk Pejabat Penilai dan Pegawai yang dinilai (sejajar)
     $pdf->SetX($left_margin);
