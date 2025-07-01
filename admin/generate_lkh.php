@@ -162,34 +162,63 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
 
         // Calculate max height for multi-line cells
         $cell_widths = [10, 35, 35, 75, 25];
-        $line_height = 6;
+        $line_height = 4;
         
-        // Count lines needed for each column
+        // More accurate line calculation using FPDF's GetStringWidth
         $kegiatan_lines = max(1, substr_count($kegiatan_combined, "\n") + 1);
         $uraian_lines = max(1, substr_count($uraian_combined, "\n") + 1);
         $jumlah_lines = max(1, substr_count($jumlah_combined, "\n") + 1);
         
-        $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, 1);
+        // Calculate estimated lines for text wrapping
+        $kegiatan_text_lines = ceil($pdf->GetStringWidth($kegiatan_combined) / ($cell_widths[2] - 4));
+        $uraian_text_lines = ceil($pdf->GetStringWidth($uraian_combined) / ($cell_widths[3] - 4));
+        $jumlah_text_lines = ceil($pdf->GetStringWidth($jumlah_combined) / ($cell_widths[4] - 4));
+        
+        $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, $kegiatan_text_lines, $uraian_text_lines, $jumlah_text_lines, 2);
         $row_height = $line_height * $max_lines;
 
         // Check if we need a new page
         if ($pdf->GetY() + $row_height > 270) {
             $pdf->AddPage();
+            // Redraw table header on new page
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetFillColor(200, 220, 255);
+            $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
+            $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
+            $pdf->Cell(35, 10, 'Kegiatan', 1, 0, 'C', true);
+            $pdf->Cell(75, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
+            $pdf->Cell(25, 10, 'Jumlah', 1, 1, 'C', true);
+            $pdf->SetFont('Arial', '', 9);
         }
 
         $x = $pdf->GetX();
         $y = $pdf->GetY();
 
-        // Draw cells for one row per date
+        // Draw cells with consistent height
         $pdf->Cell($cell_widths[0], $row_height, $no++, 1, 0, 'C');
         $pdf->SetXY($x + $cell_widths[0], $y);
         $pdf->Cell($cell_widths[1], $row_height, "$hari, $tanggal_formatted", 1, 0, 'L');
+        
+        // Use temporary positions for MultiCell content
         $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1], $y);
-        $pdf->MultiCell($cell_widths[2], $line_height, $kegiatan_combined, 1, 'L');
+        $kegiatan_y = $pdf->GetY();
+        $pdf->MultiCell($cell_widths[2], $line_height, $kegiatan_combined, 0, 'L');
+        $kegiatan_end_y = $pdf->GetY();
+        
         $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y);
-        $pdf->MultiCell($cell_widths[3], $line_height, $uraian_combined, 1, 'L');
+        $uraian_y = $pdf->GetY();
+        $pdf->MultiCell($cell_widths[3], $line_height, $uraian_combined, 0, 'L');
+        $uraian_end_y = $pdf->GetY();
+        
         $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + $cell_widths[3], $y);
-        $pdf->MultiCell($cell_widths[4], $line_height, $jumlah_combined, 1, 'L');
+        $jumlah_y = $pdf->GetY();
+        $pdf->MultiCell($cell_widths[4], $line_height, $jumlah_combined, 0, 'L');
+        $jumlah_end_y = $pdf->GetY();
+        
+        // Draw borders for MultiCell areas
+        $pdf->Rect($x + $cell_widths[0] + $cell_widths[1], $y, $cell_widths[2], $row_height);
+        $pdf->Rect($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y, $cell_widths[3], $row_height);
+        $pdf->Rect($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + $cell_widths[3], $y, $cell_widths[4], $row_height);
         
         // Move to next row
         $pdf->SetXY($x, $y + $row_height);
@@ -344,12 +373,6 @@ include '../template/topbar.php';
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
-    <?php include __DIR__ . '/../template/footer.php'; ?>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         </div>
     </main>
     <?php include __DIR__ . '/../template/footer.php'; ?>
