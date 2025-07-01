@@ -65,6 +65,19 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $stmt->fetch();
     $stmt->close();
 
+    // Data Penilai (Kepala Sekolah/Atasan) - cari berdasarkan jabatan kepala
+    $stmt = $conn->prepare("SELECT nama, nip FROM pegawai WHERE jabatan LIKE '%kepala%' OR jabatan LIKE '%kepsek%' OR jabatan LIKE '%pimpinan%' LIMIT 1");
+    $stmt->execute();
+    $stmt->bind_result($nama_penilai, $nip_penilai);
+    $stmt->fetch();
+    $stmt->close();
+
+    // Default penilai jika tidak ditemukan
+    if (!$nama_penilai) {
+        $nama_penilai = "H. JAJANG GUNAWAN, S.Ag., M.Pd.I";
+        $nip_penilai = "196708251992031003";
+    }
+
     // Data LKH - Group by date
     $stmt = $conn->prepare("SELECT tanggal_lkh, nama_kegiatan_harian, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=? ORDER BY tanggal_lkh");
     $stmt->bind_param("iii", $id_pegawai, $bulan, $tahun);
@@ -96,26 +109,33 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->Ln(4);
 
     // Biodata Pegawai dalam bentuk tabel
-    $pdf->SetFont('Arial', '', 10);
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->SetFillColor(240, 240, 240);
-    $pdf->Cell(40, 8, 'Nama', 1, 0, 'L', true);
+    $pdf->Cell(40, 8, ' Nama', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
     // Cetak Nama Pegawai tebal
     $pdf->SetFont('Arial', 'B', 10);
-    $pdf->Cell(0, 8, $nama_pegawai, 1, 1, 'L');
+    $pdf->Cell(0, 8, ' ' . $nama_pegawai, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' NIP', 1, 0, 'L', true);
+    $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
     $pdf->SetFont('Arial', '', 10);
-    $pdf->Cell(40, 8, 'NIP', 1, 0, 'L', true);
+    $pdf->Cell(0, 8, ' ' . $nip, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' Jabatan', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $nip, 1, 1, 'L');
-    $pdf->Cell(40, 8, 'Jabatan', 1, 0, 'L', true);
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 8, ' ' . $jabatan, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' Unit Kerja', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $jabatan, 1, 1, 'L');
-    $pdf->Cell(40, 8, 'Unit Kerja', 1, 0, 'L', true);
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 8, ' ' . $unit_kerja, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' Bulan', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $unit_kerja, 1, 1, 'L');
-    $pdf->Cell(40, 8, 'Bulan', 1, 0, 'L', true);
-    $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $months[$bulan] . " " . $tahun, 1, 1, 'L');
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 8, ' ' . $months[$bulan] . " " . $tahun, 1, 1, 'L');
     $pdf->Ln(6);
 
     // Table Header
@@ -255,9 +275,6 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     // Footer Signatures
     $pdf->Ln(10);
     $pdf->SetFont('Arial', '', 10);
-
-    $nama_penilai = "H. JAJANG GUNAWAN, S.Ag., M.Pd.I";
-    $nip_penilai = "196708251992031003";
 
     // Tanda tangan rata kiri namun tetap pada posisinya
     $left_margin = 15;
