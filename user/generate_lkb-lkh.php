@@ -164,7 +164,7 @@ include '../template/topbar.php';
                                             } elseif ($status_verval_rkb === 'disetujui') {
                                                 // Sudah disetujui, cek file PDF LKB dengan nama baru
                                                 $pdf_exists_lkb = lkb_pdf_exists($id_pegawai, $bulan, $tahun, $nama_file_nip, $months);
-                                                $lkb_filename_for_download = "lkb_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf"; // Nama file yang benar untuk di-download
+                                                $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf"; // Nama file yang benar untuk di-download
                                                 echo '<tr>
                                                         <td>' . $months[$bulan] . '</td>
                                                         <td>' . $tahun . '</td>
