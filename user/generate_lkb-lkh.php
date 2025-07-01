@@ -85,7 +85,7 @@ $nama_file_nip = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nip_pegawai_db);
 function lkb_pdf_exists($id_pegawai, $bulan, $tahun, $nama_file_nip_param, $months_param) {
     // Asumsi: format nama file LKB adalah lkb_Bulan_Tahun_NIP.pdf
     // Jika format Anda berbeda, sesuaikan di sini
-    $filename = "../generated/lkb_{$months_param[$bulan]}_{$tahun}_{$nama_file_nip_param}.pdf";
+    $filename = "../generated/LKB_{$months_param[$bulan]}_{$tahun}_{$nama_file_nip_param}.pdf";
     return file_exists($filename);
 }
 
