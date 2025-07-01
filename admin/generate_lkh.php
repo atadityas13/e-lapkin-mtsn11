@@ -139,46 +139,37 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
         $hari = $hari_indo[date('l', strtotime($tanggal))];
         $tanggal_formatted = date('d-m-Y', strtotime($tanggal));
 
-        // Combine activities for the same date
-        $kegiatan_combined = '';
-        $uraian_combined = '';
-        $jumlah_combined = '';
+        // Calculate total height for all activities on this date
+        $total_height = 0;
+        $activity_heights = [];
         
-        foreach ($activities as $index => $activity) {
-            $kegiatan_combined .= '- ' . $activity['nama_kegiatan_harian'];
-            $uraian_combined .= '- ' . $activity['uraian_kegiatan_lkh'];
+        foreach ($activities as $activity) {
+            $kegiatan_text = '- ' . $activity['nama_kegiatan_harian'];
+            $uraian_text = '- ' . $activity['uraian_kegiatan_lkh'];
             
             $jumlah_kegiatan = ($activity['jumlah_realisasi'] !== null && $activity['satuan_realisasi'] !== null) 
                 ? $activity['jumlah_realisasi'] . ' ' . $activity['satuan_realisasi'] 
                 : '-';
-            $jumlah_combined .= '- ' . $jumlah_kegiatan;
+            $jumlah_text = '- ' . $jumlah_kegiatan;
+
+            // Calculate max height for multi-line cells
+            $cell_widths = [10, 35, 35, 75, 25];
+            $line_height = 4;
             
-            if ($index < count($activities) - 1) {
-                $kegiatan_combined .= "\n";
-                $uraian_combined .= "\n";
-                $jumlah_combined .= "\n";
-            }
+            // Calculate lines needed for text wrapping
+            $kegiatan_lines = max(1, ceil($pdf->GetStringWidth($kegiatan_text) / ($cell_widths[2] - 4)));
+            $uraian_lines = max(1, ceil($pdf->GetStringWidth($uraian_text) / ($cell_widths[3] - 4)));
+            $jumlah_lines = max(1, ceil($pdf->GetStringWidth($jumlah_text) / ($cell_widths[4] - 4)));
+            
+            $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, 2);
+            $row_height = $line_height * $max_lines;
+            
+            $activity_heights[] = $row_height;
+            $total_height += $row_height;
         }
 
-        // Calculate max height for multi-line cells
-        $cell_widths = [10, 35, 35, 75, 25];
-        $line_height = 4;
-        
-        // More accurate line calculation using FPDF's GetStringWidth
-        $kegiatan_lines = max(1, substr_count($kegiatan_combined, "\n") + 1);
-        $uraian_lines = max(1, substr_count($uraian_combined, "\n") + 1);
-        $jumlah_lines = max(1, substr_count($jumlah_combined, "\n") + 1);
-        
-        // Calculate estimated lines for text wrapping
-        $kegiatan_text_lines = ceil($pdf->GetStringWidth($kegiatan_combined) / ($cell_widths[2] - 4));
-        $uraian_text_lines = ceil($pdf->GetStringWidth($uraian_combined) / ($cell_widths[3] - 4));
-        $jumlah_text_lines = ceil($pdf->GetStringWidth($jumlah_combined) / ($cell_widths[4] - 4));
-        
-        $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, $kegiatan_text_lines, $uraian_text_lines, $jumlah_text_lines, 2);
-        $row_height = $line_height * $max_lines;
-
         // Check if we need a new page
-        if ($pdf->GetY() + $row_height > 270) {
+        if ($pdf->GetY() + $total_height > 270) {
             $pdf->AddPage();
             // Redraw table header on new page
             $pdf->SetFont('Arial', 'B', 9);
@@ -191,37 +182,69 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
             $pdf->SetFont('Arial', '', 9);
         }
 
-        $x = $pdf->GetX();
-        $y = $pdf->GetY();
+        $start_x = $pdf->GetX();
+        $start_y = $pdf->GetY();
 
-        // Draw cells with consistent height
-        $pdf->Cell($cell_widths[0], $row_height, $no++, 1, 0, 'C');
-        $pdf->SetXY($x + $cell_widths[0], $y);
-        $pdf->Cell($cell_widths[1], $row_height, "$hari, $tanggal_formatted", 1, 0, 'L');
-        
-        // Use temporary positions for MultiCell content
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1], $y);
-        $kegiatan_y = $pdf->GetY();
-        $pdf->MultiCell($cell_widths[2], $line_height, $kegiatan_combined, 0, 'L');
-        $kegiatan_end_y = $pdf->GetY();
-        
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y);
-        $uraian_y = $pdf->GetY();
-        $pdf->MultiCell($cell_widths[3], $line_height, $uraian_combined, 0, 'L');
-        $uraian_end_y = $pdf->GetY();
-        
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + $cell_widths[3], $y);
-        $jumlah_y = $pdf->GetY();
-        $pdf->MultiCell($cell_widths[4], $line_height, $jumlah_combined, 0, 'L');
-        $jumlah_end_y = $pdf->GetY();
-        
-        // Draw borders for MultiCell areas
-        $pdf->Rect($x + $cell_widths[0] + $cell_widths[1], $y, $cell_widths[2], $row_height);
-        $pdf->Rect($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y, $cell_widths[3], $row_height);
-        $pdf->Rect($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + $cell_widths[3], $y, $cell_widths[4], $row_height);
-        
+        // Draw merged cells for No and Date columns
+        $pdf->Cell($cell_widths[0], $total_height, $no++, 1, 0, 'C');
+        $pdf->SetXY($start_x + $cell_widths[0], $start_y);
+        $pdf->Cell($cell_widths[1], $total_height, "$hari, $tanggal_formatted", 1, 0, 'L');
+
+        // Draw activity rows
+        $current_y = $start_y;
+        foreach ($activities as $index => $activity) {
+            $kegiatan_text = '- ' . $activity['nama_kegiatan_harian'];
+            $uraian_text = '- ' . $activity['uraian_kegiatan_lkh'];
+            
+            $jumlah_kegiatan = ($activity['jumlah_realisasi'] !== null && $activity['satuan_realisasi'] !== null) 
+                ? $activity['jumlah_realisasi'] . ' ' . $activity['satuan_realisasi'] 
+                : '-';
+            $jumlah_text = '- ' . $jumlah_kegiatan;
+
+            $row_height = $activity_heights[$index];
+            $is_last_activity = ($index === count($activities) - 1);
+
+            // Draw borders for activity cells
+            $kegiatan_x = $start_x + $cell_widths[0] + $cell_widths[1];
+            $uraian_x = $kegiatan_x + $cell_widths[2];
+            $jumlah_x = $uraian_x + $cell_widths[3];
+
+            // Draw cell borders
+            if ($index === 0) {
+                // First activity - draw top, left, and right borders
+                $pdf->Line($kegiatan_x, $current_y, $kegiatan_x + $cell_widths[2], $current_y); // Top border kegiatan
+                $pdf->Line($uraian_x, $current_y, $uraian_x + $cell_widths[3], $current_y); // Top border uraian
+                $pdf->Line($jumlah_x, $current_y, $jumlah_x + $cell_widths[4], $current_y); // Top border jumlah
+            }
+            
+            // Left borders
+            $pdf->Line($kegiatan_x, $current_y, $kegiatan_x, $current_y + $row_height);
+            $pdf->Line($uraian_x, $current_y, $uraian_x, $current_y + $row_height);
+            $pdf->Line($jumlah_x, $current_y, $jumlah_x, $current_y + $row_height);
+            
+            // Right border
+            $pdf->Line($jumlah_x + $cell_widths[4], $current_y, $jumlah_x + $cell_widths[4], $current_y + $row_height);
+            
+            // Bottom border (only for last activity)
+            if ($is_last_activity) {
+                $pdf->Line($kegiatan_x, $current_y + $row_height, $jumlah_x + $cell_widths[4], $current_y + $row_height);
+            }
+
+            // Add content
+            $pdf->SetXY($kegiatan_x + 1, $current_y + 1);
+            $pdf->MultiCell($cell_widths[2] - 2, 4, $kegiatan_text, 0, 'L');
+            
+            $pdf->SetXY($uraian_x + 1, $current_y + 1);
+            $pdf->MultiCell($cell_widths[3] - 2, 4, $uraian_text, 0, 'L');
+            
+            $pdf->SetXY($jumlah_x + 1, $current_y + 1);
+            $pdf->MultiCell($cell_widths[4] - 2, 4, $jumlah_text, 0, 'L');
+
+            $current_y += $row_height;
+        }
+
         // Move to next row
-        $pdf->SetXY($x, $y + $row_height);
+        $pdf->SetXY($start_x, $start_y + $total_height);
     }
 
     // Footer Signatures
