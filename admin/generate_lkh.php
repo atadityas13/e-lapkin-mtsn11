@@ -154,15 +154,15 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
 
             // Calculate max height for multi-line cells
             $cell_widths = [10, 35, 35, 75, 25];
-            $line_height = 5;
+            $line_height = 4;
             
             // Calculate lines needed for text wrapping
-            $kegiatan_lines = max(1, ceil($pdf->GetStringWidth($kegiatan_text) / ($cell_widths[2] - 6)));
-            $uraian_lines = max(1, ceil($pdf->GetStringWidth($uraian_text) / ($cell_widths[3] - 6)));
-            $jumlah_lines = max(1, ceil($pdf->GetStringWidth($jumlah_text) / ($cell_widths[4] - 6)));
+            $kegiatan_lines = max(1, ceil($pdf->GetStringWidth($kegiatan_text) / ($cell_widths[2] - 4)));
+            $uraian_lines = max(1, ceil($pdf->GetStringWidth($uraian_text) / ($cell_widths[3] - 4)));
+            $jumlah_lines = max(1, ceil($pdf->GetStringWidth($jumlah_text) / ($cell_widths[4] - 4)));
             
-            $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, 2);
-            $row_height = $line_height * $max_lines + 4; // Add padding
+            $max_lines = max($kegiatan_lines, $uraian_lines, $jumlah_lines, 1);
+            $row_height = $line_height * $max_lines + 2; // Reduced padding from 4 to 2
             
             $activity_heights[] = $row_height;
             $total_height += $row_height;
@@ -230,15 +230,15 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
                 $pdf->Line($kegiatan_x, $current_y + $row_height, $jumlah_x + $cell_widths[4], $current_y + $row_height);
             }
 
-            // Add content with better padding
-            $pdf->SetXY($kegiatan_x + 2, $current_y + 2);
-            $pdf->MultiCell($cell_widths[2] - 4, 5, $kegiatan_text, 0, 'L');
+            // Add content with minimal padding
+            $pdf->SetXY($kegiatan_x + 1, $current_y + 1);
+            $pdf->MultiCell($cell_widths[2] - 2, 4, $kegiatan_text, 0, 'L');
             
-            $pdf->SetXY($uraian_x + 2, $current_y + 2);
-            $pdf->MultiCell($cell_widths[3] - 4, 5, $uraian_text, 0, 'L');
+            $pdf->SetXY($uraian_x + 1, $current_y + 1);
+            $pdf->MultiCell($cell_widths[3] - 2, 4, $uraian_text, 0, 'L');
             
-            $pdf->SetXY($jumlah_x + 2, $current_y + 2);
-            $pdf->MultiCell($cell_widths[4] - 4, 5, $jumlah_text, 0, 'C');
+            $pdf->SetXY($jumlah_x + 1, $current_y + 1);
+            $pdf->MultiCell($cell_widths[4] - 2, 4, $jumlah_text, 0, 'C');
 
             $current_y += $row_height;
         }
