@@ -144,13 +144,13 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
         $activity_heights = [];
         
         foreach ($activities as $activity) {
-            $kegiatan_text = $activity['nama_kegiatan_harian'];
-            $uraian_text = $activity['uraian_kegiatan_lkh'];
+            $kegiatan_text = '- ' . $activity['nama_kegiatan_harian'];
+            $uraian_text = '- ' . $activity['uraian_kegiatan_lkh'];
             
             $jumlah_kegiatan = ($activity['jumlah_realisasi'] !== null && $activity['satuan_realisasi'] !== null) 
                 ? $activity['jumlah_realisasi'] . ' ' . $activity['satuan_realisasi'] 
                 : '-';
-            $jumlah_text = $jumlah_kegiatan;
+            $jumlah_text = '- ' . $jumlah_kegiatan;
 
             // Calculate max height for multi-line cells
             $cell_widths = [10, 35, 35, 75, 25];
@@ -193,13 +193,13 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
         // Draw activity rows
         $current_y = $start_y;
         foreach ($activities as $index => $activity) {
-            $kegiatan_text = $activity['nama_kegiatan_harian'];
-            $uraian_text = $activity['uraian_kegiatan_lkh'];
+            $kegiatan_text = '- ' . $activity['nama_kegiatan_harian'];
+            $uraian_text = '- ' . $activity['uraian_kegiatan_lkh'];
             
             $jumlah_kegiatan = ($activity['jumlah_realisasi'] !== null && $activity['satuan_realisasi'] !== null) 
                 ? $activity['jumlah_realisasi'] . ' ' . $activity['satuan_realisasi'] 
                 : '-';
-            $jumlah_text = $jumlah_kegiatan;
+            $jumlah_text = '- ' . $jumlah_kegiatan;
 
             $row_height = $activity_heights[$index];
             $is_last_activity = ($index === count($activities) - 1);
