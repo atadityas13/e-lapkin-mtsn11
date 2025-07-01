@@ -176,8 +176,8 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
             $pdf->SetFillColor(200, 220, 255);
             $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
             $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
-            $pdf->Cell(40, 10, 'Kegiatan', 1, 0, 'C', true);
-            $pdf->Cell(70, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
+            $pdf->Cell(45, 10, 'Kegiatan', 1, 0, 'C', true);
+            $pdf->Cell(65, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
             $pdf->Cell(25, 10, 'Jumlah', 1, 1, 'C', true);
             $pdf->SetFont('Arial', '', 9);
         }
