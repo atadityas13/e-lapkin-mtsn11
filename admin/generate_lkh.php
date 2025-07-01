@@ -57,22 +57,15 @@ $months = [
 function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     global $conn, $months;
 
-    // Data Pegawai
-    $stmt = $conn->prepare("SELECT nama, nip, jabatan, unit_kerja FROM pegawai WHERE id_pegawai = ?");
+    // Data Pegawai dan Penilai
+    $stmt = $conn->prepare("SELECT nama, nip, jabatan, unit_kerja, nama_penilai, nip_penilai FROM pegawai WHERE id_pegawai = ?");
     $stmt->bind_param("i", $id_pegawai);
     $stmt->execute();
-    $stmt->bind_result($nama_pegawai, $nip, $jabatan, $unit_kerja);
+    $stmt->bind_result($nama_pegawai, $nip, $jabatan, $unit_kerja, $nama_penilai, $nip_penilai);
     $stmt->fetch();
     $stmt->close();
 
-    // Data Penilai (Kepala Sekolah/Atasan) - cari berdasarkan jabatan kepala
-    $stmt = $conn->prepare("SELECT nama, nip FROM pegawai WHERE jabatan LIKE '%kepala%' OR jabatan LIKE '%kepsek%' OR jabatan LIKE '%pimpinan%' LIMIT 1");
-    $stmt->execute();
-    $stmt->bind_result($nama_penilai, $nip_penilai);
-    $stmt->fetch();
-    $stmt->close();
-
-    // Default penilai jika tidak ditemukan
+    // Default penilai jika tidak ada data
     if (!$nama_penilai) {
         $nama_penilai = "H. JAJANG GUNAWAN, S.Ag., M.Pd.I";
         $nip_penilai = "196708251992031003";
@@ -416,6 +409,13 @@ include '../template/topbar.php';
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </main>
+    <?php include __DIR__ . '/../template/footer.php'; ?>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
             </div>
         </div>
     </main>
