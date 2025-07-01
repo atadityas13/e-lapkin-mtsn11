@@ -119,11 +119,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 : '';
             $nama_kegiatan_harian = isset($_POST['nama_kegiatan_harian']) ? trim($_POST['nama_kegiatan_harian']) : '';
 
-            // Handle file upload
+            // Handle file upload (only for add action)
             $lampiran = NULL;
-            if (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
+            if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
                 $file_tmp_name = $_FILES['lampiran']['tmp_name'];
-                $file_name = uniqid() . '_' . basename($_FILES['lampiran']['name']);
+                $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                
+                if (!in_array($file_extension, $allowed_extensions)) {
+                    set_swal('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+                
+                // Check file size (max 2MB)
+                if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
+                    set_swal('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+                
+                $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
                 $upload_dir = __DIR__ . '/../uploads/lkh/';
                 $file_path = $upload_dir . $file_name;
 
@@ -142,7 +158,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
             }
 
-
             // Validasi: Nama Kegiatan wajib diisi
             if (empty($tanggal_lkh) || empty($id_rkb) || empty($nama_kegiatan_harian) || empty($uraian_kegiatan_lkh) || empty($jumlah_realisasi) || empty($satuan_realisasi)) {
                 set_swal('error', 'Gagal', 'Semua field harus diisi.');
@@ -152,13 +167,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
                 } else { // action == 'edit'
                     $id_lkh = (int)$_POST['id_lkh'];
-                    if ($lampiran) {
-                        $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ?, lampiran = ? WHERE id_lkh = ? AND id_pegawai = ?");
-                        $stmt->bind_param("isssssisi", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran, $id_lkh, $id_pegawai_login);
-                    } else {
-                        $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
-                        $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
-                    }
+                    $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
+                    $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
                 }
 
                 if ($stmt->execute()) {
@@ -170,12 +180,108 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 $stmt->close();
             }
+        } elseif ($action == 'add_attachment') {
+            $id_lkh = (int)$_POST['id_lkh'];
+            
+            // Handle file upload
+            if (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
+                $file_tmp_name = $_FILES['lampiran']['tmp_name'];
+                $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                
+                if (!in_array($file_extension, $allowed_extensions)) {
+                    set_swal('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+                
+                // Check file size (max 2MB)
+                if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
+                    set_swal('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+                
+                $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
+                $upload_dir = __DIR__ . '/../uploads/lkh/';
+                $file_path = $upload_dir . $file_name;
+
+                // Pastikan direktori upload ada
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0777, true);
+                }
+
+                // Pindahkan file yang diunggah
+                if (move_uploaded_file($file_tmp_name, $file_path)) {
+                    $stmt = $conn->prepare("UPDATE lkh SET lampiran = ? WHERE id_lkh = ? AND id_pegawai = ?");
+                    $stmt->bind_param("sii", $file_name, $id_lkh, $id_pegawai_login);
+                    
+                    if ($stmt->execute()) {
+                        set_swal('success', 'Berhasil', 'Lampiran berhasil ditambahkan!');
+                    } else {
+                        set_swal('error', 'Gagal', 'Gagal menyimpan lampiran ke database.');
+                        // Delete uploaded file if database save fails
+                        if (file_exists($file_path)) {
+                            unlink($file_path);
+                        }
+                    }
+                    $stmt->close();
+                } else {
+                    set_swal('error', 'Gagal', 'Gagal mengunggah lampiran.');
+                }
+            } else {
+                set_swal('error', 'Gagal', 'Tidak ada file yang dipilih atau terjadi kesalahan upload.');
+            }
+            
+            echo '<script>window.location="lkh.php?month=' . $filter_month . '&year=' . $filter_year . '";</script>';
+            exit();
+        } elseif ($action == 'remove_attachment') {
+            $id_lkh = (int)$_POST['id_lkh'];
+            
+            // Get file name to delete
+            $stmt_get_file = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt_get_file->bind_param("ii", $id_lkh, $id_pegawai_login);
+            $stmt_get_file->execute();
+            $stmt_get_file->bind_result($file_to_delete);
+            $stmt_get_file->fetch();
+            $stmt_get_file->close();
+            
+            // Remove lampiran from database
+            $stmt = $conn->prepare("UPDATE lkh SET lampiran = NULL WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt->bind_param("ii", $id_lkh, $id_pegawai_login);
+            
+            if ($stmt->execute()) {
+                // Delete file if exists
+                if ($file_to_delete && file_exists(__DIR__ . '/../uploads/lkh/' . $file_to_delete)) {
+                    unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
+                }
+                set_swal('success', 'Berhasil', 'Lampiran berhasil dihapus!');
+            } else {
+                set_swal('error', 'Gagal', 'Gagal menghapus lampiran.');
+            }
+            $stmt->close();
+            
+            echo '<script>window.location="lkh.php?month=' . $filter_month . '&year=' . $filter_year . '";</script>';
+            exit();
         } elseif ($action == 'delete') {
             $id_lkh_to_delete = (int)$_POST['id_lkh'];
+            
+            // Get file name to delete
+            $stmt_get_file = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt_get_file->bind_param("ii", $id_lkh_to_delete, $id_pegawai_login);
+            $stmt_get_file->execute();
+            $stmt_get_file->bind_result($file_to_delete);
+            $stmt_get_file->fetch();
+            $stmt_get_file->close();
+            
             $stmt = $conn->prepare("DELETE FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
             $stmt->bind_param("ii", $id_lkh_to_delete, $id_pegawai_login);
 
             if ($stmt->execute()) {
+                // Delete file if exists
+                if ($file_to_delete && file_exists(__DIR__ . '/../uploads/lkh/' . $file_to_delete)) {
+                    unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
+                }
                 set_swal('success', 'Berhasil', 'LKH berhasil dihapus!');
             } else {
                 set_swal('error', 'Gagal', "Gagal menghapus LKH: " . $stmt->error);
@@ -508,9 +614,18 @@ include __DIR__ . '/../template/topbar.php';
                                             <td><?php echo htmlspecialchars($lkh['jumlah_realisasi'] . ' ' . $lkh['satuan_realisasi']); ?></td>
                                             <td>
                                                 <?php if (!empty($lkh['lampiran'])): ?>
-                                                    <a href="../uploads/lkh/<?php echo htmlspecialchars($lkh['lampiran']); ?>" target="_blank" class="btn btn-sm btn-info">Lihat</a>
+                                                    <a href="../uploads/lkh/<?php echo htmlspecialchars($lkh['lampiran']); ?>" target="_blank" class="btn btn-sm btn-info mb-1">
+                                                        <i class="fas fa-eye me-1"></i>Lihat
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-danger mb-1" data-bs-toggle="modal" data-bs-target="#modalHapusLampiran<?php echo $lkh['id_lkh']; ?>"
+                                                        <?php echo ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : ''; ?>>
+                                                        <i class="fas fa-trash me-1"></i>Hapus
+                                                    </button>
                                                 <?php else: ?>
-                                                    <span class="text-muted">-</span>
+                                                    <button type="button" class="btn btn-sm btn-success mb-1" data-bs-toggle="modal" data-bs-target="#modalTambahLampiran<?php echo $lkh['id_lkh']; ?>"
+                                                        <?php echo ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : ''; ?>>
+                                                        <i class="fas fa-plus me-1"></i>Tambah
+                                                    </button>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
@@ -714,23 +829,62 @@ include __DIR__ . '/../template/topbar.php';
                 <option value="7" <?php echo ($edit_lkh['satuan_realisasi'] == 'Unit') ? 'selected' : ''; ?>>Unit</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label for="lampiran" class="form-label">Lampiran Dokumen (opsional, PDF/JPG/PNG)</label>
-              <?php if (!empty($edit_lkh['lampiran'])): ?>
-                <div class="mb-2">
-                  <a href="../uploads/lkh/<?php echo htmlspecialchars($edit_lkh['lampiran']); ?>" target="_blank" class="btn btn-sm btn-info">Lihat Lampiran Saat Ini</a>
-                </div>
-              <?php endif; ?>
-              <input type="file" class="form-control" id="lampiran" name="lampiran" accept=".pdf,.jpg,.jpeg,.png"
-                <?php echo ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : ''; ?>>
-              <div class="form-text">Kosongkan jika tidak ingin mengubah lampiran. Ukuran maksimal 2MB.</div>
-            </div>
             <button type="submit" class="btn btn-warning" <?php echo empty($rkb_list) || ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : ''; ?>>Update LKH</button>
             <a href="lkh.php?month=<?php echo date('m', strtotime($edit_lkh['tanggal_lkh'])); ?>&year=<?php echo date('Y', strtotime($edit_lkh['tanggal_lkh'])); ?>" class="btn btn-secondary">Batal Edit</a>
           </form>
         </div>
       </div>
       <?php endif; ?>
+
+      <?php $no = 1; foreach ($lkhs as $lkh): ?>
+      <!-- Modal Tambah Lampiran -->
+      <div class="modal fade" id="modalTambahLampiran<?php echo $lkh['id_lkh']; ?>" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <form action="lkh.php" method="POST" class="modal-content" enctype="multipart/form-data">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Tambah Lampiran</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" name="action" value="add_attachment">
+              <input type="hidden" name="id_lkh" value="<?php echo $lkh['id_lkh']; ?>">
+              <div class="mb-3">
+                <label for="lampiran_<?php echo $lkh['id_lkh']; ?>" class="form-label">Pilih File Lampiran</label>
+                <input type="file" class="form-control" id="lampiran_<?php echo $lkh['id_lkh']; ?>" name="lampiran" accept=".pdf,.jpg,.jpeg,.png" required>
+                <div class="form-text">Format yang diizinkan: PDF, JPG, JPEG, PNG. Ukuran maksimal 2MB.</div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-success">Tambah Lampiran</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Hapus Lampiran -->
+      <div class="modal fade" id="modalHapusLampiran<?php echo $lkh['id_lkh']; ?>" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <form action="lkh.php" method="POST" class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Hapus Lampiran</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" name="action" value="remove_attachment">
+              <input type="hidden" name="id_lkh" value="<?php echo $lkh['id_lkh']; ?>">
+              <p>Anda yakin ingin menghapus lampiran untuk LKH ini?</p>
+              <p class="text-danger"><small>File lampiran akan dihapus secara permanen dan tidak dapat dikembalikan.</small></p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-danger">Hapus Lampiran</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <?php endforeach; ?>
+
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
