@@ -54,13 +54,19 @@ $months = [
 function generate_lkb_pdf($id_pegawai, $bulan, $tahun) {
     global $conn, $months;
 
-    // Data Pegawai
-    $stmt = $conn->prepare("SELECT nama, nip, jabatan, unit_kerja FROM pegawai WHERE id_pegawai = ?");
+    // Data Pegawai dan Penilai
+    $stmt = $conn->prepare("SELECT nama, nip, jabatan, unit_kerja, nama_penilai, nip_penilai FROM pegawai WHERE id_pegawai = ?");
     $stmt->bind_param("i", $id_pegawai);
     $stmt->execute();
-    $stmt->bind_result($nama_pegawai, $nip, $jabatan, $unit_kerja);
+    $stmt->bind_result($nama_pegawai, $nip, $jabatan, $unit_kerja, $nama_penilai, $nip_penilai);
     $stmt->fetch();
     $stmt->close();
+
+    // Default penilai jika tidak ada data
+    if (!$nama_penilai) {
+        $nama_penilai = "H. JAJANG GUNAWAN, S.Ag., M.Pd.I";
+        $nip_penilai = "196708251992031003";
+    }
 
     // Data RKB (Rencana Kinerja Bulanan)
     $stmt = $conn->prepare("SELECT uraian_kegiatan, kuantitas, satuan FROM rkb WHERE id_pegawai=? AND bulan=? AND tahun=? ORDER BY id_rkb ASC");
@@ -89,144 +95,134 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun) {
     // Biodata Pegawai dalam bentuk tabel
     $pdf->SetFont('Arial', '', 10);
     $pdf->SetFillColor(240, 240, 240);
-    $pdf->Cell(40, 8, 'Nama', 1, 0, 'L', true);
-    $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
     $pdf->SetFont('Arial', 'B', 10);
-    $pdf->Cell(0, 8, $nama_pegawai, 1, 1, 'L');
+    $pdf->Cell(40, 8, ' Nama', 1, 0, 'L', true);
+    $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
+    // Cetak Nama Pegawai tebal
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(0, 8, ' ' . $nama_pegawai, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' NIP', 1, 0, 'L', true);
+    $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
     $pdf->SetFont('Arial', '', 10);
-    $pdf->Cell(40, 8, 'NIP', 1, 0, 'L', true);
+    $pdf->Cell(0, 8, ' ' . $nip, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' Jabatan', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $nip, 1, 1, 'L');
-    $pdf->Cell(40, 8, 'Jabatan', 1, 0, 'L', true);
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 8, ' ' . $jabatan, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' Unit Kerja', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $jabatan, 1, 1, 'L');
-    $pdf->Cell(40, 8, 'Unit Kerja', 1, 0, 'L', true);
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 8, ' ' . $unit_kerja, 1, 1, 'L');
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->Cell(40, 8, ' Bulan', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $unit_kerja, 1, 1, 'L');
-    $pdf->Cell(40, 8, 'Bulan', 1, 0, 'L', true);
-    $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->Cell(0, 8, $months[$bulan] . " " . $tahun, 1, 1, 'L');
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 8, ' ' . $months[$bulan] . " " . $tahun, 1, 1, 'L');
     $pdf->Ln(6);
 
-    // Tabel Sasaran Kinerja Pegawai (RKB) - Tanpa judul "I."
-    // $pdf->SetFont('Arial', 'B', 10);
-    // $pdf->Cell(0, 10, 'I. SASARAN KINERJA PEGAWAI (Rencana Kinerja Bulanan)', 0, 1, 'L'); // Baris ini dihapus
+    // Tabel Sasaran Kinerja Pegawai (RKB)
     $pdf->SetFont('Arial', 'B', 9);
-    $pdf->SetFillColor(200, 220, 255);
+    $pdf->SetFillColor(240, 240, 240);
     $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
     $pdf->Cell(115, 10, 'Uraian Kegiatan', 1, 0, 'C', true);
-    $pdf->Cell(35, 10, 'Jumlah', 1, 0, 'C', true);
-    $pdf->Cell(20, 10, 'Satuan', 1, 1, 'C', true);
+    $pdf->Cell(25, 10, 'Jumlah', 1, 0, 'C', true);
+    $pdf->Cell(30, 10, 'Satuan', 1, 1, 'C', true);
 
     $pdf->SetFont('Arial', '', 9);
     $no_rkb = 1;
     foreach ($rkb_data as $row_rkb) {
-        $cell_widths = [10, 115, 35, 20];
-        $line_height = 6;
-        $uraian_lines = $pdf->GetStringWidth($row_rkb['uraian_kegiatan']) > $cell_widths[1] ? ceil($pdf->GetStringWidth($row_rkb['uraian_kegiatan']) / ($cell_widths[1] - 2)) : 1;
-        $max_lines_rkb = max($uraian_lines, 1);
-        $row_height_rkb = $line_height * $max_lines_rkb;
+        $cell_widths = [10, 115, 25, 30];
+        $line_height = 4;
+        
+        // Calculate lines needed for text wrapping
+        $uraian_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['uraian_kegiatan']) / ($cell_widths[1] - 4)));
+        $kuantitas_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['kuantitas']) / ($cell_widths[2] - 4)));
+        $satuan_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['satuan']) / ($cell_widths[3] - 4)));
+        
+        $max_lines = max($uraian_lines, $kuantitas_lines, $satuan_lines, 1);
+        $row_height = $line_height * $max_lines + 2;
 
-        $x = $pdf->GetX();
-        $y = $pdf->GetY();
+        // Check if we need a new page
+        if ($pdf->GetY() + $row_height > 230) {
+            $pdf->AddPage();
+            // Redraw table header on new page
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetFillColor(200, 220, 255);
+            $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
+            $pdf->Cell(115, 10, 'Uraian Kegiatan', 1, 0, 'C', true);
+            $pdf->Cell(25, 10, 'Jumlah', 1, 0, 'C', true);
+            $pdf->Cell(30, 10, 'Satuan', 1, 1, 'C', true);
+            $pdf->SetFont('Arial', '', 9);
+        }
 
-        $pdf->MultiCell($cell_widths[0], $row_height_rkb, $no_rkb++, 1, 'C');
-        $pdf->SetXY($x + $cell_widths[0], $y);
-        $pdf->MultiCell($cell_widths[1], $row_height_rkb, $row_rkb['uraian_kegiatan'], 1, 'L');
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1], $y);
-        $pdf->MultiCell($cell_widths[2], $row_height_rkb, $row_rkb['kuantitas'], 1, 'C');
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y);
-        $pdf->MultiCell($cell_widths[3], $row_height_rkb, $row_rkb['satuan'], 1, 'C');
-        $pdf->Ln($row_height_rkb);
+        $start_x = $pdf->GetX();
+        $start_y = $pdf->GetY();
+
+        // Draw cells with consistent height
+        $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 1, 0, 'C');
+        
+        // Draw borders for MultiCell areas
+        $pdf->Rect($start_x + $cell_widths[0], $start_y, $cell_widths[1], $row_height);
+        $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1], $start_y, $cell_widths[2], $row_height);
+        $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $start_y, $cell_widths[3], $row_height);
+        
+        // Add content with padding
+        $pdf->SetXY($start_x + $cell_widths[0] + 1, $start_y + 1);
+        $pdf->MultiCell($cell_widths[1] - 2, 4, $row_rkb['uraian_kegiatan'], 0, 'L');
+        
+        $pdf->SetXY($start_x + $cell_widths[0] + $cell_widths[1] + 1, $start_y + 1);
+        $pdf->MultiCell($cell_widths[2] - 2, 4, $row_rkb['kuantitas'], 0, 'C');
+        
+        $pdf->SetXY($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + 1, $start_y + 1);
+        $pdf->MultiCell($cell_widths[3] - 2, 4, $row_rkb['satuan'], 0, 'C');
+        
+        // Move to next row
+        $pdf->SetXY($start_x, $start_y + $row_height);
     }
-    // $pdf->Ln(5); // Jeda ini mungkin tidak perlu terlalu besar jika tidak ada tabel kedua
 
-    // Tabel Realisasi Kinerja Bulanan (dari LKH) - Seluruh bagian ini dihapus
-    /*
-    $pdf->SetFont('Arial', 'B', 10);
-    $pdf->Cell(0, 10, 'II. REALISASI KINERJA BULANAN (diambil dari LKH)', 0, 1, 'L');
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->SetFillColor(200, 220, 255);
-    $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
-    $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
-    $pdf->Cell(40, 10, 'Kegiatan', 1, 0, 'C', true);
-    $pdf->Cell(75, 10, 'Uraian Tugas Kegiatan/ Tugas Jabatan', 1, 0, 'C', true);
-    $pdf->Cell(20, 10, 'Realisasi', 1, 1, 'C', true);
-
-    $pdf->SetFont('Arial', '', 9);
-    $no_lkh = 1;
-    $hari_indo = [
-        'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
-        'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
-    ];
-
-    foreach ($lkh_data as $row_lkh) {
-        $hari = $hari_indo[date('l', strtotime($row_lkh['tanggal_lkh']))];
-        $tanggal = date('d-m-Y', strtotime($row_lkh['tanggal_lkh']));
-
-        $cell_widths = [10, 35, 40, 75, 20];
-        $line_height = 6;
-        $kegiatan_lines = $pdf->GetStringWidth($row_lkh['nama_kegiatan_harian']) > $cell_widths[2] ? ceil($pdf->GetStringWidth($row_lkh['nama_kegiatan_harian']) / ($cell_widths[2] - 2)) : 1;
-        $uraian_lines = $pdf->GetStringWidth($row_lkh['uraian_kegiatan_lkh']) > $cell_widths[3] ? ceil($pdf->GetStringWidth($row_lkh['uraian_kegiatan_lkh']) / ($cell_widths[3] - 2)) : 1;
-        $max_lines_lkh = max($kegiatan_lines, $uraian_lines, 1);
-        $row_height_lkh = $line_height * $max_lines_lkh;
-
-        $x = $pdf->GetX();
-        $y = $pdf->GetY();
-
-        $jumlah_kegiatan = ($row_lkh['jumlah_realisasi'] !== null && $row_lkh['satuan_realisasi'] !== null) ? $row_lkh['jumlah_realisasi'] . ' ' . $row_lkh['satuan_realisasi'] : '-';
-
-        $pdf->MultiCell($cell_widths[0], $row_height_lkh, $no_lkh++, 1, 'C');
-        $pdf->SetXY($x + $cell_widths[0], $y);
-        $pdf->MultiCell($cell_widths[1], $row_height_lkh, "$hari, $tanggal", 1, 'L');
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1], $y);
-        $pdf->MultiCell($cell_widths[2], $row_height_lkh, $row_lkh['nama_kegiatan_harian'], 1, 'L');
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $y);
-        $pdf->MultiCell($cell_widths[3], $row_height_lkh, $row_lkh['uraian_kegiatan_lkh'], 1, 'L');
-        $pdf->SetXY($x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + $cell_widths[3], $y);
-        $pdf->Cell($cell_widths[4], $row_height_lkh, $jumlah_kegiatan, 1, 0, 'C');
-        $pdf->Ln($row_height_lkh);
+    // Check if we need a new page for signature (need at least 50mm space)
+    if ($pdf->GetY() > 230) {
+        $pdf->AddPage();
     }
-    */
-    $pdf->Ln(10); // Jeda sebelum tanda tangan
+
+    $pdf->Ln(10);
 
     // Footer Signatures
     $pdf->SetFont('Arial', '', 10);
 
-    $nama_penilai = "H. JAJANG GUNAWAN, S.Ag., M.Pd.I";
-    $nip_penilai = "196708251992031003";
-
-    $left_margin = 15;
-    $right_margin = 15;
-    $page_width = 210 - $left_margin - $right_margin;
+    // Tanda tangan rata kiri namun tetap pada posisinya
+    $left_margin = 25;
     $col_width = 80;
-    $gap = 30;
+    $gap = 35;
 
     $pdf->SetX($left_margin);
-// Baris untuk titimangsa (di atas Pegawai yang dinilai)
-$pdf->Cell($col_width, 5, '', 0, 0, 'L'); // Kolom kiri kosong atau bisa diisi teks lain jika perlu
-$pdf->Cell($gap); // Jarak antar kolom
-$pdf->Cell($col_width, 5, "Cingambul, " . date("d") . " " . $months[$bulan] . " " . $tahun, 0, 1, 'L'); // Titimangsa
+    // Baris untuk titimangsa (di atas Pegawai yang dinilai)
+    $pdf->Cell($col_width, 5, '', 0, 0, 'L'); // Kolom kiri kosong
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, "Cingambul, " . date("d") . " " . $months[$bulan] . " " . $tahun, 0, 1, 'L'); // Titimangsa
 
-// Baris untuk Pejabat Penilai dan Pegawai yang dinilai (sejajar)
-$pdf->SetX($left_margin);
-$pdf->Cell($col_width, 5, 'Pejabat Penilai,', 0, 0, 'L'); // Pejabat Penilai
-$pdf->Cell($gap); // Jarak antar kolom
-$pdf->Cell($col_width, 5, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
+    // Baris untuk Pejabat Penilai dan Pegawai yang dinilai (sejajar)
+    $pdf->SetX($left_margin);
+    $pdf->Cell($col_width, 5, 'Pejabat Penilai,', 0, 0, 'L'); // Pejabat Penilai
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
 
-$pdf->Ln(17); // Jarak antar baris untuk tanda tangan/nama
+    $pdf->Ln(20); // Jarak antar baris untuk tanda tangan/nama
 
-$pdf->SetFont('Arial', 'BU', 10);
-$pdf->SetX($left_margin);
-$pdf->Cell($col_width, 5, $nama_penilai, 0, 0, 'L'); // Nama Penilai
-$pdf->Cell($gap); // Jarak antar kolom
-$pdf->Cell($col_width, 5, $nama_pegawai, 0, 1, 'L'); // Nama Pegawai
+    $pdf->SetFont('Arial', 'BU', 10);
+    $pdf->SetX($left_margin);
+    $pdf->Cell($col_width, 5, $nama_penilai, 0, 0, 'L'); // Nama Penilai
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, $nama_pegawai, 0, 1, 'L'); // Nama Pegawai
 
-$pdf->SetFont('Arial', '', 10);
-$pdf->SetX($left_margin);
-$pdf->Cell($col_width, 5, 'NIP. ' . $nip_penilai, 0, 0, 'L'); // NIP Penilai
-$pdf->Cell($gap); // Jarak antar kolom
-$pdf->Cell($col_width, 5, 'NIP. ' . $nip, 0, 1, 'L'); // NIP Pegawai
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->SetX($left_margin);
+    $pdf->Cell($col_width, 5, 'NIP. ' . $nip_penilai, 0, 0, 'L'); // NIP Penilai
+    $pdf->Cell($gap); // Jarak antar kolom
+    $pdf->Cell($col_width, 5, 'NIP. ' . $nip, 0, 1, 'L'); // NIP Pegawai
 
     // Simpan PDF dengan nama LKB_Bulan_Tahun_NIP.pdf
     $dir = "../generated";
