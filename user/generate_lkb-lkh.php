@@ -173,13 +173,16 @@ include '../template/topbar.php';
                                                     echo '<a href="../generated/' . $lkb_filename_for_download . '" class="btn btn-success btn-sm" target="_blank">
                                                                 <i class="fas fa-download"></i> Download
                                                             </a>
-                                                            <a href="generate_lkb.php?bulan=' . $bulan . '&tahun=' . $tahun . '&aksi=generate" class="btn btn-warning btn-sm ms-1">
+                                                            <button type="button" class="btn btn-warning btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
+                                                                data-bulan="' . $bulan . '" data-tahun="' . $tahun . '">
                                                                 <i class="fas fa-sync"></i> Generate Ulang
-                                                            </a>';
+                                                            </button>';
                                                 } else {
-                                                    echo '<a href="generate_lkb.php?bulan=' . $bulan . '&tahun=' . $tahun . '&aksi=generate" class="btn btn-primary btn-sm">
+                                                    // Ganti dengan tombol modal
+                                                    echo '<button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
+                                                                data-bulan="' . $bulan . '" data-tahun="' . $tahun . '">
                                                                 <i class="fas fa-cogs"></i> Generate LKB
-                                                            </a>';
+                                                            </button>';
                                                 }
                                                 echo '</td></tr>';
                                             }
@@ -261,13 +264,16 @@ include '../template/topbar.php';
                                                     echo '<a href="../generated/' . $lkh_filename_for_download . '" class="btn btn-success btn-sm" target="_blank">
                                                                 <i class="fas fa-download"></i> Download
                                                             </a>
-                                                            <a href="generate_lkh.php?bulan=' . $bulan . '&tahun=' . $tahun . '&aksi=generate" class="btn btn-warning btn-sm ms-1">
+                                                            <button type="button" class="btn btn-warning btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
+                                                                data-bulan="' . $bulan . '" data-tahun="' . $tahun . '">
                                                                 <i class="fas fa-sync"></i> Generate Ulang
-                                                            </a>';
+                                                            </button>';
                                                 } else {
-                                                    echo '<a href="generate_lkh.php?bulan=' . $bulan . '&tahun=' . $tahun . '&aksi=generate" class="btn btn-primary btn-sm">
+                                                    // Ganti dengan tombol modal
+                                                    echo '<button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
+                                                                data-bulan="' . $bulan . '" data-tahun="' . $tahun . '">
                                                                 <i class="fas fa-cogs"></i> Generate LKH
-                                                            </a>';
+                                                            </button>';
                                                 }
                                                 echo '</td></tr>';
                                             }
@@ -286,3 +292,92 @@ include '../template/topbar.php';
     </main>
     <?php include __DIR__ . '/../template/footer.php'; ?>
 </div>
+
+<!-- Modal Generate LKB -->
+<div class="modal fade" id="generateLkbModal" tabindex="-1" aria-labelledby="generateLkbModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="generateLkbModalLabel">Tentukan Tempat dan Tanggal Cetak LKB</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" id="generateLkbForm" action="">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="tempat_cetak_lkb" class="form-label">Tempat Cetak</label>
+            <input type="text" class="form-control" id="tempat_cetak_lkb" name="tempat_cetak" value="Cingambul" required>
+          </div>
+          <div class="mb-3">
+            <label for="tanggal_cetak_lkb" class="form-label">Tanggal Cetak</label>
+            <input type="date" class="form-control" id="tanggal_cetak_lkb" name="tanggal_cetak" value="<?= date('Y-m-d') ?>" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Generate LKB</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Generate LKH -->
+<div class="modal fade" id="generateLkhModal" tabindex="-1" aria-labelledby="generateLkhModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="generateLkhModalLabel">Tentukan Tempat dan Tanggal Cetak LKH</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" id="generateLkhForm" action="">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="tempat_cetak_lkh" class="form-label">Tempat Cetak</label>
+            <input type="text" class="form-control" id="tempat_cetak_lkh" name="tempat_cetak" value="Cingambul" required>
+          </div>
+          <div class="mb-3">
+            <label for="tanggal_cetak_lkh" class="form-label">Tanggal Cetak</label>
+            <input type="date" class="form-control" id="tanggal_cetak_lkh" name="tanggal_cetak" value="<?= date('Y-m-d') ?>" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Generate LKH</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Script untuk mengisi data bulan dan tahun ke modal sebelum ditampilkan
+var generateLkbModal = document.getElementById('generateLkbModal');
+generateLkbModal.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget; // Tombol yang mengaktifkan modal
+    var bulan = button.getAttribute('data-bulan');
+    var tahun = button.getAttribute('data-tahun');
+
+    var modalBulan = generateLkbModal.querySelector('#bulan');
+    var modalTahun = generateLkbModal.querySelector('#tahun');
+    modalBulan.value = bulan;
+    modalTahun.value = tahun;
+});
+
+// Set form action when LKB modal is opened
+document.getElementById('generateLkbModal').addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var bulan = button.getAttribute('data-bulan');
+    var tahun = button.getAttribute('data-tahun');
+    var form = document.getElementById('generateLkbForm');
+    form.action = 'generate_lkb.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+});
+
+// Set form action when LKH modal is opened
+document.getElementById('generateLkhModal').addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var bulan = button.getAttribute('data-bulan');
+    var tahun = button.getAttribute('data-tahun');
+    var form = document.getElementById('generateLkhForm');
+    form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+});
+</script>
