@@ -43,6 +43,10 @@ $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : date('n');
 $tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : date('Y');
 $aksi = isset($_GET['aksi']) ? $_GET['aksi'] : '';
 
+// Handle POST data for place and date
+$tempat_cetak = isset($_POST['tempat_cetak']) ? $_POST['tempat_cetak'] : 'Cingambul';
+$tanggal_cetak = isset($_POST['tanggal_cetak']) ? $_POST['tanggal_cetak'] : date('Y-m-d');
+
 if (!$id_pegawai || !$bulan || !$tahun) {
     header('Location: generate_laporan.php');
     exit;
@@ -54,8 +58,16 @@ $months = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
 
-function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
+function generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null) {
     global $conn, $months;
+    
+    // Set default date if not provided
+    if (!$tanggal_cetak) {
+        $tanggal_cetak = date('Y-m-d');
+    }
+    
+    // Format tanggal cetak - Use different variable name to avoid conflict
+    $tanggal_signature = date('d', strtotime($tanggal_cetak)) . " " . $months[(int)date('m', strtotime($tanggal_cetak))] . " " . date('Y', strtotime($tanggal_cetak));
 
     // Data Pegawai dan Penilai
     $stmt = $conn->prepare("SELECT nama, nip, jabatan, unit_kerja, nama_penilai, nip_penilai FROM pegawai WHERE id_pegawai = ?");
@@ -102,8 +114,9 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
     $pdf->Ln(4);
 
     // Biodata Pegawai dalam bentuk tabel
-    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->SetFont('Arial', '', 10);
     $pdf->SetFillColor(240, 240, 240);
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(40, 8, ' Nama', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
     // Cetak Nama Pegawai tebal
@@ -133,7 +146,7 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
 
     // Table Header
     $pdf->SetFont('Arial', 'B', 9); // Cetak header tabel tebal
-    $pdf->SetFillColor(200, 220, 255);
+    $pdf->SetFillColor(240, 240, 240);
     $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
     $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
     $pdf->Cell(45, 10, 'Kegiatan', 1, 0, 'C', true);
@@ -167,7 +180,7 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
 
             // Calculate max height for multi-line cells
             $cell_widths = [10, 35, 45, 65, 25];
-            $line_height = 4;
+            $line_height = 5;
             
             // Calculate lines needed for text wrapping
             $kegiatan_lines = max(1, ceil($pdf->GetStringWidth($kegiatan_text) / ($cell_widths[2] - 4)));
@@ -181,12 +194,12 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
             $total_height += $row_height;
         }
 
-        // Check if we need a new page (reserve space for signature - 50mm)
-        if ($pdf->GetY() + $total_height > 230) {
+        // Check if we need a new page (optimize threshold to better utilize page space)
+        if ($pdf->GetY() + $total_height > 267) {
             $pdf->AddPage();
             // Redraw table header on new page
             $pdf->SetFont('Arial', 'B', 9);
-            $pdf->SetFillColor(200, 220, 255);
+            $pdf->SetFillColor(240, 240, 240);
             $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
             $pdf->Cell(35, 10, 'Hari / Tanggal', 1, 0, 'C', true);
             $pdf->Cell(45, 10, 'Kegiatan', 1, 0, 'C', true);
@@ -260,46 +273,45 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun) {
         $pdf->SetXY($start_x, $start_y + $total_height);
     }
 
-    // Check if we need a new page for signature (need at least 50mm space)
-    if ($pdf->GetY() > 230) {
+    // Check if we need a new page for signature (optimize for better space usage)
+    if ($pdf->GetY() > 267) {
         $pdf->AddPage();
     }
 
-    // Footer Signatures
-    $pdf->Ln(10);
+    // Footer Signatures - more compact layout
+    $pdf->Ln(10); // Minimal spacing at top of signature block
     $pdf->SetFont('Arial', '', 10);
 
-    // Tanda tangan rata kiri namun tetap pada posisinya
+    // Tanda tangan dengan layout yang lebih kompak
     $left_margin = 25;
     $col_width = 80;
     $gap = 35;
 
     $pdf->SetX($left_margin);
     // Baris untuk titimangsa (di atas Pegawai yang dinilai)
-    $pdf->Cell($col_width, 5, '', 0, 0, 'L'); // Kolom kiri kosong
+    $pdf->Cell($col_width, 4, '', 0, 0, 'L'); // Kolom kiri kosong, tinggi dikurangi
     $pdf->Cell($gap); // Jarak antar kolom
-    $pdf->Cell($col_width, 5, "Cingambul, " . date("d") . " " . $months[$bulan] . " " . $tahun, 0, 1, 'L'); // Titimangsa
-
+    $pdf->Cell($col_width, 4, $tempat_cetak . ", " . $tanggal_signature, 0, 1, 'L'); // Use the correct signature date variable
 
     // Baris untuk Pejabat Penilai dan Pegawai yang dinilai (sejajar)
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, 'Pejabat Penilai,', 0, 0, 'L'); // Pejabat Penilai
+    $pdf->Cell($col_width, 4, 'Pejabat Penilai,', 0, 0, 'L'); // Pejabat Penilai
     $pdf->Cell($gap); // Jarak antar kolom
-    $pdf->Cell($col_width, 5, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
+    $pdf->Cell($col_width, 4, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
 
-    $pdf->Ln(20); // Jarak antar baris untuk tanda tangan/nama
+    $pdf->Ln(20); // Reduced signature space for compactness
 
     $pdf->SetFont('Arial', 'BU', 10);
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, $nama_penilai, 0, 0, 'L'); // Nama Penilai
+    $pdf->Cell($col_width, 4, $nama_penilai, 0, 0, 'L'); // Nama Penilai
     $pdf->Cell($gap); // Jarak antar kolom
-    $pdf->Cell($col_width, 5, $nama_pegawai, 0, 1, 'L'); // Nama Pegawai
+    $pdf->Cell($col_width, 4, $nama_pegawai, 0, 1, 'L'); // Nama Pegawai
 
     $pdf->SetFont('Arial', '', 10);
     $pdf->SetX($left_margin);
-    $pdf->Cell($col_width, 5, 'NIP. ' . $nip_penilai, 0, 0, 'L'); // NIP Penilai
+    $pdf->Cell($col_width, 4, 'NIP. ' . $nip_penilai, 0, 0, 'L'); // NIP Penilai
     $pdf->Cell($gap); // Jarak antar kolom
-    $pdf->Cell($col_width, 5, 'NIP. ' . $nip, 0, 1, 'L'); // NIP Pegawai
+    $pdf->Cell($col_width, 4, 'NIP. ' . $nip, 0, 1, 'L'); // NIP Pegawai
 
     // Simpan PDF
     $dir = "../generated";
@@ -354,11 +366,11 @@ include '../template/topbar.php';
                             if ($count_lkh == 0) {
                                 echo '<div class="alert alert-danger">Data LKH bulan ini belum ada.</div>';
                             } else {
-                                if ($aksi === 'generate') {
+                                if ($aksi === 'generate' && isset($_POST['tempat_cetak']) && isset($_POST['tanggal_cetak'])) {
                                     if (file_exists($pdf_path)) {
                                         unlink($pdf_path);
                                     }
-                                    $pdf_file = generate_lkh_pdf($id_pegawai, $bulan, $tahun);
+                                    $pdf_file = generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
                                     $pdf_url = str_replace('../', '', $pdf_file);
                                     echo "
                                         <script>
@@ -391,16 +403,16 @@ include '../template/topbar.php';
                                     <th>Aksi</th>
                                     <td>
                                         <?php if (!empty($show_generate) && $show_generate): ?>
-                                            <a href="?id_pegawai=<?= $id_pegawai ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate" class="btn btn-primary">
+                                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
                                                 <i class="fas fa-cogs"></i> Generate LKH
-                                            </a>
+                                            </button>
                                         <?php elseif (!empty($show_download) && $show_download): ?>
                                             <a href="/<?= $pdf_url ?>" target="_blank" class="btn btn-success btn-sm">
                                                 <i class="fas fa-download"></i> Download PDF
                                             </a>
-                                            <a href="?id_pegawai=<?= $id_pegawai ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate" class="btn btn-warning btn-sm">
+                                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#regenerateModal">
                                                 <i class="fas fa-sync-alt"></i> Regenerate
-                                            </a>
+                                            </button>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -415,11 +427,60 @@ include '../template/topbar.php';
     <?php include __DIR__ . '/../template/footer.php'; ?>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-            </div>
+<!-- Modal Generate -->
+<div class="modal fade" id="generateModal" tabindex="-1" aria-labelledby="generateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="generateModalLabel">Tentukan Tempat dan Tanggal Cetak</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="?id_pegawai=<?= $id_pegawai ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="tempat_cetak" class="form-label">Tempat Cetak</label>
+            <input type="text" class="form-control" id="tempat_cetak" name="tempat_cetak" value="Cingambul" required>
+          </div>
+          <div class="mb-3">
+            <label for="tanggal_cetak" class="form-label">Tanggal Cetak</label>
+            <input type="date" class="form-control" id="tanggal_cetak" name="tanggal_cetak" value="<?= date('Y-m-d') ?>" required>
+          </div>
         </div>
-    </main>
-    <?php include __DIR__ . '/../template/footer.php'; ?>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Generate LKH</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Regenerate -->
+<div class="modal fade" id="regenerateModal" tabindex="-1" aria-labelledby="regenerateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="regenerateModalLabel">Tentukan Tempat dan Tanggal Cetak</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="?id_pegawai=<?= $id_pegawai ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="tempat_cetak_regen" class="form-label">Tempat Cetak</label>
+            <input type="text" class="form-control" id="tempat_cetak_regen" name="tempat_cetak" value="Cingambul" required>
+          </div>
+          <div class="mb-3">
+            <label for="tanggal_cetak_regen" class="form-label">Tanggal Cetak</label>
+            <input type="date" class="form-control" id="tanggal_cetak_regen" name="tanggal_cetak" value="<?= date('Y-m-d') ?>" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-warning">Regenerate LKH</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
