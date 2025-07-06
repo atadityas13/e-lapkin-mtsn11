@@ -32,22 +32,87 @@ set_mobile_headers();
 
 session_start();
 
-// Cek apakah request method adalah POST
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    sendMobileError("Method not allowed", "INVALID_METHOD", 405);
+// Handle POST request untuk login
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nip = trim($_POST['nip'] ?? '');
+    $password = $_POST['password'] ?? '';
+    
+    // Validasi input
+    if (empty($nip) || empty($password)) {
+        sendMobileResponse(
+            null, 
+            'error', 
+            'NIP dan password harus diisi', 
+            400
+        );
+    }
+    
+    // Validasi panjang NIP (18 digit)
+    if (strlen($nip) !== 18 || !ctype_digit($nip)) {
+        sendMobileResponse(
+            null, 
+            'error', 
+            'NIP harus 18 digit angka', 
+            400
+        );
+    }
+    
+    // Cek apakah sudah login
+    if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true) {
+        sendMobileResponse(
+            ['redirect_url' => '/mobile-app/user/dashboard.php'], 
+            'info', 
+            'Anda sudah login', 
+            200
+        );
+    }
+    
+    // Autentikasi user menggunakan fungsi terintegrasi
+    $user = authenticateMobileUser($nip, $password);
+    
+    if ($user) {
+        // Log login berhasil
+        log_mobile_access('login_success', [
+            'user_id' => $user['id_pegawai'],
+            'nip' => $user['nip'],
+            'nama' => $user['nama']
+        ]);
+        
+        // Kirim respons sukses
+        sendMobileResponse(
+            [
+                'redirect_url' => '/mobile-app/user/dashboard.php',
+                'user' => [
+                    'nama' => $user['nama'],
+                    'nip' => $user['nip'],
+                    'jabatan' => $user['jabatan']
+                ],
+                'login_time' => date('Y-m-d H:i:s')
+            ], 
+            'success', 
+            'Login berhasil', 
+            200
+        );
+    } else {
+        // Log login gagal
+        log_mobile_access('login_failed', [
+            'nip' => $nip,
+            'reason' => 'invalid_credentials'
+        ]);
+        
+        // Kirim respons error
+        sendMobileResponse(
+            null, 
+            'error', 
+            'NIP atau password salah', 
+            401
+        );
+    }
 }
 
-// Validasi parameter mobile app
-if (!isset($_POST['mobile_app']) || $_POST['mobile_app'] !== '1') {
-    sendMobileError("Invalid mobile app request", "INVALID_APP_REQUEST", 400);
-}
-
-// Ambil data input
-$nip = trim($_POST['nip'] ?? '');
-$password = trim($_POST['password'] ?? '');
-$app_version = trim($_POST['app_version'] ?? '');
-
-// Validasi input dasar
+// Jika GET request, redirect ke index
+header("Location: /mobile-app/index.php");
+exit();
 if (empty($nip) || empty($password)) {
     sendMobileError("NIP dan Password harus diisi", "EMPTY_CREDENTIALS", 400);
 }

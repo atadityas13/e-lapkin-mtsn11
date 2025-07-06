@@ -61,6 +61,28 @@ include __DIR__ . '/../template/topbar.php';
                 <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Rekap dan cetak laporan kinerja bulanan</li>
                 <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Penilaian kinerja lebih efektif dan efisien</li>
               </ul>
+              
+              <!-- Mobile App Access Button -->
+              <?php if (!$is_admin): ?>
+              <div class="alert alert-info border-left-info" role="alert">
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <i class="fas fa-mobile-alt fa-2x text-info"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="text-info mb-1"><strong>Akses Mobile App</strong></h6>
+                    <p class="mb-2 small">Kelola LKH Anda dengan mudah menggunakan aplikasi mobile</p>
+                    <a href="<?php 
+                      require_once __DIR__ . '/../mobile-app/config/shared_session.php';
+                      echo createMobileBridgeUrl() ?: '#';
+                    ?>" class="btn btn-info btn-sm" <?php echo !createMobileBridgeUrl() ? 'disabled' : ''; ?>>
+                      <i class="fas fa-external-link-alt me-1"></i>Buka Mobile App
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <?php endif; ?>
+              
               <?php if ($is_admin): ?>
                 <div class="alert alert-warning mt-4 mb-0" role="alert">
                   <h5 class="alert-heading"><i class="fas fa-shield-alt me-2"></i>Anda adalah Administrator</h5>
@@ -91,6 +113,37 @@ include __DIR__ . '/../template/topbar.php';
           </div>
         </div>
       </div>
+
+      <!-- Mobile App Widget -->
+      <?php
+      // Include mobile app integration
+      if (file_exists(__DIR__ . '/../mobile-app/web_integration.php')) {
+          require_once __DIR__ . '/../mobile-app/web_integration.php';
+          
+          $mobile_status = checkMobileAppStatus();
+          if ($mobile_status['user_can_access']) {
+              echo '<div class="row mb-4">';
+              echo '<div class="col-lg-6">';
+              echo generateMobileAppWidget();
+              echo '</div>';
+              echo '<div class="col-lg-6">';
+              echo '<div class="card border-left-success shadow h-100 py-2">';
+              echo '<div class="card-body">';
+              echo '<div class="text-xs font-weight-bold text-success text-uppercase mb-2">Mobile Features</div>';
+              echo '<ul class="mb-0 small">';
+              echo '<li><i class="fas fa-check text-success me-1"></i> Dashboard Mobile</li>';
+              echo '<li><i class="fas fa-check text-success me-1"></i> Input LKH</li>';
+              echo '<li><i class="fas fa-check text-success me-1"></i> Lihat RKB</li>';
+              echo '<li><i class="fas fa-check text-success me-1"></i> Laporan</li>';
+              echo '</ul>';
+              echo '</div>';
+              echo '</div>';
+              echo '</div>';
+              echo '</div>';
+          }
+      }
+      ?>
+
       <!-- Tambahkan style khusus -->
       <style>
         .icon-circle {

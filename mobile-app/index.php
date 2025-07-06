@@ -57,8 +57,32 @@ if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true
     exit();
 }
 
-// Jika belum login, tampilkan form login (jangan redirect)
-// Hapus redirect yang tidak perlu
+// Handle error messages dari bridge atau login
+$error_message = '';
+$info_message = '';
+
+if (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'invalid_token':
+            $error_message = 'Token akses tidak valid';
+            break;
+        case 'token_expired':
+            $error_message = 'Token akses telah kedaluarsa';
+            break;
+        case 'access_denied':
+            $error_message = 'Akses ditolak. Hanya user yang bisa menggunakan mobile app';
+            break;
+        case 'bridge_failed':
+            $error_message = 'Gagal mengakses mobile app dari web';
+            break;
+        default:
+            $error_message = 'Terjadi kesalahan';
+    }
+}
+
+if (isset($_GET['timeout']) && $_GET['timeout'] == '1') {
+    $info_message = 'Session Anda telah berakhir. Silakan login kembali.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">

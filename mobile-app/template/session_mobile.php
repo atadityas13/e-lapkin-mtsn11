@@ -20,40 +20,42 @@ if (session_status() === PHP_SESSION_NONE) {
 // Check if mobile user is logged in
 if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
     // Redirect to mobile login
-    header("Location: /mobile-app/auth/mobile_login.php");
+    header("Location: /mobile-app/index.php");
     exit();
 }
 
-// Validate session data
-if (!isset($_SESSION['mobile_user_id']) || !isset($_SESSION['mobile_user_nip'])) {
+// Validate session data - menggunakan data yang sama dengan web utama
+if (!isset($_SESSION['id_pegawai']) || !isset($_SESSION['nip'])) {
     // Invalid session, destroy and redirect
     session_destroy();
-    header("Location: /mobile-app/auth/mobile_login.php");
+    header("Location: /mobile-app/index.php");
     exit();
 }
 
 // Update last activity
 $_SESSION['mobile_last_activity'] = time();
 
-// Session timeout (30 minutes)
-$timeout_duration = 1800; // 30 minutes
+// Session timeout (24 hours untuk mobile)
+$timeout_duration = 86400; // 24 hours
 if (isset($_SESSION['mobile_last_activity']) && 
     (time() - $_SESSION['mobile_last_activity']) > $timeout_duration) {
     // Session expired
     session_destroy();
-    header("Location: /mobile-app/auth/mobile_login.php?timeout=1");
+    header("Location: /mobile-app/index.php?timeout=1");
     exit();
 }
 
 /**
- * Get current mobile user info
+ * Get current mobile user info - menggunakan session data yang sama dengan web utama
  */
 function getCurrentMobileUser() {
     return [
-        'id' => $_SESSION['mobile_user_id'] ?? null,
-        'nama' => $_SESSION['mobile_user_name'] ?? '',
-        'nip' => $_SESSION['mobile_user_nip'] ?? '',
-        'jabatan' => $_SESSION['mobile_user_jabatan'] ?? ''
+        'id_pegawai' => $_SESSION['id_pegawai'] ?? null,
+        'nama' => $_SESSION['nama'] ?? '',
+        'nip' => $_SESSION['nip'] ?? '',
+        'jabatan' => $_SESSION['jabatan'] ?? '',
+        'unit_kerja' => $_SESSION['unit_kerja'] ?? '',
+        'role' => $_SESSION['role'] ?? 'user'
     ];
 }
 
@@ -61,8 +63,10 @@ function getCurrentMobileUser() {
  * Check if user has mobile permission
  */
 function hasMobilePermission($permission = '') {
-    // Basic permission check
-    return isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true;
+    // Basic permission check - hanya user yang bisa akses mobile
+    return isset($_SESSION['mobile_loggedin']) && 
+           $_SESSION['mobile_loggedin'] === true && 
+           ($_SESSION['role'] ?? '') === 'user';
 }
 ?>
 }
