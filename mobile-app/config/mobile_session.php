@@ -8,13 +8,17 @@ define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
 define('MOBILE_PACKAGE_NAME', 'id.sch.mtsn11majalengka.elapkin');
 define('MOBILE_USER_AGENT', 'E-LAPKIN-MTSN11-Mobile-App/1.0');
 
-// Generate mobile token (exactly same logic as Android app)
+// Generate mobile token (using Asia/Jakarta timezone to match Android)
 function generateMobileToken() {
-    // Use UTC timezone to match Android's SimpleDateFormat default behavior
-    $currentDate = gmdate('Y-m-d');
+    // Use Asia/Jakarta timezone to match Android app behavior
+    $originalTimezone = date_default_timezone_get();
+    date_default_timezone_set('Asia/Jakarta');
+    
+    $currentDate = date('Y-m-d');
     $input = MOBILE_SECRET_KEY . $currentDate;
     $token = md5($input);
     
+    date_default_timezone_set($originalTimezone);
     return $token;
 }
 
@@ -46,43 +50,24 @@ function validateMobileToken() {
         $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'];
     }
     
-    error_log("Received Token: " . $receivedToken);
-    
-    // Try different timezone possibilities
-    $timezones = ['UTC', 'Asia/Jakarta', 'GMT'];
-    $validToken = false;
-    $expectedToken = '';
-    
-    foreach ($timezones as $tz) {
-        $expectedToken = generateMobileTokenWithTimezone($tz);
-        error_log("Trying timezone $tz - Expected: " . $expectedToken);
-        if ($receivedToken === $expectedToken) {
-            $validToken = true;
-            error_log("Token matched with timezone: " . $tz);
-            break;
-        }
+    // Primary validation with Asia/Jakarta timezone
+    $expectedToken = generateMobileToken();
+    if ($receivedToken === $expectedToken) {
+        return; // Token valid
     }
     
-    if (!$validToken) {
-        // Also try the default function
-        $expectedToken = generateMobileToken();
-        error_log("Trying default method - Expected: " . $expectedToken);
-        if ($receivedToken === $expectedToken) {
-            $validToken = true;
-            error_log("Token matched with default method");
-        }
+    // Fallback: Try UTC timezone as backup
+    $expectedTokenUTC = generateMobileTokenWithTimezone('UTC');
+    if ($receivedToken === $expectedTokenUTC) {
+        return; // Token valid
     }
     
-    if (!$validToken) {
-        error_log("Token validation failed - no match found");
-        http_response_code(403);
-        die(json_encode([
-            'error' => 'Invalid mobile token.',
-            'code' => 'INVALID_TOKEN'
-        ]));
-    }
-    
-    error_log("Token validation successful");
+    // Token validation failed
+    http_response_code(403);
+    die(json_encode([
+        'error' => 'Invalid mobile token.',
+        'code' => 'INVALID_TOKEN'
+    ]));
 }
 
 // Validate package name
@@ -149,6 +134,21 @@ function getMobileSessionData() {
 }
 
 // Mobile logout
+function mobileLogout() {
+    unset($_SESSION['mobile_loggedin']);
+    unset($_SESSION['mobile_id_pegawai']);
+    unset($_SESSION['mobile_nip']);
+    unset($_SESSION['mobile_nama']);
+    unset($_SESSION['mobile_jabatan']);
+    unset($_SESSION['mobile_unit_kerja']);
+    unset($_SESSION['mobile_role']);
+    header("Location: index.php");
+    exit();
+}
+
+// DON'T automatically validate - let each page decide when to validate
+// validateMobileAccess(); // REMOVED THIS LINE
+?>
 function mobileLogout() {
     unset($_SESSION['mobile_loggedin']);
     unset($_SESSION['mobile_id_pegawai']);
