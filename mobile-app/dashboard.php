@@ -25,12 +25,36 @@ if (isset($_POST['logout'])) {
 
 // Get user details from database
 $id_pegawai = $userData['id_pegawai'];
-$stmt = $conn->prepare("SELECT nip, nama, jabatan FROM pegawai WHERE id_pegawai = ?");
+$stmt = $conn->prepare("SELECT nip, nama, jabatan, unit_kerja, foto_profil FROM pegawai WHERE id_pegawai = ?");
 $stmt->bind_param("i", $id_pegawai);
 $stmt->execute();
 $result = $stmt->get_result();
 $userInfo = $result->fetch_assoc();
 $stmt->close();
+
+// Handle profile photo path
+$foto_profil = $userInfo['foto_profil'] ?? '';
+$photo_web_path = '';
+$photo_file_path = '';
+
+if (!empty($foto_profil)) {
+    if (strpos($foto_profil, 'uploads/foto_profil/') === 0) {
+        $photo_web_path = '../' . $foto_profil;
+        $photo_file_path = __DIR__ . '/../' . $foto_profil;
+    } else {
+        $photo_web_path = '../uploads/foto_profil/' . $foto_profil;
+        $photo_file_path = __DIR__ . '/../uploads/foto_profil/' . $foto_profil;
+    }
+}
+
+// Get current date and time in Indonesian
+$days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+$months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+$day_name = $days[date('w')];
+$month_name = $months[date('n')];
+$current_datetime = $day_name . ', ' . date('d') . ' ' . $month_name . ' ' . date('Y') . ' - ' . date('H:i');
 
 // Get notifications implementation from topbar.php adapted for mobile
 $notifications = [];
@@ -240,10 +264,55 @@ ob_clean();
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        .profile-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.3);
+        }
         .notification-card {
             border-radius: 15px;
             border: none;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            margin-bottom: 12px;
+        }
+        .notification-card.danger {
+            border-left-color: #dc3545;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
+        }
+        .notification-card.warning {
+            border-left-color: #ffc107;
+            background: linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%);
+        }
+        .notification-card.info {
+            border-left-color: #0dcaf0;
+            background: linear-gradient(135deg, #f0fbff 0%, #d1ecf1 100%);
+        }
+        .notification-card.success {
+            border-left-color: #198754;
+            background: linear-gradient(135deg, #f0fff4 0%, #d4edda 100%);
+        }
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+        .notification-icon.danger { background: #dc3545; }
+        .notification-icon.warning { background: #ffc107; color: #000; }
+        .notification-icon.info { background: #0dcaf0; }
+        .notification-icon.success { background: #198754; }
+        .notification-btn {
+            border-radius: 20px;
+            font-size: 12px;
+            padding: 6px 16px;
+            font-weight: 500;
         }
         .bottom-nav {
             position: fixed;
@@ -280,26 +349,35 @@ ob_clean();
         body {
             padding-bottom: 70px;
         }
+        .datetime-text {
+            font-size: 13px;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body class="bg-light">
     <div class="main-content">
         <!-- Header -->
         <div class="gradient-bg text-white p-4">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <h5 class="mb-1">E-LAPKIN</h5>
-                    <small>Selamat Datang</small>
+                    <small class="datetime-text"><?= $current_datetime ?></small>
                 </div>
                 <div class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-link text-white p-0" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle fa-2x"></i>
+                            <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
+                                <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img">
+                            <?php else: ?>
+                                <i class="fas fa-user-circle fa-3x"></i>
+                            <?php endif; ?>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><span class="dropdown-item-text"><strong><?= htmlspecialchars($userInfo['nama']) ?></strong></span></li>
                             <li><span class="dropdown-item-text">NIP: <?= htmlspecialchars($userInfo['nip']) ?></span></li>
                             <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['jabatan']) ?></span></li>
+                            <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['unit_kerja']) ?></span></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="POST" style="display: inline;">
@@ -312,50 +390,102 @@ ob_clean();
                     </div>
                 </div>
             </div>
-            <div class="mt-3">
-                <h6 class="mb-1"><?= htmlspecialchars($userInfo['nama']) ?></h6>
-                <small>NIP: <?= htmlspecialchars($userInfo['nip']) ?></small><br>
-                <small><?= htmlspecialchars($userInfo['jabatan']) ?></small>
+            <div class="d-flex align-items-center">
+                <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
+                    <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img me-3">
+                <?php else: ?>
+                    <div class="profile-img me-3 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.2);">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                <?php endif; ?>
+                <div>
+                    <h6 class="mb-1"><?= htmlspecialchars($userInfo['nama']) ?></h6>
+                    <small>NIP: <?= htmlspecialchars($userInfo['nip']) ?></small><br>
+                    <small><?= htmlspecialchars($userInfo['jabatan']) ?></small><br>
+                    <small><?= htmlspecialchars($userInfo['unit_kerja']) ?></small>
+                </div>
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="container-fluid px-3 mt-3">
+            <!-- App Info Section -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="notification-card info p-3">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-mobile-alt me-2"></i>Aplikasi E-LAPKIN
+                        </h6>
+                        <p class="mb-3" style="font-size: 14px;">
+                            Aplikasi E-LAPKIN digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan MTsN 11 Majalengka.
+                        </p>
+                        <div class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Input RHK, RKB, dan LKH secara digital</small>
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Rekap dan cetak laporan kinerja bulanan</small>
+                        </div>
+                        <div class="mb-0">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Penilaian kinerja lebih efektif dan efisien</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="notification-card warning p-3">
+                        <h6 class="text-warning mb-3">
+                            <i class="fas fa-question-circle me-2"></i>Sudahkah Anda mengisi kegiatan hari ini?
+                        </h6>
+                        <p class="mb-3" style="font-size: 14px;">
+                            Pastikan Anda melaporkan aktivitas harian Anda secara rutin untuk menjaga akurasi kinerja.
+                        </p>
+                        <a href="lkh_add.php" class="btn btn-warning btn-sm">
+                            <i class="fas fa-plus me-1"></i>Isi Laporan Harian
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Notifications -->
             <?php if (!empty($notifications)): ?>
                 <?php foreach ($notifications as $notification): ?>
-                    <div class="alert alert-<?= $notification['type'] ?> d-flex align-items-start mb-3" role="alert">
-                        <i class="<?= $notification['icon'] ?> me-3 mt-1"></i>
-                        <div class="flex-grow-1">
-                            <div class="mb-2"><?= htmlspecialchars($notification['message']) ?></div>
-                            <?php if (isset($notification['link'])): ?>
-                                <a href="<?= htmlspecialchars($notification['link']) ?>" class="btn btn-sm btn-outline-<?= $notification['type'] ?>">
-                                    <i class="fas fa-arrow-right me-1"></i>
-                                    <?php if (strpos($notification['link'], 'generate') !== false): ?>
-                                        <?php if (strpos($notification['message'], 'Selamat') !== false): ?>
-                                            Lihat Laporan
-                                        <?php else: ?>
-                                            Generate Laporan
+                    <div class="notification-card <?= $notification['type'] ?> p-3">
+                        <div class="d-flex align-items-start">
+                            <div class="notification-icon <?= $notification['type'] ?> me-3">
+                                <i class="<?= $notification['icon'] ?>"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold mb-2" style="font-size: 14px;"><?= htmlspecialchars($notification['message']) ?></div>
+                                <?php if (isset($notification['link'])): ?>
+                                    <a href="<?= htmlspecialchars($notification['link']) ?>" class="btn btn-sm notification-btn btn-<?= $notification['type'] ?>">
+                                        <?php if (strpos($notification['link'], 'generate') !== false): ?>
+                                            <?php if (strpos($notification['message'], 'Selamat') !== false): ?>
+                                                <i class="fas fa-eye me-1"></i>Lihat Laporan
+                                            <?php else: ?>
+                                                <i class="fas fa-download me-1"></i>Generate Laporan
+                                            <?php endif; ?>
+                                        <?php elseif (strpos($notification['link'], 'rhk') !== false): ?>
+                                            <i class="fas fa-cog me-1"></i>Atur Periode RHK
+                                        <?php elseif (strpos($notification['link'], 'rkb') !== false): ?>
+                                            <i class="fas fa-calendar-plus me-1"></i>Atur Periode RKB
+                                        <?php elseif (strpos($notification['link'], 'lkh') !== false): ?>
+                                            <i class="fas fa-plus me-1"></i>Isi LKH Sekarang
                                         <?php endif; ?>
-                                    <?php elseif (strpos($notification['link'], 'rhk') !== false): ?>
-                                        Atur Periode RHK
-                                    <?php elseif (strpos($notification['link'], 'rkb') !== false): ?>
-                                        Atur Periode RKB
-                                    <?php elseif (strpos($notification['link'], 'lkh') !== false): ?>
-                                        Isi LKH Sekarang
-                                    <?php endif; ?>
-                                </a>
-                            <?php endif; ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="card notification-card">
-                    <div class="card-body text-center py-5">
-                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <h6 class="text-muted">Semua dalam kondisi baik</h6>
-                        <p class="text-muted mb-0">Tidak ada notifikasi yang perlu ditindaklanjuti</p>
+                <div class="notification-card success p-4 text-center">
+                    <div class="notification-icon success mx-auto mb-3">
+                        <i class="fas fa-check"></i>
                     </div>
+                    <h6 class="text-success mb-2">Semua dalam kondisi baik</h6>
+                    <p class="text-muted mb-0" style="font-size: 14px;">Tidak ada notifikasi yang perlu ditindaklanjuti</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -389,11 +519,6 @@ ob_clean();
                 </a>
             </div>
         </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
