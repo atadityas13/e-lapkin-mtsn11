@@ -11,7 +11,7 @@
  * @version    1.0.0
  * ========================================================
  */
-date_default_timezone_set('UTC+7');
+date_default_timezone_set('UTC');
 // Prevent direct access
 if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__FILE__) . '/');
