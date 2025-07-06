@@ -35,6 +35,10 @@ function generateMobileTokenWithTimezone($timezone = 'UTC') {
 function validateMobileToken() {
     $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'] ?? '';
     
+    // Debug: Log all received headers
+    error_log("All HTTP Headers: " . print_r(getallheaders(), true));
+    error_log("Received Token from SERVER: " . $receivedToken);
+    
     // Try different timezone possibilities
     $timezones = ['UTC', 'Asia/Jakarta', 'GMT'];
     $validToken = false;
@@ -131,6 +135,6 @@ function mobileLogout() {
     exit();
 }
 
-// Initialize mobile session check (validate all security headers)
-validateMobileAccess();
+// DON'T automatically validate - let each page decide when to validate
+// validateMobileAccess(); // REMOVED THIS LINE
 ?>
