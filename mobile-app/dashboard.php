@@ -594,8 +594,8 @@ ob_clean();
                     <div class="notification-icon success mx-auto mb-3">
                         <i class="fas fa-check"></i>
                     </div>
-                    <h6 class="text-success mb-2">Semua dalam kondisi baik</h6>
-                    <p class="text-muted mb-0" style="font-size: 14px;">Tidak ada notifikasi yang perlu ditindaklanjuti</p>
+                    <h6 class="text-success mb-2">Sip, Mantap!</h6>
+                    <p class="text-muted mb-0" style="font-size: 14px;">Laporan hari ini sudah terisi, tidak ada yang perlu dilakukan lagi.</p>
                 </div>
             <?php endif; ?>
         </div>
