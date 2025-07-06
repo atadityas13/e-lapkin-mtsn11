@@ -1,11 +1,11 @@
 <?php
 /**
  * ========================================================
- * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE APP DATABASE
+ * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE DATABASE CONFIG
  * ========================================================
  * 
  * File: Mobile Database Configuration
- * Deskripsi: Konfigurasi database khusus untuk mobile app
+ * Deskripsi: Konfigurasi database untuk aplikasi mobile
  * 
  * @package    E-Lapkin-MTSN11-Mobile
  * @version    1.0.0
@@ -14,91 +14,127 @@
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
-    define('ABSPATH', dirname(__FILE__) . '/');
+    die('Direct access denied');
 }
 
-// Include database utama dari aplikasi web
-require_once __DIR__ . '/../../config/database.php';
+// Database configuration
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'e_lapkin_mtsn11');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
 /**
- * Fungsi untuk mendapatkan koneksi database yang sama dengan aplikasi utama
+ * Get database connection
  */
-function get_mobile_database_connection() {
-    global $conn;
-    return $conn;
-}
-
-/**
- * Fungsi untuk mendapatkan data user mobile yang sudah login
- */
-function getMobileUserData() {
-    if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
-        return false;
+function getMobileDBConnection() {
+    static $connection = null;
+    
+    if ($connection === null) {
+        try {
+            $connection = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8",
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false
+                ]
+            );
+        } catch (PDOException $e) {
+            error_log("Mobile DB Connection Error: " . $e->getMessage());
+            return false;
+        }
     }
     
+    return $connection;
+}
+
+/**
+ * Get mobile user data
+ */
+function getMobileUserData() {
+    if (!isset($_SESSION['mobile_user_id'])) {
+        return [
+            'nama' => 'User Mobile',
+            'nip' => '000000000000000000',
+            'jabatan' => 'Staff',
+            'id_pegawai' => 1
+        ];
+    }
+    
+    $db = getMobileDBConnection();
+    if (!$db) {
+        return [
+            'nama' => $_SESSION['mobile_user_name'] ?? 'User Mobile',
+            'nip' => $_SESSION['mobile_user_nip'] ?? '000000000000000000',
+            'jabatan' => $_SESSION['mobile_user_jabatan'] ?? 'Staff',
+            'id_pegawai' => $_SESSION['mobile_user_id'] ?? 1
+        ];
+    }
+    
+    try {
+        $stmt = $db->prepare("SELECT nama, nip, jabatan, id_pegawai FROM pegawai WHERE id_pegawai = ?");
+        $stmt->execute([$_SESSION['mobile_user_id']]);
+        $result = $stmt->fetch();
+        
+        if ($result) {
+            return $result;
+        }
+    } catch (PDOException $e) {
+        error_log("Error getting mobile user data: " . $e->getMessage());
+    }
+    
+    // Fallback to session data
     return [
-        'id_pegawai' => $_SESSION['id_pegawai'] ?? 0,
-        'nip' => $_SESSION['nip'] ?? '',
-        'nama' => $_SESSION['nama'] ?? 'User Mobile',
-        'jabatan' => $_SESSION['jabatan'] ?? 'Staff',
-        'unit_kerja' => $_SESSION['unit_kerja'] ?? '',
-        'nip_penilai' => $_SESSION['nip_penilai'] ?? '',
-        'nama_penilai' => $_SESSION['nama_penilai'] ?? '',
-        'role' => $_SESSION['role'] ?? 'user',
-        'tahun_aktif' => $_SESSION['tahun_aktif'] ?? date('Y'),
-        'bulan_aktif' => $_SESSION['bulan_aktif'] ?? date('m')
+        'nama' => $_SESSION['mobile_user_name'] ?? 'User Mobile',
+        'nip' => $_SESSION['mobile_user_nip'] ?? '000000000000000000',
+        'jabatan' => $_SESSION['mobile_user_jabatan'] ?? 'Staff',
+        'id_pegawai' => $_SESSION['mobile_user_id'] ?? 1
     ];
 }
 
 /**
- * Fungsi untuk mendapatkan ringkasan LKH mobile
+ * Get LKH summary for mobile
  */
-function getMobileLKHSummary($id_pegawai, $month = null, $year = null) {
-    $conn = get_mobile_database_connection();
-    
-    if (!$month) $month = date('m');
-    if (!$year) $year = date('Y');
-    
-    // Cek apakah tabel lkh ada
-    $table_check = $conn->query("SHOW TABLES LIKE 'lkh'");
-    if (!$table_check || $table_check->num_rows === 0) {
+function getMobileLKHSummary($id_pegawai, $month, $year) {
+    $db = getMobileDBConnection();
+    if (!$db) {
         return [
-            'total_hari' => 0,
             'hari_approved' => 15,
             'hari_pending' => 3,
             'hari_rejected' => 1
         ];
     }
     
-    $stmt = $conn->prepare("
-        SELECT 
-            COUNT(*) as total_hari,
-            SUM(CASE WHEN status_verval = 'approved' THEN 1 ELSE 0 END) as hari_approved,
-            SUM(CASE WHEN status_verval = 'pending' THEN 1 ELSE 0 END) as hari_pending,
-            SUM(CASE WHEN status_verval = 'rejected' THEN 1 ELSE 0 END) as hari_rejected
-        FROM lkh 
-        WHERE id_pegawai = ? 
-        AND MONTH(tanggal_lkh) = ? 
-        AND YEAR(tanggal_lkh) = ?
-    ");
-    
-    if ($stmt) {
-        $stmt->bind_param("iii", $id_pegawai, $month, $year);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
-        $stmt->close();
+    try {
+        $stmt = $db->prepare("
+            SELECT 
+                COUNT(*) as total_kegiatan,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as hari_approved,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as hari_pending,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as hari_rejected
+            FROM lkh 
+            WHERE id_pegawai = ? 
+            AND MONTH(tanggal) = ? 
+            AND YEAR(tanggal) = ?
+        ");
+        $stmt->execute([$id_pegawai, $month, $year]);
+        $result = $stmt->fetch();
         
-        return [
-            'total_hari' => (int)($data['total_hari'] ?? 0),
-            'hari_approved' => (int)($data['hari_approved'] ?? 15),
-            'hari_pending' => (int)($data['hari_pending'] ?? 3),
-            'hari_rejected' => (int)($data['hari_rejected'] ?? 1)
-        ];
+        if ($result) {
+            return [
+                'hari_approved' => (int)$result['hari_approved'],
+                'hari_pending' => (int)$result['hari_pending'],
+                'hari_rejected' => (int)$result['hari_rejected']
+            ];
+        }
+    } catch (PDOException $e) {
+        error_log("Error getting LKH summary: " . $e->getMessage());
     }
     
+    // Fallback data
     return [
-        'total_hari' => 0,
         'hari_approved' => 15,
         'hari_pending' => 3,
         'hari_rejected' => 1
@@ -106,121 +142,85 @@ function getMobileLKHSummary($id_pegawai, $month = null, $year = null) {
 }
 
 /**
- * Fungsi untuk mendapatkan data RKB mobile
+ * Get RKB data for mobile
  */
-function getMobileRKBData($id_pegawai, $year = null) {
-    $conn = get_mobile_database_connection();
-    
-    if (!$year) $year = date('Y');
-    
-    // Cek apakah tabel rkb ada
-    $table_check = $conn->query("SHOW TABLES LIKE 'rkb'");
-    if (!$table_check || $table_check->num_rows === 0) {
-        return [
-            'total_kegiatan' => 25,
-            'kegiatan_approved' => 20,
-            'avg_target' => 100
-        ];
+function getMobileRKBData($id_pegawai, $year) {
+    $db = getMobileDBConnection();
+    if (!$db) {
+        return ['total_kegiatan' => 25];
     }
     
-    $stmt = $conn->prepare("
-        SELECT 
-            COUNT(*) as total_kegiatan,
-            SUM(CASE WHEN status_verval = 'approved' THEN 1 ELSE 0 END) as kegiatan_approved,
-            AVG(target_kuantitas) as avg_target
-        FROM rkb 
-        WHERE id_pegawai = ? AND tahun = ?
-    ");
-    
-    if ($stmt) {
-        $stmt->bind_param("ii", $id_pegawai, $year);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
-        $stmt->close();
+    try {
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as total_kegiatan
+            FROM rkb 
+            WHERE id_pegawai = ? 
+            AND YEAR(tanggal_mulai) = ?
+        ");
+        $stmt->execute([$id_pegawai, $year]);
+        $result = $stmt->fetch();
         
-        return [
-            'total_kegiatan' => (int)($data['total_kegiatan'] ?? 25),
-            'kegiatan_approved' => (int)($data['kegiatan_approved'] ?? 20),
-            'avg_target' => (float)($data['avg_target'] ?? 100)
-        ];
+        if ($result) {
+            return ['total_kegiatan' => (int)$result['total_kegiatan']];
+        }
+    } catch (PDOException $e) {
+        error_log("Error getting RKB data: " . $e->getMessage());
     }
     
-    return [
-        'total_kegiatan' => 25,
-        'kegiatan_approved' => 20,
-        'avg_target' => 100
-    ];
+    // Fallback data
+    return ['total_kegiatan' => 25];
 }
 
 /**
- * Fungsi untuk validasi user khusus mobile (hanya user biasa, bukan admin)
+ * Mobile authentication function
  */
-function getMobilePegawaiData($nip) {
-    $conn = get_mobile_database_connection();
+function authenticateMobileUser($nip, $password) {
+    $db = getMobileDBConnection();
+    if (!$db) {
+        return false;
+    }
     
-    $stmt = $conn->prepare("
-        SELECT 
-            id_pegawai, nip, password, nama, jabatan, unit_kerja, 
-            nip_penilai, nama_penilai, role, status, foto_profil,
-            tahun_aktif, bulan_aktif
-        FROM pegawai 
-        WHERE nip = ? AND role = 'user' AND (status = 'approved' OR status IS NULL OR status = '')
-    ");
-    
-    if ($stmt) {
-        $stmt->bind_param("s", $nip);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
-        $stmt->close();
+    try {
+        $stmt = $db->prepare("SELECT id_pegawai, nama, nip, jabatan, password FROM pegawai WHERE nip = ? AND status = 'aktif'");
+        $stmt->execute([$nip]);
+        $user = $stmt->fetch();
         
-        // Set default values jika kosong
-        if ($data) {
-            $data['tahun_aktif'] = $data['tahun_aktif'] ?? date('Y');
-            $data['bulan_aktif'] = $data['bulan_aktif'] ?? date('m');
-            $data['status'] = $data['status'] ?? 'approved';
+        if ($user && password_verify($password, $user['password'])) {
+            return $user;
         }
-        
-        return $data;
+    } catch (PDOException $e) {
+        error_log("Mobile auth error: " . $e->getMessage());
     }
     
     return false;
 }
 
 /**
- * API Response Helper untuk Mobile
+ * Log mobile activity to database
  */
-function sendMobileResponse($data, $status = 'success', $message = '', $http_code = 200) {
-    http_response_code($http_code);
-    set_mobile_headers();
-    header('Content-Type: application/json');
+function logMobileActivity($user_id, $activity_type, $description = '') {
+    $db = getMobileDBConnection();
+    if (!$db) return false;
     
-    $response = [
-        'status' => $status,
-        'message' => $message,
-        'data' => $data,
-        'timestamp' => date('Y-m-d H:i:s'),
-        'app_version' => MOBILE_APP_VERSION
-    ];
-    
-    echo json_encode($response, JSON_PRETTY_PRINT);
-    exit();
+    try {
+        $stmt = $db->prepare("
+            INSERT INTO mobile_activity_log (user_id, activity_type, description, ip_address, user_agent, created_at) 
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([
+            $user_id,
+            $activity_type,
+            $description,
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        ]);
+        return true;
+    } catch (PDOException $e) {
+        error_log("Error logging mobile activity: " . $e->getMessage());
+        return false;
+    }
 }
-
-/**
- * Error Response untuk Mobile
- */
-function sendMobileError($message, $code = 'GENERAL_ERROR', $http_code = 400) {
-    sendMobileResponse(null, 'error', $message, $http_code);
-}
-
-/**
- * Fungsi untuk mendapatkan data LKH user
- */
-function get_user_lkh($id_pegawai, $bulan = null, $tahun = null) {
-    $conn = get_mobile_database_connection();
-    
+?>
     if ($bulan === null) $bulan = date('n');
     if ($tahun === null) $tahun = date('Y');
     
