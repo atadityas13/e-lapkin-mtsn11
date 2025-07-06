@@ -57,12 +57,8 @@ if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true
     exit();
 }
 
-// Redirect ke login
-header("Location: /mobile-app/auth/mobile_login.php");
-exit();
-
-// Tidak perlu ada penutup PHP ?> di sini jika langsung diikuti oleh HTML
-// Jika ada kode PHP lagi di bawah, sebaiknya gabungkan dalam satu blok PHP utama
+// Jika belum login, tampilkan form login (jangan redirect)
+// Hapus redirect yang tidak perlu
 ?>
 <!DOCTYPE html>
 <html lang="id">
