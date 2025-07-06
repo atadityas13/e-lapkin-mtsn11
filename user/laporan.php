@@ -74,8 +74,26 @@ function get_periode_aktif($conn, $id_pegawai) {
         'tahun' => $tahun_aktif ?: (int)date('Y')
     ];
 }
+
+// Ambil informasi pejabat penilai dari database
+function get_pejabat_penilai($conn, $id_pegawai) {
+    $stmt = $conn->prepare("SELECT nama_penilai, nip_penilai FROM pegawai WHERE id_pegawai = ?");
+    $stmt->bind_param("i", $id_pegawai);
+    $stmt->execute();
+    $stmt->bind_result($nama_pejabat, $nip_pejabat);
+    $stmt->fetch();
+    $stmt->close();
+    
+    return [
+        'nama' => $nama_pejabat ?: '(...................................)',
+        'nip' => $nip_pejabat ?: '.................................'
+    ];
+}
+
 $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $periode_tahun = $periode_aktif['tahun'];
+
+$pejabat_penilai = get_pejabat_penilai($conn, $id_pegawai_login);
 
 // Data untuk dropdown bulan (sudah ada)
 $months = [
@@ -98,6 +116,21 @@ function get_day_name($date_string) {
         7 => 'Minggu'
     ];
     return $day_names[$day_of_week];
+}
+
+// Fungsi untuk format tanggal Indonesia
+function format_date_indonesia($date_string) {
+    $months_indo = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    
+    $day = date('d', strtotime($date_string));
+    $month = (int)date('m', strtotime($date_string));
+    $year = date('Y', strtotime($date_string));
+    
+    return $day . ' ' . $months_indo[$month] . ' ' . $year;
 }
 
 // --- START: LOGIC UNTUK MENGUMPULKAN DATA DENGAN HIERARKI UNTUK JAVASCRIPT & HTML ---
@@ -184,7 +217,7 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
                 $first_lkh_in_rkb = true;
                 while ($lkh_row = $result_lkh->fetch_assoc()) {
                     $tanggal_lkh_formatted = get_day_name($lkh_row['tanggal_lkh']) . ', ' . date('d-m-Y', strtotime($lkh_row['tanggal_lkh']));
-                    $lampiran_status = !empty($lkh_row['lampiran']) ? 'Ada' : 'Nihil';
+                    $lampiran_status = !empty($lkh_row['lampiran']) ? '1 Dokumen' : 'Nihil';
 
                     $data_for_display[] = [
                         'no' => $no_global++,
@@ -476,74 +509,209 @@ include __DIR__ . '/../template/header.php';
 include __DIR__ . '/../template/menu_user.php';
 include __DIR__ . '/../template/topbar.php';
 ?>
+
+<!-- Custom CSS for print and PDF -->
+<style>
+@media print {
+    .d-print-none {
+        display: none !important;
+    }
+    
+    .print-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 20px;
+    }
+    
+    .print-header h1 {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 0;
+        text-transform: uppercase;
+    }
+    
+    .print-header h2 {
+        font-size: 16px;
+        margin: 5px 0;
+    }
+    
+    .print-header h3 {
+        font-size: 14px;
+        margin: 5px 0;
+        font-weight: normal;
+    }
+    
+    .employee-info {
+        margin-bottom: 25px;
+    }
+    
+    .employee-info table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .employee-info td {
+        padding: 5px 10px;
+        border: 1px solid #000;
+        font-size: 12px;
+    }
+    
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+    }
+    
+    .report-table th,
+    .report-table td {
+        border: 1px solid #000;
+        padding: 5px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    .report-table th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    .report-table .text-center {
+        text-align: center;
+    }
+    
+    .page-break {
+        page-break-before: always;
+    }
+    
+    .print-footer {
+        margin-top: 30px;
+        border-top: 1px solid #000;
+        padding-top: 20px;
+    }
+    
+    .signature-area {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 40px;
+    }
+    
+    .signature-box {
+        text-align: center;
+        width: 200px;
+    }
+    
+    .signature-line {
+        border-bottom: 1px solid #000;
+        margin-top: 60px;
+        margin-bottom: 5px;
+    }
+}
+
+.print-preview {
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    margin: 20px auto;
+    padding: 40px;
+    max-width: 1000px;
+}
+</style>
+
 <div id="layoutSidenav_content">
     <main>
         <div class="container-fluid px-4">
             <h1 class="mt-4">Laporan Kinerja Tahunan</h1>
-            <div class="alert alert-info mb-4">
+            <div class="alert alert-info mb-4 d-print-none">
                 Menampilkan laporan seluruh bulan pada tahun <b><?php echo $periode_tahun; ?></b> sesuai periode aktif Anda.
             </div>
-            <div class="card mb-4" id="print-area">
-                <div class="card-header bg-success text-white">
-                    <div class="d-flex align-items-center">
-                        <span class="flex-grow-1">Laporan Kinerja Pegawai - Tahun <?php echo $periode_tahun; ?></span>
-                        <button class="btn btn-sm btn-light d-print-none me-2" id="btnPrintLapkin">
-                            <i class="fas fa-print"></i> Cetak Laporan
-                        </button>
-                        <button class="btn btn-sm btn-danger d-print-none" id="btnExportPdf">
-                            <i class="fas fa-file-pdf"></i> Export PDF
-                        </button>
+            
+            <!-- Control Buttons -->
+            <div class="card mb-4 d-print-none">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title">Cetak Laporan</h5>
+                            <p class="card-text">Klik Preview Cetak untuk cetak laporan tahun ini.</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-primary" id="btnPreviewPrint">
+                                <i class="fas fa-eye"></i> Preview Cetak
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Print Area -->
+            <div class="card mb-4" id="print-area">
+                <!-- Print Header (only visible when printing) -->
+                <div class="print-header d-none d-print-block">
+                    <h1>MTsN 11 MAJALENGKA</h1>
+                    <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
+                    <h3>TAHUN <?php echo $periode_tahun; ?></h3>
+                </div>
+                
+                <div class="card-header bg-success text-white d-print-none">
+                    <div class="d-flex align-items-center">
+                        <span class="flex-grow-1">Laporan Kinerja Pegawai - Tahun <?php echo $periode_tahun; ?></span>
+                    </div>
+                </div>
+                
                 <div class="card-body">
-                    <table class="table table-bordered table-striped mb-4">
-                        <thead>
-                            <tr>
-                                <th colspan="2">Informasi Pegawai</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Nama Pegawai</td>
-                                <td><?php echo htmlspecialchars($nama_pegawai_login); ?></td>
-                            </tr>
-                            <tr>
-                                <td>NIP</td>
-                                <td><?php echo htmlspecialchars($_SESSION['nip']); ?></td>
-                            </tr>
-                            <tr>
-                                <td>Jabatan</td>
-                                <td><?php echo htmlspecialchars($_SESSION['jabatan']); ?></td>
-                            </tr>
-                            <tr>
-                                <td>Unit Kerja</td>
-                                <td><?php echo htmlspecialchars($_SESSION['unit_kerja']); ?></td>
-                            </tr>
-                            <tr>
-                                <td>Tahun</td>
-                                <td><?php echo $periode_tahun; ?></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <h5>Daftar Rencana Kegiatan Bulanan (RKB) dan Realisasi Harian (LKH) Tahun <?php echo $periode_tahun; ?></h5>
+                    <!-- Employee Information -->
+                    <div class="employee-info">
+                        <table class="table table-bordered table-striped mb-4">
+                            <thead class="d-print-none">
+                                <tr>
+                                    <th colspan="2">Informasi Pegawai</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="width: 150px;"><strong>Nama Pegawai</strong></td>
+                                    <td><?php echo htmlspecialchars($nama_pegawai_login); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>NIP</strong></td>
+                                    <td><?php echo htmlspecialchars($_SESSION['nip']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Jabatan</strong></td>
+                                    <td><?php echo htmlspecialchars($_SESSION['jabatan']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Unit Kerja</strong></td>
+                                    <td><?php echo htmlspecialchars($_SESSION['unit_kerja']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tahun Laporan</strong></td>
+                                    <td><?php echo $periode_tahun; ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h5 class="d-print-none">Daftar Rencana Kegiatan Bulanan (RKB) dan Realisasi Harian (LKH) Tahun <?php echo $periode_tahun; ?></h5>
+                    
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped align-middle" id="laporanTahunanTable">
+                        <table class="table table-bordered table-striped align-middle report-table" id="laporanTahunanTable">
                             <thead>
                                 <tr>
-                                    <th rowspan="2"><center>No</center></th>
-                                    <th rowspan="2"><center>Bulan</center></th>
-                                    <th rowspan="2"><center>RHK Terkait</center></th>
-                                    <th rowspan="2"><center>Uraian Kegiatan RKB</center></th>
+                                    <th rowspan="2" style="width: 40px;"><center>No</center></th>
+                                    <th rowspan="2" style="width: 80px;"><center>Bulan</center></th>
+                                    <th rowspan="2" style="width: 150px;"><center>RHK Terkait</center></th>
+                                    <th rowspan="2" style="width: 200px;"><center>Uraian Kegiatan RKB</center></th>
                                     <th colspan="2"><center>Target RKB</center></th>
                                     <th colspan="4"><center>Realisasi LKH</center></th>
                                 </tr>
                                 <tr>
-                                    <th><center>Kuantitas</center></th>
-                                    <th><center>Satuan</center></th>
-                                    <th><center>Tanggal LKH</center></th>
-                                    <th><center>Nama Kegiatan Harian</center></th>
-                                    <th><center>Uraian Kegiatan LKH</center></th>
-                                    <th><center>Lampiran</center></th>
+                                    <th style="width: 80px;"><center>Kuantitas</center></th>
+                                    <th style="width: 80px;"><center>Satuan</center></th>
+                                    <th style="width: 100px;"><center>Tanggal LKH</center></th>
+                                    <th style="width: 150px;"><center>Nama Kegiatan Harian</center></th>
+                                    <th style="width: 200px;"><center>Uraian Kegiatan LKH</center></th>
+                                    <th style="width: 80px;"><center>Lampiran</center></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -616,25 +784,25 @@ include __DIR__ . '/../template/topbar.php';
 
                                     // RHK
                                     if (!isset($printed_rhk[$rhk_key])) {
-                                        echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '">' . htmlspecialchars($rhk) . '</td>';
+                                        echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '" style="text-align: center; vertical-align: middle;">' . htmlspecialchars($rhk) . '</td>';
                                         $printed_rhk[$rhk_key] = true;
                                     }
 
                                     // RKB, Target Kuantitas, Target Satuan
                                     if (!isset($printed_rkb[$rkb_key])) {
-                                        echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '">' . htmlspecialchars($rkb) . '</td>';
+                                        echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" style="text-align: center; vertical-align: middle;">' . htmlspecialchars($rkb) . '</td>';
                                         echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '"><center>' . htmlspecialchars($row_html['target_kuantitas']) . '</center></td>';
                                         echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '"><center>' . htmlspecialchars($row_html['target_satuan']) . '</center></td>';
                                         $printed_rkb[$rkb_key] = true;
                                     }
 
                                     // LKH
-                                    echo '<td>' . htmlspecialchars($row_html['tanggal_lkh']) . '</td>';
-                                    echo '<td>' . htmlspecialchars($row_html['nama_kegiatan_harian'] ?? '') . '</td>';
-                                    echo '<td>' . htmlspecialchars($row_html['uraian_kegiatan_lkh']) . '</td>';
+                                    echo '<td style="text-align: center;">' . htmlspecialchars($row_html['tanggal_lkh']) . '</td>';
+                                    echo '<td style="text-align: center; vertical-align: middle;">' . htmlspecialchars($row_html['nama_kegiatan_harian'] ?? '') . '</td>';
+                                    echo '<td style="text-align: center; vertical-align: middle;">' . htmlspecialchars($row_html['uraian_kegiatan_lkh']) . '</td>';
                                     
                                     // Lampiran dengan link untuk melihat
-                                    if (!empty($row_html['lampiran_file']) && $row_html['lampiran'] === 'Ada') {
+                                    if (!empty($row_html['lampiran_file']) && $row_html['lampiran'] === '1 Dokumen') {
                                         echo '<td><center><a href="#" class="btn btn-sm btn-info view-attachment" data-file="' . htmlspecialchars($row_html['lampiran_file']) . '" data-lkh-id="' . htmlspecialchars($row_html['id_lkh'] ?? '') . '"><i class="fas fa-eye"></i> Lihat</a></center></td>';
                                     } else {
                                         echo '<td><center>' . htmlspecialchars($row_html['lampiran']) . '</center></td>';
@@ -648,6 +816,36 @@ include __DIR__ . '/../template/topbar.php';
                                 ?>
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Print Footer -->
+                    <div class="print-footer d-none d-print-block">
+                        <div class="row">
+                            <div class="col-12">
+                                <p><strong>Catatan:</strong></p>
+                                <ul>
+                                    <li>Laporan ini merupakan rekapitulasi kegiatan selama tahun <?php echo $periode_tahun; ?></li>
+                                    <li>Data yang ditampilkan berdasarkan RKB (Rencana Kinerja Bulanan) dan LKH (Laporan Kinerja Harian)</li>
+                                    <li>Laporan dicetak untuk dipergunakan sebagaimana mestinya.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="signature-area">
+                            <div class="signature-box">
+                                <p>Pejabat Penilai</p>
+                                <p><strong><?php echo htmlspecialchars($pejabat_penilai['nama']); ?></strong><br>
+                                <div class="signature-line"></div>
+                                NIP. <?php echo htmlspecialchars($pejabat_penilai['nip']); ?></p>
+                            </div>
+                            <div class="signature-box">
+                                <p>Cingambul, <?php echo format_date_indonesia(date('Y-m-d')); ?><br>
+                                Pegawai Yang Dinilai</p>
+                                <p><strong><?php echo htmlspecialchars($nama_pegawai_login); ?></strong><br>
+                                <div class="signature-line"></div>
+                                NIP. <?php echo htmlspecialchars($_SESSION['nip']); ?></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -828,68 +1026,317 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 500); // Small delay to show loading animation
     }
-});
 
-document.getElementById('btnPrintLapkin').addEventListener('click', function() {
-    var printContents = document.getElementById('print-area').innerHTML;
-    var originalContents = document.body.innerHTML;
-    document.body.innerHTML = printContents;
-    window.print();
-    document.body.innerHTML = originalContents;
-    window.location.reload();
-});
-
-document.getElementById('btnExportPdf').addEventListener('click', function() {
-    var { jsPDF } = window.jspdf;
-    var doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
-
-    // Judul dan info pegawai
-    doc.setFontSize(14);
-    doc.text("Laporan Kinerja Pegawai - Tahun <?php echo $periode_tahun; ?>", 40, 40);
-    var infoY = 60;
-    doc.setFontSize(10);
-    doc.text("Nama Pegawai : <?php echo addslashes($nama_pegawai_login); ?>", 40, infoY);
-    doc.text("NIP            : <?php echo addslashes($_SESSION['nip']); ?>", 40, infoY + 15);
-    doc.text("Jabatan        : <?php echo addslashes($_SESSION['jabatan']); ?>", 40, infoY + 30);
-    doc.text("Unit Kerja     : <?php echo addslashes($_SESSION['unit_kerja']); ?>", 40, infoY + 45);
-
-    // Header tabel
-    var tableHeaders = [
-        [
-            { content: "No", rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: "Bulan", rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: "RHK Terkait", rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: "Uraian Kegiatan RKB", rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: "Target RKB", colSpan: 2, styles: { halign: 'center' } },
-            { content: "Realisasi LKH", colSpan: 4, styles: { halign: 'center' } }
-        ],
-        [
-            { content: "Kuantitas", styles: { halign: 'center' } },
-            { content: "Satuan", styles: { halign: 'center' } },
-            { content: "Tanggal LKH", styles: { halign: 'center' } },
-            { content: "Nama Kegiatan Harian", styles: { halign: 'center' } },
-            { content: "Uraian Kegiatan LKH", styles: { halign: 'center' } },
-            { content: "Lampiran", styles: { halign: 'center' } }
-        ]
-    ];
-
-    doc.autoTable({
-        head: tableHeaders,
-        body: reportData, // Gunakan reportData yang sudah diformat dengan rowspan
-        startY: infoY + 60,
-        styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' },
-        headStyles: { fillColor: [40, 167, 69], halign: 'center', valign: 'middle' },
-        bodyStyles: { valign: 'top' },
-        theme: 'grid',
-        margin: { left: 20, right: 20 },
-        tableWidth: 'auto',
-        didDrawPage: function (data) {
-            var pageCount = doc.internal.getNumberOfPages();
-            doc.setFontSize(8);
-            doc.text('Halaman ' + pageCount, doc.internal.pageSize.getWidth() - 60, doc.internal.pageSize.getHeight() - 10);
-        }
-    });
-
-    doc.save("Laporan_Kinerja_Tahunan_<?php echo $periode_tahun; ?>.pdf");
+    // Enhanced print preview functionality
+    const btnPreviewPrint = document.getElementById('btnPreviewPrint');
+    if (btnPreviewPrint) {
+        btnPreviewPrint.addEventListener('click', function() {
+            console.log('Preview button clicked'); // Debug log
+            
+            // Get the print area content
+            const printArea = document.getElementById('print-area');
+            if (!printArea) {
+                alert('Area cetak tidak ditemukan');
+                return;
+            }
+            
+            // Clone the content to avoid modifying original
+            const printContent = printArea.cloneNode(true);
+            
+            // Remove elements that shouldn't be printed
+            const elementsToRemove = printContent.querySelectorAll('.d-print-none');
+            elementsToRemove.forEach(element => element.remove());
+            
+            // Show elements that should only be visible in print
+            const elementsToShow = printContent.querySelectorAll('.d-none.d-print-block');
+            elementsToShow.forEach(element => {
+                element.classList.remove('d-none');
+                element.style.display = 'block';
+            });
+            
+            // Update signature area to correct positioning
+            const signatureArea = printContent.querySelector('.signature-area');
+            if (signatureArea) {
+                signatureArea.innerHTML = `
+                    <div class="signature-box">
+                        <p>Pejabat Penilai</p>
+                        <div class="signature-line"></div>
+                        <p><strong><?php echo htmlspecialchars($pejabat_penilai['nama']); ?></strong><br>
+                        NIP. <?php echo htmlspecialchars($pejabat_penilai['nip']); ?></p>
+                    </div>
+                    <div class="signature-box">
+                        <p>Cingambul, <?php echo format_date_indonesia(date('Y-m-d')); ?><br>
+                        Pegawai</p>
+                        <div class="signature-line"></div>
+                        <p><strong><?php echo htmlspecialchars($nama_pegawai_login); ?></strong><br>
+                        NIP. <?php echo htmlspecialchars($_SESSION['nip']); ?></p>
+                    </div>
+                `;
+            }
+            
+            // Convert attachment buttons to text for print
+            const attachmentCells = printContent.querySelectorAll('td a.view-attachment');
+            attachmentCells.forEach(function(attachmentLink) {
+                const cell = attachmentLink.parentElement.parentElement;
+                cell.innerHTML = '<center>1 Dokumen</center>';
+            });
+            
+            // Create the print window
+            const printWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            
+            if (!printWindow) {
+                alert('Pop-up diblokir. Silakan izinkan pop-up untuk preview cetak.');
+                return;
+            }
+            
+            const printHtml = `
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>E-Lapkin MTsN 11 Majalengka | Laporan Kinerja Tahunan - <?php echo $periode_tahun; ?></title>
+                    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                    <style>
+                        * {
+                            box-sizing: border-box;
+                        }
+                        
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 0;
+                            padding: 20px;
+                            font-size: 12px;
+                            line-height: 1.4;
+                            background-color: #f5f5f5;
+                        }
+                        
+                        .container {
+                            max-width: 1200px;
+                            margin: 0 auto;
+                            background: white;
+                            padding: 30px;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                        }
+                        
+                        .print-header { 
+                            text-align: center; 
+                            margin-bottom: 30px; 
+                            border-bottom: 2px solid #000; 
+                            padding-bottom: 20px; 
+                        }
+                        
+                        .print-header h1 { 
+                            font-size: 18px; 
+                            font-weight: bold; 
+                            margin: 0; 
+                            text-transform: uppercase; 
+                            letter-spacing: 1px;
+                        }
+                        
+                        .print-header h2 { 
+                            font-size: 16px; 
+                            margin: 8px 0; 
+                            font-weight: bold;
+                        }
+                        
+                        .print-header h3 { 
+                            font-size: 14px; 
+                            margin: 5px 0; 
+                            font-weight: normal; 
+                        }
+                        
+                        .employee-info table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            margin-bottom: 25px; 
+                        }
+                        
+                        .employee-info td { 
+                            padding: 8px 12px; 
+                            border: 1px solid #000; 
+                            font-size: 12px; 
+                            vertical-align: top;
+                        }
+                        
+                        .employee-info td:first-child { 
+                            background-color: #f0f0f0; 
+                            font-weight: bold; 
+                            width: 150px; 
+                        }
+                        
+                        .report-table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            font-size: 10px; 
+                            margin-top: 10px;
+                        }
+                        
+                        .report-table th, .report-table td { 
+                            border: 1px solid #000; 
+                            padding: 6px; 
+                            text-align: center; 
+                            vertical-align: middle; 
+                            word-wrap: break-word;
+                        }
+                        
+                        .report-table th { 
+                            background-color: #e0e0e0; 
+                            font-weight: bold; 
+                            text-align: center; 
+                            font-size: 10px;
+                        }
+                        
+                        .text-center { 
+                            text-align: center; 
+                        }
+                        
+                        .print-footer { 
+                            margin-top: 30px; 
+                            border-top: 1px solid #000; 
+                            padding-top: 20px; 
+                            page-break-inside: avoid;
+                        }
+                        
+                        .signature-area { 
+                            display: flex; 
+                            justify-content: space-between; 
+                            margin-top: 40px; 
+                        }
+                        
+                        .signature-box { 
+                            text-align: center; 
+                            width: 220px; 
+                            font-size: 12px;
+                        }
+                        
+                        .signature-line { 
+                            border-bottom: 1px solid #000; 
+                            margin-top: 60px; 
+                            margin-bottom: 5px; 
+                        }
+                        
+                        .print-controls {
+                            position: fixed;
+                            top: 10px;
+                            right: 10px;
+                            background: white;
+                            padding: 15px;
+                            border: 1px solid #ccc;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                            z-index: 1000;
+                        }
+                        
+                        .print-controls button {
+                            background: #007bff;
+                            color: white;
+                            border: none;
+                            padding: 10px 16px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-left: 8px;
+                            font-size: 14px;
+                        }
+                        
+                        .print-controls button:hover {
+                            background: #0056b3;
+                        }
+                        
+                        .print-controls button.btn-success {
+                            background: #28a745;
+                        }
+                        
+                        .print-controls button.btn-success:hover {
+                            background: #1e7e34;
+                        }
+                        
+                        .print-controls button.btn-secondary {
+                            background: #6c757d;
+                        }
+                        
+                        .print-controls button.btn-secondary:hover {
+                            background: #545b62;
+                        }
+                        
+                        .footer-info {
+                            position: fixed;
+                            bottom: 0;
+                            left: 0;
+                            right: 0;
+                            height: 50px;
+                            background: #f8f9fa;
+                            border-top: 1px solid #ddd;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 0 20px;
+                            font-size: 11px;
+                            color: #666;
+                        }
+                        
+                        @page {
+                            margin: 15mm;
+                            size: A4 landscape;
+                            @bottom-left {
+                                content: "Halaman " counter(page) " dari " counter(pages);
+                            }
+                            @bottom-right {
+                                content: "Digenerate melalui E-Lapkin MTsN 11 Majalengka";
+                            }
+                        }
+                        
+                        @media print {
+                            .print-controls { 
+                                display: none !important; 
+                            }
+                            .footer-info { 
+                                display: none !important; 
+                            }
+                            body { 
+                                margin: 0; 
+                                padding: 0; 
+                                background: white;
+                            }
+                            .container {
+                                box-shadow: none;
+                                padding: 0;
+                                margin: 0;
+                                max-width: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-controls">
+                        <button class="btn-success" onclick="window.print()">
+                            <i class="fas fa-print"></i> Cetak Dokumen
+                        </button>
+                        <button class="btn-secondary" onclick="window.close()">
+                            <i class="fas fa-times"></i> Tutup Preview
+                        </button>
+                    </div>
+                    
+                    <div class="footer-info">
+                        <span><strong>Info:</strong> Halaman akan dinomori otomatis saat dicetak</span>
+                        <span><strong>Source:</strong> Digenerate melalui E-Lapkin MTsN 11 Majalengka</span>
+                    </div>
+                    
+                    <div class="container">
+                        ${printContent.innerHTML}
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+            
+            // Focus the new window
+            printWindow.focus();
+        });
+    } else {
+        console.error('Preview Print button not found');
+    }
 });
 </script>
