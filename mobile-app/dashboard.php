@@ -3,10 +3,14 @@
  * E-LAPKIN Mobile Dashboard
  */
 
+// Start output buffering to catch any unwanted output
+ob_start();
+
 session_start();
 
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
+require_once __DIR__ . '/../config/database.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
 checkMobileLogin();
@@ -14,10 +18,67 @@ checkMobileLogin();
 // Get user session data
 $userData = getMobileSessionData();
 
-// Handle logout
+// Handle logout first
 if (isset($_POST['logout'])) {
     mobileLogout();
 }
+
+// Get statistics counts
+$id_pegawai = $userData['id_pegawai'];
+
+// Count RHK
+$rhk_count = 0;
+try {
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM rhk WHERE id_pegawai = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $id_pegawai);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $rhk_count = $row['count'];
+        }
+        $stmt->close();
+    }
+} catch (Exception $e) {
+    $rhk_count = 0;
+}
+
+// Count RKB
+$rkb_count = 0;
+try {
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM rkb WHERE id_pegawai = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $id_pegawai);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $rkb_count = $row['count'];
+        }
+        $stmt->close();
+    }
+} catch (Exception $e) {
+    $rkb_count = 0;
+}
+
+// Count LKH
+$lkh_count = 0;
+try {
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM lkh WHERE id_pegawai = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $id_pegawai);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $lkh_count = $row['count'];
+        }
+        $stmt->close();
+    }
+} catch (Exception $e) {
+    $lkh_count = 0;
+}
+
+// Clear any unwanted output before HTML
+ob_clean();
 ?>
 <!DOCTYPE html>
 <html lang="id">
