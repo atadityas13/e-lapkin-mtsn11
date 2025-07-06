@@ -46,32 +46,23 @@ log_mobile_access('dashboard_access');
 // Set page title
 $page_title = "Dashboard - E-LAPKIN Mobile";
 
-// Fallback functions if database functions don't exist
-if (!function_exists('getMobileUserData')) {
+// Debug: Check if user is properly logged in
+if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
+    error_log("Mobile dashboard access without proper login");
+    header("Location: /mobile-app/auth/mobile_login.php?error=session_required");
+    exit();
+}
+
+// Override getMobileUserData to use session data properly
+if (!function_exists('getMobileUserData') || !function_exists('getMobileLKHSummary')) {
+    // Use session data directly for mobile dashboard
     function getMobileUserData() {
         return [
-            'nama' => $_SESSION['mobile_user_name'] ?? 'User Mobile',
-            'nip' => $_SESSION['mobile_user_nip'] ?? '000000000000000000',
-            'jabatan' => $_SESSION['mobile_user_jabatan'] ?? 'Staff',
-            'id_pegawai' => $_SESSION['mobile_user_id'] ?? 1
-        ];
-    }
-}
-
-if (!function_exists('getMobileLKHSummary')) {
-    function getMobileLKHSummary($id_pegawai, $month, $year) {
-        return [
-            'hari_approved' => 15,
-            'hari_pending' => 3,
-            'hari_rejected' => 1
-        ];
-    }
-}
-
-if (!function_exists('getMobileRKBData')) {
-    function getMobileRKBData($id_pegawai, $year) {
-        return [
-            'total_kegiatan' => 25
+            'nama' => $_SESSION['nama'] ?? 'User Mobile',
+            'nip' => $_SESSION['nip'] ?? '000000000000000000',
+            'jabatan' => $_SESSION['jabatan'] ?? 'Staff',
+            'unit_kerja' => $_SESSION['unit_kerja'] ?? '',
+            'id_pegawai' => $_SESSION['id_pegawai'] ?? 1
         ];
     }
 }
@@ -79,33 +70,141 @@ if (!function_exists('getMobileRKBData')) {
 // Get user data
 $user_data = getMobileUserData();
 
-// Get statistics
-$current_month = date('m');
-$current_year = date('Y');
+// Debug information
+error_log("Mobile Dashboard Debug - User Data: " . print_r($user_data, true));
+error_log("Mobile Dashboard Debug - Session: " . print_r($_SESSION, true));
 
-$lkh_summary = getMobileLKHSummary($user_data['id_pegawai'], $current_month, $current_year);
-$rkb_summary = getMobileRKBData($user_data['id_pegawai'], $current_year);
+// Get statistics with proper error handling
+$current_month = (int)date('m');
+$current_year = (int)date('Y');
+
+// Try to get real data from database, fallback to mock if fails
+try {
+    $db_connection = null;
+    if (function_exists('getMobileDBConnection')) {
+        $db_connection = getMobileDBConnection();
+    }
+    
+    if ($db_connection && function_exists('getMobileLKHSummary')) {
+        $lkh_summary = getMobileLKHSummary($user_data['id_pegawai'], $current_month, $current_year);
+        error_log("LKH Summary from DB: " . print_r($lkh_summary, true));
+    } else {
+        // Manual database query if function doesn't work
+        if ($db_connection) {
+            try {
+                $stmt = $db_connection->prepare("
+                    SELECT 
+                        COUNT(*) as total_hari,
+                        SUM(CASE WHEN status_verval = 'disetujui' THEN 1 ELSE 0 END) as hari_approved,
+                        SUM(CASE WHEN status_verval = 'menunggu' OR status_verval IS NULL THEN 1 ELSE 0 END) as hari_pending,
+                        SUM(CASE WHEN status_verval = 'ditolak' THEN 1 ELSE 0 END) as hari_rejected
+                    FROM lkh 
+                    WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?
+                ");
+                $stmt->execute([$user_data['id_pegawai'], $current_month, $current_year]);
+                $result = $stmt->fetch();
+                
+                if ($result && $result['total_hari'] > 0) {
+                    $lkh_summary = $result;
+                    error_log("LKH Summary from manual query: " . print_r($lkh_summary, true));
+                } else {
+                    throw new Exception("No LKH data found");
+                }
+            } catch (Exception $e) {
+                error_log("Manual LKH query failed: " . $e->getMessage());
+                throw $e;
+            }
+        } else {
+            throw new Exception("No database connection");
+        }
+    }
+    
+    if ($db_connection && function_exists('getMobileRKBData')) {
+        $rkb_summary = getMobileRKBData($user_data['id_pegawai'], $current_year);
+        error_log("RKB Summary from DB: " . print_r($rkb_summary, true));
+    } else {
+        // Manual RKB query
+        if ($db_connection) {
+            try {
+                $stmt = $db_connection->prepare("
+                    SELECT COUNT(*) as total_kegiatan
+                    FROM rkb 
+                    WHERE id_pegawai = ? AND tahun = ?
+                ");
+                $stmt->execute([$user_data['id_pegawai'], $current_year]);
+                $result = $stmt->fetch();
+                
+                if ($result) {
+                    $rkb_summary = $result;
+                    error_log("RKB Summary from manual query: " . print_r($rkb_summary, true));
+                } else {
+                    throw new Exception("No RKB data found");
+                }
+            } catch (Exception $e) {
+                error_log("Manual RKB query failed: " . $e->getMessage());
+                throw $e;
+            }
+        } else {
+            throw new Exception("No database connection");
+        }
+    }
+    
+} catch (Exception $e) {
+    error_log("Mobile Dashboard Error: " . $e->getMessage());
+    // Fallback data dengan informasi yang lebih realistic
+    $lkh_summary = [
+        'total_hari' => 0,
+        'hari_approved' => 0,
+        'hari_pending' => 0,
+        'hari_rejected' => 0
+    ];
+    $rkb_summary = ['total_kegiatan' => 0];
+}
 
 // Calculate performance percentage
 $total_days_in_month = cal_days_in_month(CAL_GREGORIAN, $current_month, $current_year);
 $working_days = $total_days_in_month - (floor($total_days_in_month / 7) * 2); // Rough calculation
-$performance_percentage = $working_days > 0 ? round(($lkh_summary['hari_approved'] / $working_days) * 100) : 0;
 
-// Recent activities (mock data for now)
-$recent_activities = [
-    [
-        'type' => 'lkh',
-        'title' => 'LKH ' . date('d F Y'),
-        'status' => 'pending',
-        'time' => '2 jam yang lalu'
-    ],
-    [
-        'type' => 'rkb',
-        'title' => 'Update RKB ' . date('F Y'),
-        'status' => 'approved',
-        'time' => '1 hari yang lalu'
-    ]
-];
+// Ensure we have valid data for performance calculation
+$total_lkh_entries = isset($lkh_summary['total_hari']) ? (int)$lkh_summary['total_hari'] : 0;
+$approved_entries = isset($lkh_summary['hari_approved']) ? (int)$lkh_summary['hari_approved'] : 0;
+
+if ($total_lkh_entries > 0) {
+    $performance_percentage = round(($approved_entries / $total_lkh_entries) * 100);
+} else if ($working_days > 0) {
+    $performance_percentage = round(($approved_entries / $working_days) * 100);
+} else {
+    $performance_percentage = 0;
+}
+
+// Ensure valid range
+$performance_percentage = max(0, min(100, $performance_percentage));
+
+error_log("Performance calculation: approved=$approved_entries, total=$total_lkh_entries, working_days=$working_days, percentage=$performance_percentage");
+
+// Get recent activities with better error handling
+$recent_activities = [];
+try {
+    if (function_exists('getMobileRecentActivities') && $db_connection) {
+        $recent_activities = getMobileRecentActivities($user_data['id_pegawai'], 3);
+    }
+    
+    // If no activities or function failed, create sample data
+    if (empty($recent_activities)) {
+        $recent_activities = [
+            [
+                'type' => 'lkh',
+                'activity' => 'LKH ' . date('d F Y'),
+                'status' => $approved_entries > 0 ? 'disetujui' : 'menunggu',
+                'date' => date('Y-m-d'),
+                'time' => '2 jam yang lalu'
+            ]
+        ];
+    }
+} catch (Exception $e) {
+    error_log("Recent activities error: " . $e->getMessage());
+    $recent_activities = [];
+}
 
 // Check if header template exists, if not create inline header
 if (file_exists(__DIR__ . '/../template/header_mobile.php')) {
@@ -121,10 +220,119 @@ if (file_exists(__DIR__ . '/../template/header_mobile.php')) {
         <title><?= $page_title ?></title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="/mobile-app/assets/css/mobile.css" rel="stylesheet">
+        <link href="../assets/css/mobile.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <style>
+            /* Inline critical CSS untuk memastikan tampilan */
+            .mobile-card {
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                border: none;
+                margin-bottom: 1rem;
+            }
+            
+            .stat-card {
+                background: white;
+                border-radius: 15px;
+                padding: 1.5rem;
+                text-align: center;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                transition: transform 0.2s ease;
+                border: none;
+            }
+            
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            }
+            
+            .stat-card .icon {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 10px;
+                font-size: 1.5rem;
+            }
+            
+            .stat-card .icon.primary { background: linear-gradient(135deg, #4e73df, #224abe); color: white; }
+            .stat-card .icon.success { background: linear-gradient(135deg, #1cc88a, #17a673); color: white; }
+            .stat-card .icon.warning { background: linear-gradient(135deg, #f6c23e, #dda20a); color: white; }
+            .stat-card .icon.danger { background: linear-gradient(135deg, #e74a3b, #c0392b); color: white; }
+            
+            .stat-card .number {
+                font-size: 2rem;
+                font-weight: 700;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            
+            .stat-card .label {
+                font-size: 0.85rem;
+                color: #666;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .mobile-content {
+                background: transparent;
+                padding: 1rem;
+            }
+            
+            .mobile-nav {
+                background: linear-gradient(135deg, #4e73df, #224abe);
+                padding: 1rem 0;
+            }
+            
+            .btn-mobile {
+                border-radius: 12px;
+                padding: 0.75rem 1rem;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                border: none;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                min-height: 60px;
+            }
+            
+            .btn-mobile:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+            
+            .icon-circle {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.2rem;
+            }
+            
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            }
+            
+            .bg-gradient-info {
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            }
+            
+            @media (max-width: 576px) {
+                .mobile-content { padding: 0.5rem; }
+                .stat-card { padding: 1rem; }
+                .stat-card .number { font-size: 1.5rem; }
+            }
+        </style>
     </head>
-    <body class="mobile-body">
+    <body class="mobile-body"
+        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
     <?php
 }
 
@@ -163,6 +371,9 @@ if (file_exists(__DIR__ . '/../template/navigation_mobile.php')) {
                             <small>
                                 <i class="fas fa-id-card me-1"></i><?= htmlspecialchars($user_data['nip']) ?><br>
                                 <i class="fas fa-briefcase me-1"></i><?= htmlspecialchars($user_data['jabatan']) ?>
+                                <?php if (!empty($user_data['unit_kerja'])): ?>
+                                <br><i class="fas fa-building me-1"></i><?= htmlspecialchars($user_data['unit_kerja']) ?>
+                                <?php endif; ?>
                             </small>
                         </p>
                     </div>
@@ -177,6 +388,19 @@ if (file_exists(__DIR__ . '/../template/navigation_mobile.php')) {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Debug Info (hapus di production) -->
+                <?php if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false): ?>
+                <div class="mt-3 p-2 bg-light rounded">
+                    <small class="text-muted">
+                        <strong>Debug Info:</strong><br>
+                        ID Pegawai: <?= $user_data['id_pegawai'] ?><br>
+                        Session Mobile: <?= $_SESSION['mobile_loggedin'] ? 'Yes' : 'No' ?><br>
+                        LKH Data: <?= json_encode($lkh_summary) ?><br>
+                        RKB Data: <?= json_encode($rkb_summary) ?>
+                    </small>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -316,22 +540,29 @@ if (file_exists(__DIR__ . '/../template/navigation_mobile.php')) {
                 <div class="text-center py-4">
                     <i class="fas fa-inbox text-muted mb-3" style="font-size: 3rem;"></i>
                     <p class="text-muted">Belum ada aktivitas hari ini</p>
+                    <a href="/mobile-app/user/lkh.php" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Input LKH Sekarang
+                    </a>
                 </div>
                 <?php else: ?>
                 <?php foreach ($recent_activities as $activity): ?>
                 <div class="d-flex align-items-center mb-3">
                     <div class="me-3">
-                        <div class="icon-circle <?= $activity['status'] === 'approved' ? 'bg-success' : ($activity['status'] === 'pending' ? 'bg-warning' : 'bg-danger') ?> text-white" style="width: 40px; height: 40px; font-size: 0.9rem;">
+                        <?php 
+                        $status = $activity['status'] ?? 'menunggu';
+                        $status_class = $status === 'disetujui' ? 'bg-success' : ($status === 'menunggu' ? 'bg-warning' : 'bg-danger');
+                        ?>
+                        <div class="icon-circle <?= $status_class ?> text-white" style="width: 40px; height: 40px; font-size: 0.9rem;">
                             <i class="fas <?= $activity['type'] === 'lkh' ? 'fa-calendar-check' : 'fa-tasks' ?>"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1">
-                        <div class="fw-semibold"><?= htmlspecialchars($activity['title']) ?></div>
+                        <div class="fw-semibold"><?= htmlspecialchars($activity['activity'] ?? $activity['title'] ?? 'Aktivitas') ?></div>
                         <small class="text-muted">
-                            <span class="badge badge-<?= $activity['status'] === 'approved' ? 'success' : ($activity['status'] === 'pending' ? 'warning' : 'danger') ?> me-2">
-                                <?= ucfirst($activity['status']) ?>
+                            <span class="badge bg-<?= $status === 'disetujui' ? 'success' : ($status === 'menunggu' ? 'warning' : 'danger') ?> me-2">
+                                <?= ucfirst($status) ?>
                             </span>
-                            <?= htmlspecialchars($activity['time']) ?>
+                            <?= htmlspecialchars($activity['time'] ?? date('H:i')) ?>
                         </small>
                     </div>
                 </div>
