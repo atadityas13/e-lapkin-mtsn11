@@ -32,15 +32,198 @@ $result = $stmt->get_result();
 $userInfo = $result->fetch_assoc();
 $stmt->close();
 
-// Check if user has submitted LKH today
+// Get notifications implementation from topbar.php adapted for mobile
+$notifications = [];
+
+// Get current active period
+$stmt_period = $conn->prepare("SELECT tahun_aktif, bulan_aktif FROM pegawai WHERE id_pegawai = ?");
+$stmt_period->bind_param("i", $id_pegawai);
+$stmt_period->execute();
+$stmt_period->bind_result($tahun_aktif, $bulan_aktif);
+$stmt_period->fetch();
+$stmt_period->close();
+
+$current_year = $tahun_aktif ?: (int)date('Y');
+$current_month = $bulan_aktif ?: (int)date('m');
+
+// Check if active period is different from current date
+$real_current_year = (int)date('Y');
+$real_current_month = (int)date('m');
+
+if ($current_year != $real_current_year || $current_month != $real_current_month) {
+    $period_message = '';
+    $period_link = '';
+    if ($current_year != $real_current_year) {
+        $period_message = 'Periode Tahun RHK sebelumnya telah berakhir, silakan membuat periode baru';
+        $period_link = 'rhk.php';
+    } elseif ($current_month != $real_current_month) {
+        $period_message = 'Periode Bulan RKB sebelumnya telah berakhir, silakan membuat periode baru';
+        $period_link = 'rkb.php';
+    }
+    
+    $notifications[] = [
+        'type' => 'danger',
+        'icon' => 'fas fa-exclamation-triangle',
+        'message' => $period_message,
+        'link' => $period_link
+    ];
+}
+
+// Check for missing LKH entries in current period
+$stmt_last_lkh = $conn->prepare("
+    SELECT MAX(DATE(tanggal_lkh)) as last_lkh_date 
+    FROM lkh 
+    WHERE id_pegawai = ? 
+    AND MONTH(tanggal_lkh) = ? 
+    AND YEAR(tanggal_lkh) = ?
+");
+$stmt_last_lkh->bind_param("iii", $id_pegawai, $current_month, $current_year);
+$stmt_last_lkh->execute();
+$stmt_last_lkh->bind_result($last_lkh_date);
+$stmt_last_lkh->fetch();
+$stmt_last_lkh->close();
+
 $today = date('Y-m-d');
-$stmt = $conn->prepare("SELECT COUNT(*) as count FROM lkh WHERE id_pegawai = ? AND DATE(tanggal_lkh) = ?");
-$stmt->bind_param("is", $id_pegawai, $today);
-$stmt->execute();
-$result = $stmt->get_result();
-$todayLkh = $result->fetch_assoc();
-$hasLkhToday = $todayLkh['count'] > 0;
-$stmt->close();
+$current_period_start = date('Y-m-01', strtotime("$current_year-$current_month-01"));
+
+if ($last_lkh_date) {
+    $last_entry = new DateTime($last_lkh_date);
+    $today_date = new DateTime($today);
+    $days_without_lkh = $last_entry->diff($today_date)->days;
+    
+    if ($days_without_lkh > 0) {
+        if ($days_without_lkh == 1) {
+            $lkh_message = "Hari ini anda belum mengisi laporan kinerja harian, silahkan mengisi laporan";
+        } else {
+            $lkh_message = "Anda sudah $days_without_lkh hari belum mengisi laporan kinerja harian, silahkan mengisi laporan";
+        }
+        
+        $notifications[] = [
+            'type' => 'warning',
+            'icon' => 'fas fa-calendar-times',
+            'message' => $lkh_message,
+            'link' => 'lkh_add.php'
+        ];
+    }
+} else {
+    // No LKH entries found for this period at all
+    $period_start = new DateTime($current_period_start);
+    $today_date = new DateTime($today);
+    $days_in_period = $period_start->diff($today_date)->days + 1;
+    
+    if ($days_in_period == 1) {
+        $lkh_message = "Hari ini anda belum mengisi laporan kinerja harian, silahkan mengisi laporan";
+    } else {
+        $lkh_message = "Anda sudah $days_in_period hari belum mengisi laporan kinerja harian, silahkan mengisi laporan";
+    }
+    
+    $notifications[] = [
+        'type' => 'warning',
+        'icon' => 'fas fa-calendar-times',
+        'message' => $lkh_message,
+        'link' => 'lkh_add.php'
+    ];
+}
+
+// Check if reports have been generated for this period by checking filesystem
+$reports_already_generated = false;
+
+// Get NIP for filename generation
+$stmt_nip = $conn->prepare("SELECT nip FROM pegawai WHERE id_pegawai = ?");
+$stmt_nip->bind_param("i", $id_pegawai);
+$stmt_nip->execute();
+$stmt_nip->bind_result($nip_pegawai);
+$stmt_nip->fetch();
+$stmt_nip->close();
+
+if ($nip_pegawai) {
+    $nama_file_nip = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nip_pegawai);
+    $months_name = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    
+    // Check if LKB PDF exists
+    $lkb_filename = __DIR__ . "/../generated/lkb_{$months_name[$current_month]}_{$current_year}_{$nama_file_nip}.pdf";
+    $lkb_exists = file_exists($lkb_filename);
+    
+    // Check if LKH PDF exists  
+    $lkh_filename = __DIR__ . "/../generated/LKH_{$months_name[$current_month]}_{$current_year}_{$nama_file_nip}.pdf";
+    $lkh_exists = file_exists($lkh_filename);
+    
+    $reports_already_generated = ($lkb_exists || $lkh_exists);
+}
+
+// Check RKB status (only show if reports not generated)
+if (!$reports_already_generated) {
+    $stmt_rkb = $conn->prepare("SELECT status_verval FROM rkb WHERE id_pegawai = ? AND bulan = ? AND tahun = ? LIMIT 1");
+    $stmt_rkb->bind_param("iii", $id_pegawai, $current_month, $current_year);
+    $stmt_rkb->execute();
+    $stmt_rkb->bind_result($rkb_status);
+    $stmt_rkb->fetch();
+    $stmt_rkb->close();
+    
+    // Check LKH status (only show if reports not generated)
+    $stmt_lkh = $conn->prepare("SELECT status_verval FROM lkh WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ? LIMIT 1");
+    $stmt_lkh->bind_param("iii", $id_pegawai, $current_month, $current_year);
+    $stmt_lkh->execute();
+    $stmt_lkh->bind_result($lkh_status);
+    $stmt_lkh->fetch();
+    $stmt_lkh->close();
+    
+    // Build notifications for RKB/LKH status
+    if ($rkb_status === 'diajukan') {
+        $notifications[] = [
+            'type' => 'info',
+            'icon' => 'fas fa-clock',
+            'message' => 'RKB Anda sudah diajukan, menunggu approval'
+        ];
+    }
+    
+    if ($lkh_status === 'diajukan') {
+        $notifications[] = [
+            'type' => 'info', 
+            'icon' => 'fas fa-clock',
+            'message' => 'LKH Anda sudah diajukan, menunggu approval'
+        ];
+    }
+    
+    if ($rkb_status === 'disetujui' && $lkh_status === 'disetujui') {
+        $notifications[] = [
+            'type' => 'success',
+            'icon' => 'fas fa-check-circle',
+            'message' => 'RKB/LKH periode ini sudah disetujui, Anda sudah bisa generate laporan',
+            'link' => 'generate_rkb-lkh.php'
+        ];
+    } elseif ($rkb_status === 'disetujui') {
+        $notifications[] = [
+            'type' => 'info',
+            'icon' => 'fas fa-info-circle', 
+            'message' => 'RKB periode ini sudah disetujui'
+        ];
+    } elseif ($lkh_status === 'disetujui') {
+        $notifications[] = [
+            'type' => 'info',
+            'icon' => 'fas fa-info-circle',
+            'message' => 'LKH periode ini sudah disetujui'
+        ];
+    }
+} else {
+    // Reports have been generated - show success notification
+    $months_name_notif = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    
+    $notifications[] = [
+        'type' => 'success',
+        'icon' => 'fas fa-trophy',
+        'message' => "Selamat LKB/LKH anda di periode bulan {$months_name_notif[$current_month]} berhasil digenerate, rencanakan periode berikutnya!",
+        'link' => 'generate_lkb-lkh.php'
+    ];
+}
 
 // Clear any unwanted output before HTML
 ob_clean();
@@ -138,39 +321,33 @@ ob_clean();
 
         <!-- Main Content -->
         <div class="container-fluid px-3 mt-3">
-            <!-- LKH Reminder -->
-            <?php if (!$hasLkhToday): ?>
-                <div class="card notification-card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="fas fa-exclamation-circle fa-2x text-warning"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">Laporan Kinerja Harian</h6>
-                                <p class="mb-2 small">Hari ini tanggal <?= date('d F Y') ?>, Anda belum mengisi laporan Kinerja Harian.</p>
-                                <a href="lkh_add.php" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i>Laporkan Sekarang
-                                </a>
-                            </div>
-                        </div>
+            <!-- Notifications -->
+            <?php foreach ($notifications as $notification): ?>
+                <div class="alert alert-<?= $notification['type'] ?> d-flex align-items-center mb-3" role="alert">
+                    <i class="<?= $notification['icon'] ?> me-3"></i>
+                    <div class="flex-grow-1">
+                        <div><?= htmlspecialchars($notification['message']) ?></div>
+                        <?php if (isset($notification['link'])): ?>
+                            <a href="<?= htmlspecialchars($notification['link']) ?>" class="btn btn-sm btn-outline-<?= $notification['type'] ?> mt-2">
+                                <i class="fas fa-arrow-right me-1"></i>
+                                <?php if (strpos($notification['link'], 'generate') !== false): ?>
+                                    <?php if (strpos($notification['message'], 'Selamat') !== false): ?>
+                                        Lihat Laporan
+                                    <?php else: ?>
+                                        Generate Laporan
+                                    <?php endif; ?>
+                                <?php elseif (strpos($notification['link'], 'rhk') !== false): ?>
+                                    Atur Periode RHK
+                                <?php elseif (strpos($notification['link'], 'rkb') !== false): ?>
+                                    Atur Periode RKB
+                                <?php elseif (strpos($notification['link'], 'lkh') !== false): ?>
+                                    Isi LKH Sekarang
+                                <?php endif; ?>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
-            <?php else: ?>
-                <div class="card notification-card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="fas fa-check-circle fa-2x text-success"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">Laporan Kinerja Harian</h6>
-                                <p class="mb-0 small">Anda sudah mengisi laporan kinerja harian untuk hari ini. Terima kasih!</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <?php endforeach; ?>
 
             <!-- Quick Actions -->
             <div class="card notification-card">
