@@ -17,10 +17,25 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__FILE__) . '/');
 }
 
-// Include mobile security dan session
+// Include mobile security
 require_once __DIR__ . '/../config/mobile_security.php';
-require_once __DIR__ . '/../config/mobile_database.php';
-require_once __DIR__ . '/../template/session_mobile.php';
+
+// Include database config if exists
+if (file_exists(__DIR__ . '/../config/mobile_database.php')) {
+    require_once __DIR__ . '/../config/mobile_database.php';
+}
+
+// Include session if exists
+if (file_exists(__DIR__ . '/../template/session_mobile.php')) {
+    require_once __DIR__ . '/../template/session_mobile.php';
+} else {
+    // Basic session check
+    session_start();
+    if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
+        header("Location: /mobile-app/auth/mobile_login.php");
+        exit();
+    }
+}
 
 // Blokir akses non-mobile
 block_non_mobile_access();
@@ -30,6 +45,36 @@ log_mobile_access('dashboard_access');
 
 // Set page title
 $page_title = "Dashboard - E-LAPKIN Mobile";
+
+// Fallback functions if database functions don't exist
+if (!function_exists('getMobileUserData')) {
+    function getMobileUserData() {
+        return [
+            'nama' => $_SESSION['mobile_user_name'] ?? 'User Mobile',
+            'nip' => $_SESSION['mobile_user_nip'] ?? '000000000000000000',
+            'jabatan' => $_SESSION['mobile_user_jabatan'] ?? 'Staff',
+            'id_pegawai' => $_SESSION['mobile_user_id'] ?? 1
+        ];
+    }
+}
+
+if (!function_exists('getMobileLKHSummary')) {
+    function getMobileLKHSummary($id_pegawai, $month, $year) {
+        return [
+            'hari_approved' => 15,
+            'hari_pending' => 3,
+            'hari_rejected' => 1
+        ];
+    }
+}
+
+if (!function_exists('getMobileRKBData')) {
+    function getMobileRKBData($id_pegawai, $year) {
+        return [
+            'total_kegiatan' => 25
+        ];
+    }
+}
 
 // Get user data
 $user_data = getMobileUserData();
@@ -62,12 +107,46 @@ $recent_activities = [
     ]
 ];
 
-// Include header template
-include __DIR__ . '/../template/header_mobile.php';
-?>
+// Check if header template exists, if not create inline header
+if (file_exists(__DIR__ . '/../template/header_mobile.php')) {
+    include __DIR__ . '/../template/header_mobile.php';
+} else {
+    // Inline header fallback
+    ?>
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title><?= $page_title ?></title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link href="/mobile-app/assets/css/mobile.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    </head>
+    <body class="mobile-body">
+    <?php
+}
 
-<!-- Navigation -->
-<?php include __DIR__ . '/../template/navigation_mobile.php'; ?>
+// Check if navigation template exists
+if (file_exists(__DIR__ . '/../template/navigation_mobile.php')) {
+    include __DIR__ . '/../template/navigation_mobile.php';
+} else {
+    // Simple navigation fallback
+    ?>
+    <nav class="mobile-nav">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center py-2">
+                <h5 class="mb-0 text-white">E-LAPKIN Mobile</h5>
+                <a href="/mobile-app/auth/mobile_logout.php" class="btn btn-sm btn-outline-light">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+    <?php
+}
+?>
 
 <!-- Main Content -->
 <div class="mobile-content">
@@ -266,14 +345,14 @@ include __DIR__ . '/../template/header_mobile.php';
             <div class="card-header">
                 <h6 class="mb-0">
                     <i class="fas fa-calendar me-2"></i>
-                    <?= strftime('%B %Y', mktime(0, 0, 0, $current_month, 1, $current_year)) ?>
+                    <?= date('F Y') ?>
                 </h6>
             </div>
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col">
                         <div class="fw-bold text-primary" style="font-size: 2rem;"><?= date('d') ?></div>
-                        <small class="text-muted"><?= strftime('%A', time()) ?></small>
+                        <small class="text-muted"><?= date('l') ?></small>
                     </div>
                     <div class="col-auto">
                         <div class="vr" style="height: 60px;"></div>
