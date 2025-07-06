@@ -47,14 +47,15 @@ if (!empty($foto_profil)) {
     }
 }
 
-// Get current date and time in Indonesian
+// Get current date and time in Indonesian (WIB timezone)
+date_default_timezone_set('Asia/Jakarta');
 $days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 $day_name = $days[date('w')];
 $month_name = $months[date('n')];
-$current_datetime = $day_name . ', ' . date('d') . ' ' . $month_name . ' ' . date('Y') . ' - ' . date('H:i');
+$current_date = $day_name . ', ' . date('d') . ' ' . $month_name . ' ' . date('Y') . ' - ' . date('H:i');
 
 // Get notifications implementation from topbar.php adapted for mobile
 $notifications = [];
@@ -257,26 +258,72 @@ ob_clean();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-LAPKIN Mobile - Dashboard</title>
+    <title>E-Lapkin Mobile - MTsN 11 Majalengka</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .gradient-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><radialGradient id="a" cx="50%" cy="0%" r="50%"><stop offset="0%" stop-color="white" stop-opacity="0.1"/><stop offset="100%" stop-color="white" stop-opacity="0"/></radialGradient></defs><rect width="100" height="20" fill="url(%23a)"/></svg>');
+            opacity: 0.3;
+        }
+        .header-content {
+            position: relative;
+            z-index: 1;
         }
         .profile-img {
-            width: 50px;
-            height: 50px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid rgba(255,255,255,0.3);
+            border: 3px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .profile-img:hover {
+            transform: scale(1.05);
+        }
+        .app-title {
+            font-weight: 700;
+            font-size: 1.4rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .datetime-text {
+            font-size: 13px;
+            opacity: 0.9;
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .live-time {
+            font-weight: 600;
+            font-size: 14px;
+            color: #ffd700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         .notification-card {
-            border-radius: 15px;
+            border-radius: 20px;
             border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid;
-            margin-bottom: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .notification-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
         }
         .notification-card.danger {
             border-left-color: #dc3545;
@@ -295,63 +342,121 @@ ob_clean();
             background: linear-gradient(135deg, #f0fff4 0%, #d4edda 100%);
         }
         .notification-icon {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 16px;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease;
         }
-        .notification-icon.danger { background: #dc3545; }
-        .notification-icon.warning { background: #ffc107; color: #000; }
-        .notification-icon.info { background: #0dcaf0; }
-        .notification-icon.success { background: #198754; }
+        .notification-icon:hover {
+            transform: scale(1.1);
+        }
+        .notification-icon.danger { background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%); }
+        .notification-icon.warning { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #000; }
+        .notification-icon.info { background: linear-gradient(135deg, #0dcaf0 0%, #0aace0 100%); }
+        .notification-icon.success { background: linear-gradient(135deg, #198754 0%, #146c43 100%); }
         .notification-btn {
-            border-radius: 20px;
+            border-radius: 25px;
             font-size: 12px;
-            padding: 6px 16px;
-            font-weight: 500;
+            padding: 8px 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .notification-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.2);
         }
         .bottom-nav {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
-            border-top: 1px solid #dee2e6;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.1);
             z-index: 1000;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
         }
         .bottom-nav .nav-item {
             flex: 1;
             text-align: center;
         }
         .bottom-nav .nav-link {
-            padding: 10px 8px;
+            padding: 12px 8px;
             color: #6c757d;
             text-decoration: none;
             display: block;
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 4px;
         }
         .bottom-nav .nav-link.active {
             color: #0d6efd;
-            background-color: rgba(13, 110, 253, 0.1);
+            background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+            transform: translateY(-2px);
+        }
+        .bottom-nav .nav-link:hover {
+            color: #0d6efd;
+            background: rgba(13, 110, 253, 0.05);
         }
         .bottom-nav .nav-link i {
-            font-size: 16px;
+            font-size: 18px;
             margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav .nav-link.active i {
+            transform: scale(1.1);
         }
         .main-content {
             padding-bottom: 100px;
         }
         body {
-            padding-bottom: 70px;
+            padding-bottom: 80px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
         }
-        .datetime-text {
-            font-size: 13px;
-            opacity: 0.9;
+        .user-info {
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .info-section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+        }
+        @media (max-width: 768px) {
+            .app-title { font-size: 1.2rem; }
+            .profile-img { width: 50px; height: 50px; }
+            .notification-card { margin-bottom: 12px; }
+            .container-fluid { padding-left: 12px; padding-right: 12px; }
         }
     </style>
 </head>
@@ -359,65 +464,72 @@ ob_clean();
     <div class="main-content">
         <!-- Header -->
         <div class="gradient-bg text-white p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="mb-1">E-LAPKIN</h5>
-                    <small class="datetime-text"><?= $current_datetime ?></small>
-                </div>
-                <div class="text-end">
-                    <div class="dropdown">
-                        <button class="btn btn-link text-white p-0" type="button" data-bs-toggle="dropdown">
-                            <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
-                                <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img">
-                            <?php else: ?>
-                                <i class="fas fa-user-circle fa-3x"></i>
-                            <?php endif; ?>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text"><strong><?= htmlspecialchars($userInfo['nama']) ?></strong></span></li>
-                            <li><span class="dropdown-item-text">NIP: <?= htmlspecialchars($userInfo['nip']) ?></span></li>
-                            <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['jabatan']) ?></span></li>
-                            <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['unit_kerja']) ?></span></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="POST" style="display: inline;">
-                                    <button type="submit" name="logout" class="dropdown-item text-danger">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
+            <div class="header-content">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="app-title mb-1">E-Lapkin Mobile</h5>
+                        <div class="datetime-text">
+                            <div><?= $current_date ?></div>
+                            <div class="live-time" id="liveTime"></div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-link text-white p-0" type="button" data-bs-toggle="dropdown">
+                                <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
+                                    <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img pulse">
+                                <?php else: ?>
+                                    <i class="fas fa-user-circle fa-3x"></i>
+                                <?php endif; ?>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="border-radius: 15px;">
+                                <li><span class="dropdown-item-text"><strong><?= htmlspecialchars($userInfo['nama']) ?></strong></span></li>
+                                <li><span class="dropdown-item-text">NIP: <?= htmlspecialchars($userInfo['nip']) ?></span></li>
+                                <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['jabatan']) ?></span></li>
+                                <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['unit_kerja']) ?></span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" style="display: inline;">
+                                        <button type="submit" name="logout" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="d-flex align-items-center">
-                <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
-                    <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img me-3">
-                <?php else: ?>
-                    <div class="profile-img me-3 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.2);">
-                        <i class="fas fa-user text-white"></i>
+                <div class="user-info">
+                    <div class="d-flex align-items-center">
+                        <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
+                            <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img me-3">
+                        <?php else: ?>
+                            <div class="profile-img me-3 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.2);">
+                                <i class="fas fa-user text-white fa-lg"></i>
+                            </div>
+                        <?php endif; ?>
+                        <div>
+                            <h6 class="mb-1 fw-bold"><?= htmlspecialchars($userInfo['nama']) ?></h6>
+                            <small class="opacity-75">NIP: <?= htmlspecialchars($userInfo['nip']) ?></small><br>
+                            <small class="opacity-75"><?= htmlspecialchars($userInfo['jabatan']) ?></small><br>
+                            <small class="opacity-75"><?= htmlspecialchars($userInfo['unit_kerja']) ?></small>
+                        </div>
                     </div>
-                <?php endif; ?>
-                <div>
-                    <h6 class="mb-1"><?= htmlspecialchars($userInfo['nama']) ?></h6>
-                    <small>NIP: <?= htmlspecialchars($userInfo['nip']) ?></small><br>
-                    <small><?= htmlspecialchars($userInfo['jabatan']) ?></small><br>
-                    <small><?= htmlspecialchars($userInfo['unit_kerja']) ?></small>
                 </div>
             </div>
         </div>
 
         <!-- Main Content -->
-        <div class="container-fluid px-3 mt-3">
+        <div class="container-fluid px-3 mt-4">
             <!-- App Info Section -->
-            <div class="row mb-4">
-                <div class="col-md-6 mb-3">
-                    <div class="notification-card info p-3">
-                        <h6 class="text-primary mb-3">
-                            <i class="fas fa-mobile-alt me-2"></i>Aplikasi E-LAPKIN
+            <div class="row mb-4 info-section">
+                <div class="col-lg-6 mb-3">
+                    <div class="notification-card info p-4">
+                        <h6 class="text-primary mb-3 fw-bold">
+                            <i class="fas fa-mobile-alt me-2"></i>E-Lapkin Mobile
                         </h6>
-                        <p class="mb-3" style="font-size: 14px;">
-                            Aplikasi E-LAPKIN digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan MTsN 11 Majalengka.
+                        <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
+                            Aplikasi E-LAPKIN digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan <strong>MTsN 11 Majalengka</strong>.
                         </p>
                         <div class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
@@ -433,15 +545,15 @@ ob_clean();
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <div class="notification-card warning p-3">
-                        <h6 class="text-warning mb-3">
+                <div class="col-lg-6 mb-3">
+                    <div class="notification-card warning p-4">
+                        <h6 class="text-warning mb-3 fw-bold">
                             <i class="fas fa-question-circle me-2"></i>Sudahkah Anda mengisi kegiatan hari ini?
                         </h6>
-                        <p class="mb-3" style="font-size: 14px;">
+                        <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
                             Pastikan Anda melaporkan aktivitas harian Anda secara rutin untuk menjaga akurasi kinerja.
                         </p>
-                        <a href="lkh_add.php" class="btn btn-warning btn-sm">
+                        <a href="lkh_add.php" class="btn btn-warning notification-btn">
                             <i class="fas fa-plus me-1"></i>Isi Laporan Harian
                         </a>
                     </div>
@@ -451,7 +563,7 @@ ob_clean();
             <!-- Notifications -->
             <?php if (!empty($notifications)): ?>
                 <?php foreach ($notifications as $notification): ?>
-                    <div class="notification-card <?= $notification['type'] ?> p-3">
+                    <div class="notification-card <?= $notification['type'] ?> p-4">
                         <div class="d-flex align-items-start">
                             <div class="notification-icon <?= $notification['type'] ?> me-3">
                                 <i class="<?= $notification['icon'] ?>"></i>
@@ -522,5 +634,22 @@ ob_clean();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Live time update
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('liveTime').textContent = `${hours}:${minutes}:${seconds} WIB`;
+        }
+        
+        // Update time immediately and then every second
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Add smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
+    </script>
 </body>
 </html>
