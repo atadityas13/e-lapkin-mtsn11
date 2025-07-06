@@ -484,9 +484,7 @@ ob_clean();
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="border-radius: 15px;">
                                 <li><span class="dropdown-item-text"><strong><?= htmlspecialchars($userInfo['nama']) ?></strong></span></li>
-                                <li><span class="dropdown-item-text">NIP: <?= htmlspecialchars($userInfo['nip']) ?></span></li>
-                                <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['jabatan']) ?></span></li>
-                                <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['unit_kerja']) ?></span></li>
+                                <li><span class="dropdown-item-text"><?= htmlspecialchars($userInfo['nip']) ?></span></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" style="display: inline;">
@@ -553,7 +551,7 @@ ob_clean();
                         <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
                             Pastikan Anda melaporkan aktivitas harian Anda secara rutin untuk menjaga akurasi kinerja.
                         </p>
-                        <a href="lkh_add.php" class="btn btn-warning notification-btn">
+                        <a href="lkh.php" class="btn btn-warning notification-btn">
                             <i class="fas fa-plus me-1"></i>Isi Laporan Harian
                         </a>
                     </div>
