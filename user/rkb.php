@@ -150,23 +150,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (empty($uraian_kegiatan) || empty($kuantitas) || empty($satuan) || empty($bulan) || empty($tahun)) {
                 set_swal('error', 'Gagal', 'Semua field harus diisi.');
             } else {
-                if ($action == 'add') {
-                    $stmt = $conn->prepare("INSERT INTO rkb (id_pegawai, id_rhk, bulan, tahun, uraian_kegiatan, kuantitas, satuan) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("iiissss", $id_pegawai_login, $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan);
-                } else { // action == 'edit'
-                    $id_rkb = (int)$_POST['id_rkb'];
-                    $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, bulan = ?, tahun = ?, uraian_kegiatan = ?, kuantitas = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
-                    $stmt->bind_param("iissssii", $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan, $id_rkb, $id_pegawai_login);
-                }
-
-                if ($stmt->execute()) {
-                    set_swal('success', ($action == 'add' ? 'Berhasil' : 'Update Berhasil'), ($action == 'add' ? 'RKB berhasil ditambahkan!' : 'RKB berhasil diperbarui!'));
+                // Validate satuan against ENUM values
+                $valid_satuan = ['Kegiatan','JP','Dokumen','Laporan','Hari','Jam','Menit','Unit'];
+                if (!in_array($satuan, $valid_satuan)) {
+                    set_swal('error', 'Gagal', 'Satuan tidak valid. Pilih salah satu: ' . implode(', ', $valid_satuan));
                     echo '<script>window.location="rkb.php?month=' . $bulan . '&year=' . $tahun . '";</script>';
                     exit();
-                } else {
-                    set_swal('error', 'Gagal', ($action == 'add' ? "Gagal menambahkan RKB: " : "Gagal memperbarui RKB: ") . $stmt->error);
                 }
-                $stmt->close();
+                
+                try {
+                    if ($action == 'add') {
+                        $stmt = $conn->prepare("INSERT INTO rkb (id_pegawai, id_rhk, bulan, tahun, uraian_kegiatan, kuantitas, satuan) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->bind_param("iiissss", $id_pegawai_login, $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan);
+                    } else { // action == 'edit'
+                        $id_rkb = (int)$_POST['id_rkb'];
+                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, bulan = ?, tahun = ?, uraian_kegiatan = ?, kuantitas = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
+                        $stmt->bind_param("iissssii", $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan, $id_rkb, $id_pegawai_login);
+                    }
+
+                    if ($stmt->execute()) {
+                        set_swal('success', ($action == 'add' ? 'Berhasil' : 'Update Berhasil'), ($action == 'add' ? 'RKB berhasil ditambahkan!' : 'RKB berhasil diperbarui!'));
+                        echo '<script>window.location="rkb.php?month=' . $bulan . '&year=' . $tahun . '";</script>';
+                        exit();
+                    } else {
+                        if (strpos($stmt->error, 'Data truncated') !== false) {
+                            set_swal('error', 'Gagal', 'Data terlalu panjang untuk field satuan. Pilih salah satu opsi yang tersedia.');
+                        } else {
+                            set_swal('error', 'Gagal', ($action == 'add' ? "Gagal menambahkan RKB: " : "Gagal memperbarui RKB: ") . $stmt->error);
+                        }
+                    }
+                    $stmt->close();
+                } catch (Exception $e) {
+                    if (strpos($e->getMessage(), 'Data truncated') !== false) {
+                        set_swal('error', 'Gagal', 'Terjadi kesalahan database: Data satuan tidak sesuai format yang diizinkan.');
+                    } else {
+                        set_swal('error', 'Gagal', 'Terjadi kesalahan database. Periksa data yang dimasukkan.');
+                    }
+                    echo '<script>window.location="rkb.php?month=' . $bulan . '&year=' . $tahun . '";</script>';
+                    exit();
+                }
             }
         } elseif ($action == 'delete') {
             $id_rkb_to_delete = (int)$_POST['id_rkb'];
@@ -267,6 +289,43 @@ while ($row = $result_rhk_list->fetch_assoc()) {
     $rhk_list[] = $row;
 }
 $stmt_rhk_list->close();
+
+// Ambil daftar RKB terdahulu untuk referensi
+$previous_rkb_list = [];
+
+// Get unique uraian_kegiatan with latest kuantitas/satuan (compatible with ONLY_FULL_GROUP_BY)
+$stmt_previous_rkb = $conn->prepare("
+    SELECT 
+        r1.uraian_kegiatan,
+        r1.kuantitas,
+        r1.satuan
+    FROM rkb r1
+    INNER JOIN (
+        SELECT 
+            uraian_kegiatan,
+            MAX(created_at) as max_created_at
+        FROM rkb 
+        WHERE id_pegawai = ? AND NOT (bulan = ? AND tahun = ?)
+        GROUP BY uraian_kegiatan
+    ) r2 ON r1.uraian_kegiatan = r2.uraian_kegiatan 
+         AND r1.created_at = r2.max_created_at
+    WHERE r1.id_pegawai = ? AND NOT (r1.bulan = ? AND r1.tahun = ?)
+    ORDER BY r1.created_at DESC, r1.uraian_kegiatan ASC
+");
+
+$stmt_previous_rkb->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
+$stmt_previous_rkb->execute();
+$result_previous_rkb = $stmt_previous_rkb->get_result();
+
+while ($row = $result_previous_rkb->fetch_assoc()) {
+    $previous_rkb_list[] = [
+        'uraian_kegiatan' => $row['uraian_kegiatan'],
+        'kuantitas' => $row['kuantitas'],
+        'satuan' => $row['satuan']
+    ];
+}
+
+$stmt_previous_rkb->close();
 
 // Data untuk dropdown bulan
 $months = [
@@ -528,7 +587,7 @@ include __DIR__ . '/../template/topbar.php';
 
       <!-- Modal Tambah RKB -->
       <div class="modal fade" id="modalTambahRkb" tabindex="-1" aria-labelledby="modalTambahRkbLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
           <form action="rkb.php" method="POST" class="modal-content">
             <div class="modal-header bg-primary text-white">
               <h5 class="modal-title" id="modalTambahRkbLabel"><i class="fas fa-plus me-2"></i>Tambah RKB Baru</h5>
@@ -558,7 +617,14 @@ include __DIR__ . '/../template/topbar.php';
                 <?php endif; ?>
               </div>
               <div class="mb-3">
-                <label for="uraian_kegiatan_modal" class="form-label">Uraian Kinerja Bulanan (RKB)</label>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label for="uraian_kegiatan_modal" class="form-label mb-0">Uraian Kinerja Bulanan (RKB)</label>
+                  <?php if (!empty($previous_rkb_list)): ?>
+                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalRkbTerdahulu">
+                      <i class="fas fa-history me-1"></i>Lihat RKB Terdahulu
+                    </button>
+                  <?php endif; ?>
+                </div>
                 <textarea class="form-control" id="uraian_kegiatan_modal" name="uraian_kegiatan" rows="3" required></textarea>
               </div>
               <div class="mb-3">
@@ -573,6 +639,7 @@ include __DIR__ . '/../template/topbar.php';
                   <option value="JP">JP</option>
                   <option value="Dokumen">Dokumen</option>
                   <option value="Laporan">Laporan</option>
+                  <option value="Hari">Hari</option>
                   <option value="Jam">Jam</option>
                   <option value="Menit">Menit</option>
                   <option value="Unit">Unit</option>
@@ -584,6 +651,84 @@ include __DIR__ . '/../template/topbar.php';
               <button type="submit" class="btn btn-primary" <?php echo empty($rhk_list) ? 'disabled' : ''; ?>>Tambah RKB</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Modal RKB Terdahulu -->
+      <div class="modal fade" id="modalRkbTerdahulu" tabindex="-1" aria-labelledby="modalRkbTerdahuluLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+              <h5 class="modal-title" id="modalRkbTerdahuluLabel">
+                <i class="fas fa-history me-2"></i>RKB Terdahulu
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i>
+                Pilih salah satu RKB terdahulu untuk mengisi form otomatis. Data akan disalin ke form tambah RKB.
+              </div>
+              
+              <?php if (empty($previous_rkb_list)): ?>
+                <div class="text-center py-4">
+                  <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                  <p class="text-muted">Belum ada data RKB terdahulu yang dapat dijadikan referensi.</p>
+                </div>
+              <?php else: ?>
+                <div class="mb-3">
+                  <input type="text" class="form-control" id="searchRkbTerdahulu" placeholder="🔍 Cari RKB terdahulu...">
+                </div>
+                
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                  <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                      <tr>
+                        <th width="60%">Uraian Kegiatan</th>
+                        <th width="20%">Kuantitas Terakhir</th>
+                        <th width="20%">Satuan Terakhir</th>
+                        <th width="10%">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="rkbTerdahuluTableBody">
+                      <?php foreach ($previous_rkb_list as $prev_rkb): ?>
+                        <tr class="rkb-row" data-uraian="<?php echo htmlspecialchars($prev_rkb['uraian_kegiatan']); ?>"
+                            data-kuantitas="<?php echo htmlspecialchars($prev_rkb['kuantitas']); ?>"
+                            data-satuan="<?php echo htmlspecialchars($prev_rkb['satuan']); ?>">
+                          <td>
+                            <div class="fw-semibold"><?php echo htmlspecialchars($prev_rkb['uraian_kegiatan']); ?></div>
+                          </td>
+                          <td class="text-center">
+                            <span class="badge bg-secondary"><?php echo htmlspecialchars($prev_rkb['kuantitas']); ?></span>
+                          </td>
+                          <td class="text-center">
+                            <span class="badge bg-primary"><?php echo htmlspecialchars($prev_rkb['satuan']); ?></span>
+                          </td>
+                          <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-success pilih-rkb-btn"
+                                    data-uraian="<?php echo htmlspecialchars($prev_rkb['uraian_kegiatan']); ?>"
+                                    data-kuantitas="<?php echo htmlspecialchars($prev_rkb['kuantitas']); ?>"
+                                    data-satuan="<?php echo htmlspecialchars($prev_rkb['satuan']); ?>"
+                                    title="Pilih RKB ini">
+                              <i class="fas fa-check me-1"></i><small>Gunakan</small>
+                            </button>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div id="noDataMessage" class="text-center py-3 d-none">
+                  <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                  <p class="text-muted">Tidak ada RKB yang sesuai dengan pencarian.</p>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -641,6 +786,7 @@ include __DIR__ . '/../template/topbar.php';
                 <option value="JP" <?php echo ($edit_rkb['satuan'] == 'JP') ? 'selected' : ''; ?>>JP</option>
                 <option value="Dokumen" <?php echo ($edit_rkb['satuan'] == 'Dokumen') ? 'selected' : ''; ?>>Dokumen</option>
                 <option value="Laporan" <?php echo ($edit_rkb['satuan'] == 'Laporan') ? 'selected' : ''; ?>>Laporan</option>
+                <option value="Hari" <?php echo ($edit_rkb['satuan'] == 'Hari') ? 'selected' : ''; ?>>Hari</option>
                 <option value="Jam" <?php echo ($edit_rkb['satuan'] == 'Jam') ? 'selected' : ''; ?>>Jam</option>
                 <option value="Menit" <?php echo ($edit_rkb['satuan'] == 'Menit') ? 'selected' : ''; ?>>Menit</option>
                 <option value="Unit" <?php echo ($edit_rkb['satuan'] == 'Unit') ? 'selected' : ''; ?>>Unit</option>
@@ -657,15 +803,20 @@ include __DIR__ . '/../template/topbar.php';
       <div class="card">
         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
           <span>Daftar Rencana Kinerja Bulanan (RKB) Anda - Bulan <?php echo $months[$filter_month] . ' ' . $filter_year; ?></span>
-          <?php if ($status_verval == 'diajukan'): ?>
-            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalBatalVerval">
-              <i class="fas fa-times me-1"></i> Batal Ajukan Verval
+          <div class="btn-group">
+            <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalPreviewRkb" <?php echo empty($rkbs) ? 'disabled title="Tidak ada data RKB untuk di-preview"' : ''; ?>>
+              <i class="fas fa-eye me-1"></i> Preview RKB
             </button>
-          <?php elseif ($status_verval == '' || $status_verval == null || $status_verval == "ditolak"): ?>
-            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjukanVerval" <?php echo empty($rkbs) ? 'disabled title="Tidak dapat mengajukan verval karena belum ada data RKB"' : ''; ?>>
-              <i class="fas fa-paper-plane me-1"></i> Ajukan Verval RKB
-            </button>
-          <?php endif; ?>
+            <?php if ($status_verval == 'diajukan'): ?>
+              <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalBatalVerval">
+                <i class="fas fa-times me-1"></i> Batal Ajukan Verval
+              </button>
+            <?php elseif ($status_verval == '' || $status_verval == null || $status_verval == "ditolak"): ?>
+              <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjukanVerval" <?php echo empty($rkbs) ? 'disabled title="Tidak dapat mengajukan verval karena belum ada data RKB"' : ''; ?>>
+                <i class="fas fa-paper-plane me-1"></i> Ajukan Verval RKB
+              </button>
+            <?php endif; ?>
+          </div>
         </div>
         <div class="card-body">
           <?php
@@ -817,7 +968,194 @@ include __DIR__ . '/../template/topbar.php';
           </form>
         </div>
       </div>
+
+      <!-- Modal Preview RKB -->
+      <div class="modal fade" id="modalPreviewRkb" tabindex="-1" aria-labelledby="modalPreviewRkbLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+              <h5 class="modal-title" id="modalPreviewRkbLabel">
+                <i class="fas fa-eye me-2"></i>Preview Rencana Kinerja Bulanan (RKB)
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <h6 class="fw-bold">Periode: <?php echo $months[$filter_month] . ' ' . $filter_year; ?></h6>
+                <h6 class="fw-bold">Nama Pegawai: <?php echo htmlspecialchars($nama_pegawai_login); ?></h6>
+              </div>
+              
+              <?php if (empty($rkbs)): ?>
+                <div class="alert alert-info text-center">
+                  <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                  <p class="text-muted mb-0">Belum ada data RKB untuk periode ini.</p>
+                </div>
+              <?php else: ?>
+                <div class="table-responsive">
+                  <table class="table table-bordered table-striped">
+                    <thead class="table-primary">
+                      <tr class="text-center">
+                        <th width="5%">No</th>
+                        <th width="65%">Uraian Kegiatan</th>
+                        <th width="15%">Jumlah</th>
+                        <th width="15%">Satuan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php $no = 1; foreach ($rkbs as $rkb): ?>
+                        <tr>
+                          <td class="text-center"><?php echo $no++; ?></td>
+                          <td><?php echo htmlspecialchars($rkb['uraian_kegiatan']); ?></td>
+                          <td class="text-center"><?php echo htmlspecialchars($rkb['kuantitas']); ?></td>
+                          <td class="text-center"><?php echo htmlspecialchars($rkb['satuan']); ?></td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="mt-3">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <small class="text-muted">
+                        <strong>Total RKB:</strong> <?php echo count($rkbs); ?> rencana kegiatan
+                      </small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                      <small class="text-muted">
+                        <strong>Status:</strong> 
+                        <?php 
+                        if ($status_verval == 'diajukan') {
+                          echo '<span class="badge bg-warning">Menunggu Verifikasi</span>';
+                        } elseif ($status_verval == 'disetujui') {
+                          echo '<span class="badge bg-success">Disetujui</span>';
+                        } elseif ($status_verval == 'ditolak') {
+                          echo '<span class="badge bg-danger">Ditolak</span>';
+                        } else {
+                          echo '<span class="badge bg-secondary">Belum Diajukan</span>';
+                        }
+                        ?>
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
   <?php include __DIR__ . '/../template/footer.php'; ?>
 </div>
+
+<script>
+  // JavaScript untuk fitur RKB terdahulu
+  document.addEventListener('DOMContentLoaded', function() {
+    // Event listener untuk tombol pilih RKB
+    document.querySelectorAll('.pilih-rkb-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const uraian = this.getAttribute('data-uraian');
+        const kuantitas = this.getAttribute('data-kuantitas');
+        const satuan = this.getAttribute('data-satuan');
+        
+        // Isi form di modal tambah RKB
+        document.getElementById('uraian_kegiatan_modal').value = uraian;
+        document.getElementById('kuantitas_modal').value = kuantitas;
+        document.getElementById('satuan_modal').value = satuan;
+        
+        // Tutup hanya modal RKB terdahulu, bukan modal tambah RKB
+        const modalRkbTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalRkbTerdahulu'));
+        if (modalRkbTerdahulu) {
+          modalRkbTerdahulu.hide();
+        }
+        
+        // Show success message
+        Swal.fire({
+          icon: 'success',
+          title: 'RKB Terpilih!',
+          text: 'Data RKB terdahulu berhasil disalin ke form.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        // Pastikan modal tambah RKB tetap terbuka
+        setTimeout(function() {
+          const modalTambahRkb = bootstrap.Modal.getInstance(document.getElementById('modalTambahRkb'));
+          if (!modalTambahRkb || !modalTambahRkb._isShown) {
+            const newModalTambahRkb = new bootstrap.Modal(document.getElementById('modalTambahRkb'));
+            newModalTambahRkb.show();
+          }
+        }, 100);
+      });
+    });
+    
+    // Event listener untuk modal RKB terdahulu ketika ditutup
+    document.getElementById('modalRkbTerdahulu').addEventListener('hidden.bs.modal', function() {
+      // Pastikan modal tambah RKB tetap terbuka setelah modal RKB terdahulu ditutup
+      setTimeout(function() {
+        const modalTambahRkb = bootstrap.Modal.getInstance(document.getElementById('modalTambahRkb'));
+        if (!modalTambahRkb || !modalTambahRkb._isShown) {
+          const newModalTambahRkb = new bootstrap.Modal(document.getElementById('modalTambahRkb'));
+          newModalTambahRkb.show();
+        }
+      }, 100);
+    });
+    
+    // Search functionality untuk RKB terdahulu
+    const searchInput = document.getElementById('searchRkbTerdahulu');
+    const tableBody = document.getElementById('rkbTerdahuluTableBody');
+    const noDataMessage = document.getElementById('noDataMessage');
+    
+    if (searchInput && tableBody) {
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = tableBody.querySelectorAll('.rkb-row');
+        let visibleCount = 0;
+        
+        rows.forEach(function(row) {
+          const uraian = row.getAttribute('data-uraian').toLowerCase();
+          const kuantitas = row.getAttribute('data-kuantitas').toLowerCase();
+          const satuan = row.getAttribute('data-satuan').toLowerCase();
+          
+          if (uraian.includes(searchTerm) || kuantitas.includes(searchTerm) || satuan.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        // Show/hide no data message
+        if (noDataMessage) {
+          if (visibleCount === 0 && searchTerm.length > 0) {
+            noDataMessage.classList.remove('d-none');
+          } else {
+            noDataMessage.classList.add('d-none');
+          }
+        }
+      });
+    }
+    
+    // Reset form ketika modal tambah RKB ditutup (hanya reset jika benar-benar ditutup oleh user)
+    document.getElementById('modalTambahRkb').addEventListener('hidden.bs.modal', function(e) {
+      // Cek apakah modal RKB terdahulu sedang terbuka
+      const modalRkbTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalRkbTerdahulu'));
+      if (!modalRkbTerdahulu || !modalRkbTerdahulu._isShown) {
+        // Reset form hanya jika modal RKB terdahulu tidak terbuka
+        this.querySelector('form').reset();
+        // Reset periode display
+        const periodeInput = this.querySelector('input[readonly]');
+        if (periodeInput) {
+          periodeInput.value = '<?php echo $months[$filter_month] . ' ' . $filter_year; ?>';
+        }
+      }
+    });
+  });
+</script>
+
+<!-- SweetAlert CSS/JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
