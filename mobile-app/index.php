@@ -15,6 +15,9 @@
 date_default_timezone_set('UTC'); 
 // --- AKHIR PERBAIKAN PENTING ---
 
+// Start session first before any validation
+session_start();
+
 // Define ABSPATH
 if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__FILE__) . '/');
@@ -23,7 +26,23 @@ if (!defined('ABSPATH')) {
 // Include mobile security (file ini yang berisi fungsi is_valid_mobile_app)
 require_once __DIR__ . '/config/mobile_security.php';
 
-// Blokir akses non-mobile
+// Check if this is a valid mobile app request first
+$is_valid_mobile = is_valid_mobile_app();
+
+if (!$is_valid_mobile) {
+    // Log unauthorized access attempt
+    log_mobile_access('unauthorized_access_attempt', [
+        'reason' => 'invalid_mobile_app_validation',
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+    ]);
+    
+    // Block access and show error
+    http_response_code(403);
+    die('Access denied: Invalid mobile app request');
+}
+
+// Now proceed with normal mobile validation
 block_non_mobile_access();
 
 // Log akses
@@ -31,8 +50,6 @@ log_mobile_access('index_access');
 
 // Set mobile headers
 set_mobile_headers();
-
-session_start();
 
 // Cek apakah sudah login
 if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true) {
