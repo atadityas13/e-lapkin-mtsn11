@@ -110,9 +110,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 "2" => "JP",
                 "3" => "Dokumen",
                 "4" => "Laporan",
-                "5" => "Jam",
-                "6" => "Menit",
-                "7" => "Unit"
+                "5" => "Hari",
+                "6" => "Jam",
+                "7" => "Menit",
+                "8" => "Unit"
             ];
             $satuan_realisasi = isset($_POST['satuan_realisasi']) && isset($satuan_map[$_POST['satuan_realisasi']])
                 ? $satuan_map[$_POST['satuan_realisasi']]
@@ -162,23 +163,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (empty($tanggal_lkh) || empty($id_rkb) || empty($nama_kegiatan_harian) || empty($uraian_kegiatan_lkh) || empty($jumlah_realisasi) || empty($satuan_realisasi)) {
                 set_swal('error', 'Gagal', 'Semua field harus diisi.');
             } else {
-                if ($action == 'add') {
-                    $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
-                } else { // action == 'edit'
-                    $id_lkh = (int)$_POST['id_lkh'];
-                    $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
-                    $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
-                }
-
-                if ($stmt->execute()) {
-                    set_swal('success', ($action == 'add') ? 'Berhasil' : 'Update Berhasil', ($action == 'add') ? "LKH berhasil ditambahkan!" : "LKH berhasil diperbarui!");
-                    echo '<script>window.location="lkh.php?month=' . date('m', strtotime($tanggal_lkh)) . '&year=' . date('Y', strtotime($tanggal_lkh)) . '";</script>';
+                // Validate satuan_realisasi against valid values
+                $valid_satuan = ['Kegiatan','JP','Dokumen','Laporan','Hari','Jam','Menit','Unit'];
+                if (!in_array($satuan_realisasi, $valid_satuan)) {
+                    set_swal('error', 'Gagal', 'Satuan tidak valid. Pilih salah satu: ' . implode(', ', $valid_satuan));
+                    header('Location: lkh.php?month=' . date('m', strtotime($tanggal_lkh)) . '&year=' . date('Y', strtotime($tanggal_lkh)));
                     exit();
-                } else {
-                    set_swal('error', 'Gagal', ($action == 'add') ? "Gagal menambahkan LKH: " . $stmt->error : "Gagal memperbarui LKH: " . $stmt->error);
                 }
-                $stmt->close();
+                
+                try {
+                    if ($action == 'add') {
+                        $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
+                    } else { // action == 'edit'
+                        $id_lkh = (int)$_POST['id_lkh'];
+                        $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
+                        $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
+                    }
+
+                    if ($stmt->execute()) {
+                        set_swal('success', ($action == 'add') ? 'Berhasil' : 'Update Berhasil', ($action == 'add') ? "LKH berhasil ditambahkan!" : "LKH berhasil diperbarui!");
+                        echo '<script>window.location="lkh.php?month=' . date('m', strtotime($tanggal_lkh)) . '&year=' . date('Y', strtotime($tanggal_lkh)) . '";</script>';
+                        exit();
+                    } else {
+                        if (strpos($stmt->error, 'Data truncated') !== false) {
+                            set_swal('error', 'Gagal', 'Data terlalu panjang untuk field satuan. Pilih salah satu opsi yang tersedia.');
+                        } else {
+                            set_swal('error', 'Gagal', ($action == 'add') ? "Gagal menambahkan LKH: " . $stmt->error : "Gagal memperbarui LKH: " . $stmt->error);
+                        }
+                    }
+                    $stmt->close();
+                } catch (Exception $e) {
+                    if (strpos($e->getMessage(), 'Data truncated') !== false) {
+                        set_swal('error', 'Gagal', 'Terjadi kesalahan database: Data satuan tidak sesuai format yang diizinkan.');
+                    } else {
+                        set_swal('error', 'Gagal', 'Terjadi kesalahan database. Periksa data yang dimasukkan.');
+                    }
+                    header('Location: lkh.php?month=' . date('m', strtotime($tanggal_lkh)) . '&year=' . date('Y', strtotime($tanggal_lkh)));
+                    exit();
+                }
             }
         } elseif ($action == 'add_attachment') {
             $id_lkh = (int)$_POST['id_lkh'];
@@ -425,6 +448,47 @@ $months = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
 
+// Ambil daftar LKH terdahulu untuk referensi
+$previous_lkh_list = [];
+
+// Get unique nama_kegiatan_harian and uraian_kegiatan_lkh with latest data (compatible with ONLY_FULL_GROUP_BY)
+$stmt_previous_lkh = $conn->prepare("
+    SELECT 
+        l1.nama_kegiatan_harian,
+        l1.uraian_kegiatan_lkh,
+        l1.jumlah_realisasi,
+        l1.satuan_realisasi
+    FROM lkh l1
+    INNER JOIN (
+        SELECT 
+            nama_kegiatan_harian,
+            uraian_kegiatan_lkh,
+            MAX(created_at) as max_created_at
+        FROM lkh 
+        WHERE id_pegawai = ? AND NOT (MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?)
+        GROUP BY nama_kegiatan_harian, uraian_kegiatan_lkh
+    ) l2 ON l1.nama_kegiatan_harian = l2.nama_kegiatan_harian 
+         AND l1.uraian_kegiatan_lkh = l2.uraian_kegiatan_lkh
+         AND l1.created_at = l2.max_created_at
+    WHERE l1.id_pegawai = ? AND NOT (MONTH(l1.tanggal_lkh) = ? AND YEAR(l1.tanggal_lkh) = ?)
+    ORDER BY l1.created_at DESC, l1.nama_kegiatan_harian ASC
+");
+
+$stmt_previous_lkh->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
+$stmt_previous_lkh->execute();
+$result_previous_lkh = $stmt_previous_lkh->get_result();
+
+while ($row = $result_previous_lkh->fetch_assoc()) {
+    $previous_lkh_list[] = [
+        'nama_kegiatan_harian' => $row['nama_kegiatan_harian'],
+        'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
+        'jumlah_realisasi' => $row['jumlah_realisasi'],
+        'satuan_realisasi' => $row['satuan_realisasi']
+    ];
+}
+
+$stmt_previous_lkh->close();
+
 $page_title = "Manajemen LKH";
 include __DIR__ . '/../template/header.php';
 include __DIR__ . '/../template/menu_user.php';
@@ -552,15 +616,20 @@ include __DIR__ . '/../template/topbar.php';
             <div class="card">
                 <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                     <span>Daftar Laporan Kinerja Harian (LKH) Anda - Bulan <?php echo $months[$filter_month] . ' ' . $filter_year; ?></span>
-                    <?php if ($status_verval_lkh == 'diajukan'): ?>
-                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalBatalVervalLkh">
-                            <i class="fas fa-times me-1"></i> Batal Ajukan Verval
+                    <div class="btn-group">
+                        <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalPreviewLkh" <?php echo empty($lkhs) ? 'disabled title="Tidak ada data LKH untuk di-preview"' : ''; ?>>
+                            <i class="fas fa-eye me-1"></i> Preview LKH
                         </button>
-                    <?php elseif ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak'): ?>
-                        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjukanVervalLkh" <?php echo empty($lkhs) ? 'disabled title="Tidak dapat mengajukan verval karena belum ada data LKH"' : ''; ?>>
-                            <i class="fas fa-paper-plane me-1"></i> Ajukan Verval LKH
-                        </button>
-                    <?php endif; ?>
+                        <?php if ($status_verval_lkh == 'diajukan'): ?>
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalBatalVervalLkh">
+                                <i class="fas fa-times me-1"></i> Batal Ajukan Verval
+                            </button>
+                        <?php elseif ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak'): ?>
+                            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjukanVervalLkh" <?php echo empty($lkhs) ? 'disabled title="Tidak dapat mengajukan verval karena belum ada data LKH"' : ''; ?>>
+                                <i class="fas fa-paper-plane me-1"></i> Ajukan Verval LKH
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="card-body">
                     <?php
@@ -732,7 +801,14 @@ include __DIR__ . '/../template/topbar.php';
                 <?php endif; ?>
               </div>
               <div class="mb-3">
-                <label for="nama_kegiatan_harian_modal" class="form-label">Nama Kegiatan Harian</label>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label for="nama_kegiatan_harian_modal" class="form-label mb-0">Nama Kegiatan Harian</label>
+                  <?php if (!empty($previous_lkh_list)): ?>
+                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalLkhTerdahulu">
+                      <i class="fas fa-history me-1"></i>Lihat LKH Terdahulu
+                    </button>
+                  <?php endif; ?>
+                </div>
                 <input type="text" class="form-control" id="nama_kegiatan_harian_modal" name="nama_kegiatan_harian" placeholder="Nama kegiatan harian" required>
               </div>
               <div class="mb-3">
@@ -752,9 +828,10 @@ include __DIR__ . '/../template/topbar.php';
                   <option value="2">JP</option>
                   <option value="3">Dokumen</option>
                   <option value="4">Laporan</option>
-                  <option value="5">Jam</option>
-                  <option value="6">Menit</option>
-                  <option value="7">Unit</option>
+                  <option value="5">Hari</option>
+                  <option value="6">Jam</option>
+                  <option value="7">Menit</option>
+                  <option value="8">Unit</option>
                 </select>
               </div>
               <div class="mb-3">
@@ -824,9 +901,10 @@ include __DIR__ . '/../template/topbar.php';
                 <option value="2" <?php echo ($edit_lkh['satuan_realisasi'] == 'JP') ? 'selected' : ''; ?>>JP</option>
                 <option value="3" <?php echo ($edit_lkh['satuan_realisasi'] == 'Dokumen') ? 'selected' : ''; ?>>Dokumen</option>
                 <option value="4" <?php echo ($edit_lkh['satuan_realisasi'] == 'Laporan') ? 'selected' : ''; ?>>Laporan</option>
-                <option value="5" <?php echo ($edit_lkh['satuan_realisasi'] == 'Jam') ? 'selected' : ''; ?>>Jam</option>
-                <option value="6" <?php echo ($edit_lkh['satuan_realisasi'] == 'Menit') ? 'selected' : ''; ?>>Menit</option>
-                <option value="7" <?php echo ($edit_lkh['satuan_realisasi'] == 'Unit') ? 'selected' : ''; ?>>Unit</option>
+                <option value="5" <?php echo ($edit_lkh['satuan_realisasi'] == 'Hari') ? 'selected' : ''; ?>>Hari</option>
+                <option value="6" <?php echo ($edit_lkh['satuan_realisasi'] == 'Jam') ? 'selected' : ''; ?>>Jam</option>
+                <option value="7" <?php echo ($edit_lkh['satuan_realisasi'] == 'Menit') ? 'selected' : ''; ?>>Menit</option>
+                <option value="8" <?php echo ($edit_lkh['satuan_realisasi'] == 'Unit') ? 'selected' : ''; ?>>Unit</option>
               </select>
             </div>
             <button type="submit" class="btn btn-warning" <?php echo empty($rkb_list) || ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : ''; ?>>Update LKH</button>
@@ -885,6 +963,214 @@ include __DIR__ . '/../template/topbar.php';
       </div>
       <?php endforeach; ?>
 
+      <!-- Modal LKH Terdahulu -->
+      <div class="modal fade" id="modalLkhTerdahulu" tabindex="-1" aria-labelledby="modalLkhTerdahuluLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+              <h5 class="modal-title" id="modalLkhTerdahuluLabel">
+                <i class="fas fa-history me-2"></i>LKH Terdahulu
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i>
+                Pilih salah satu LKH terdahulu untuk mengisi form otomatis. Data akan disalin ke form tambah LKH.
+              </div>
+              
+              <?php if (empty($previous_lkh_list)): ?>
+                <div class="text-center py-4">
+                  <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                  <p class="text-muted">Belum ada data LKH terdahulu yang dapat dijadikan referensi.</p>
+                </div>
+              <?php else: ?>
+                <div class="mb-3">
+                  <input type="text" class="form-control" id="searchLkhTerdahulu" placeholder="🔍 Cari LKH terdahulu...">
+                </div>
+                
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                  <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                      <tr>
+                        <th width="25%">Nama Kegiatan</th>
+                        <th width="35%">Uraian Kegiatan LKH</th>
+                        <th width="15%">Jumlah Terakhir</th>
+                        <th width="15%">Satuan Terakhir</th>
+                        <th width="10%">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="lkhTerdahuluTableBody">
+                      <?php foreach ($previous_lkh_list as $prev_lkh): ?>
+                        <tr class="lkh-row" data-nama="<?php echo htmlspecialchars($prev_lkh['nama_kegiatan_harian']); ?>"
+                            data-uraian="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>"
+                            data-jumlah="<?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?>"
+                            data-satuan="<?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?>"
+                            >
+                          <td>
+                            <div class="fw-semibold"><?php echo htmlspecialchars($prev_lkh['nama_kegiatan_harian']); ?></div>
+                          </td>
+                          <td>
+                            <div class="text-truncate" style="max-width: 200px;" title="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>">
+                              <?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>
+                            </div>
+                          </td>
+                          <td class="text-center">
+                            <span class="badge bg-secondary"><?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?></span>
+                          </td>
+                          <td class="text-center">
+                            <span class="badge bg-primary"><?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?></span>
+                          </td>
+                          <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-success pilih-lkh-btn"
+                                    data-nama="<?php echo htmlspecialchars($prev_lkh['nama_kegiatan_harian']); ?>"
+                                    data-uraian="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>"
+                                    data-jumlah="<?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?>"
+                                    data-satuan="<?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?>"
+                                    title="Pilih LKH ini">
+                              <i class="fas fa-check me-1"></i><small>Gunakan</small>
+                            </button>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div id="noDataMessageLkh" class="text-center py-3 d-none">
+                  <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                  <p class="text-muted">Tidak ada LKH yang sesuai dengan pencarian.</p>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Preview LKH -->
+      <div class="modal fade" id="modalPreviewLkh" tabindex="-1" aria-labelledby="modalPreviewLkhLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+              <h5 class="modal-title" id="modalPreviewLkhLabel">
+                <i class="fas fa-eye me-2"></i>Preview Laporan Kinerja Harian (LKH)
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <h6 class="fw-bold">Periode: <?php echo $months[$filter_month] . ' ' . $filter_year; ?></h6>
+                <h6 class="fw-bold">Nama Pegawai: <?php echo htmlspecialchars($nama_pegawai_login); ?></h6>
+              </div>
+              
+              <?php if (empty($lkhs)): ?>
+                <div class="alert alert-info text-center">
+                  <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                  <p class="text-muted mb-0">Belum ada data LKH untuk periode ini.</p>
+                </div>
+              <?php else: ?>
+                <?php
+                // Group LKH by date
+                $lkh_grouped = [];
+                foreach ($lkhs as $lkh) {
+                    $date_key = $lkh['tanggal_lkh'];
+                    if (!isset($lkh_grouped[$date_key])) {
+                        $lkh_grouped[$date_key] = [];
+                    }
+                    $lkh_grouped[$date_key][] = $lkh;
+                }
+                ?>
+                <div class="table-responsive">
+                  <table class="table table-bordered table-striped">
+                    <thead class="table-primary">
+                      <tr class="text-center">
+                        <th width="3%">No</th>
+                        <th width="10%">Hari / Tanggal</th>
+                        <th width="30%">Kegiatan</th>
+                        <th width="35%">Uraian Tugas Kegiatan/ Tugas Jabatan</th>
+                        <th width="7%">Jumlah</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php 
+                      $no = 1; 
+                      $hariList = [
+                          'Sun' => 'Minggu',
+                          'Mon' => 'Senin',
+                          'Tue' => 'Selasa',
+                          'Wed' => 'Rabu',
+                          'Thu' => 'Kamis',
+                          'Fri' => 'Jumat',
+                          'Sat' => 'Sabtu'
+                      ];
+                      
+                      foreach ($lkh_grouped as $date => $lkh_items): 
+                        $hari = $hariList[date('D', strtotime($date))];
+                        $tanggal_formatted = $hari . ', ' . date('d-m-Y', strtotime($date));
+                        $first_item = true;
+                      ?>
+                        <?php foreach ($lkh_items as $lkh): ?>
+                          <tr>
+                            <?php if ($first_item): ?>
+                              <td class="text-center" rowspan="<?php echo count($lkh_items); ?>">
+                                <?php echo $no++; ?>
+                              </td>
+                              <td class="text-center" rowspan="<?php echo count($lkh_items); ?>">
+                                <?php echo $tanggal_formatted; ?>
+                              </td>
+                            <?php endif; ?>
+                            <td>
+                              <div>- <?php echo htmlspecialchars($lkh['nama_kegiatan_harian'] ?? ''); ?></div>
+                            </td>
+                            <td>- <?php echo htmlspecialchars($lkh['uraian_kegiatan_lkh']); ?></td>
+                            <td class="text-center">
+                              <span class="badge bg-primary">- <?php echo htmlspecialchars($lkh['jumlah_realisasi'] . ' ' . $lkh['satuan_realisasi']); ?></span>
+                            </td>
+                          </tr>
+                          <?php $first_item = false; ?>
+                        <?php endforeach; ?>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="mt-3">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <small class="text-muted">
+                        <strong>Total LKH:</strong> <?php echo count($lkhs); ?> kegiatan
+                      </small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                      <small class="text-muted">
+                        <strong>Status:</strong> 
+                        <?php 
+                        if ($status_verval_lkh == 'diajukan') {
+                          echo '<span class="badge bg-warning">Menunggu Verifikasi</span>';
+                        } elseif ($status_verval_lkh == 'disetujui') {
+                          echo '<span class="badge bg-success">Disetujui</span>';
+                        } elseif ($status_verval_lkh == 'ditolak') {
+                          echo '<span class="badge bg-danger">Ditolak</span>';
+                        } else {
+                          echo '<span class="badge bg-secondary">Belum Diajukan</span>';
+                        }
+                        ?>
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -933,5 +1219,127 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // JavaScript untuk fitur LKH terdahulu
+    document.querySelectorAll('.pilih-lkh-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const nama = this.getAttribute('data-nama');
+        const uraian = this.getAttribute('data-uraian');
+        const jumlah = this.getAttribute('data-jumlah');
+        const satuan = this.getAttribute('data-satuan');
+        
+        // Isi form di modal tambah LKH
+        document.getElementById('nama_kegiatan_harian_modal').value = nama;
+        document.getElementById('uraian_kegiatan_lkh_modal').value = uraian;
+        document.getElementById('jumlah_realisasi_modal').value = jumlah;
+        
+        // Set satuan dropdown berdasarkan mapping
+        const satuanMap = {
+          'Kegiatan': '1',
+          'JP': '2',
+          'Dokumen': '3',
+          'Laporan': '4',
+          'Hari': '5',
+          'Jam': '6',
+          'Menit': '7',
+          'Unit': '8'
+        };
+        const satuanValue = satuanMap[satuan] || '';
+        document.getElementById('satuan_realisasi_modal').value = satuanValue;
+        
+        // Tutup hanya modal LKH terdahulu, bukan modal tambah LKH
+        const modalLkhTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalLkhTerdahulu'));
+        if (modalLkhTerdahulu) {
+          modalLkhTerdahulu.hide();
+        }
+        
+        // Show success message
+        Swal.fire({
+          icon: 'success',
+          title: 'LKH Terpilih!',
+          text: 'Data LKH terdahulu berhasil disalin ke form.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        // Pastikan modal tambah LKH tetap terbuka
+        setTimeout(function() {
+          const modalTambahLkh = bootstrap.Modal.getInstance(document.getElementById('modalTambahLkh'));
+          if (!modalTambahLkh || !modalTambahLkh._isShown) {
+            const newModalTambahLkh = new bootstrap.Modal(document.getElementById('modalTambahLkh'));
+            newModalTambahLkh.show();
+          }
+        }, 100);
+      });
+    });
+    
+    // Event listener untuk modal LKH terdahulu ketika ditutup
+    const modalLkhTerdahuluElement = document.getElementById('modalLkhTerdahulu');
+    if (modalLkhTerdahuluElement) {
+      modalLkhTerdahuluElement.addEventListener('hidden.bs.modal', function() {
+        // Pastikan modal tambah LKH tetap terbuka setelah modal LKH terdahulu ditutup
+        setTimeout(function() {
+          const modalTambahLkh = bootstrap.Modal.getInstance(document.getElementById('modalTambahLkh'));
+          if (!modalTambahLkh || !modalTambahLkh._isShown) {
+            const newModalTambahLkh = new bootstrap.Modal(document.getElementById('modalTambahLkh'));
+            newModalTambahLkh.show();
+          }
+        }, 100);
+      });
+    }
+    
+    // Search functionality untuk LKH terdahulu
+    const searchInputLkh = document.getElementById('searchLkhTerdahulu');
+    const tableBodyLkh = document.getElementById('lkhTerdahuluTableBody');
+    const noDataMessageLkh = document.getElementById('noDataMessageLkh');
+    
+    if (searchInputLkh && tableBodyLkh) {
+      searchInputLkh.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = tableBodyLkh.querySelectorAll('.lkh-row');
+        let visibleCount = 0;
+        
+        rows.forEach(function(row) {
+          const nama = row.getAttribute('data-nama').toLowerCase();
+          const uraian = row.getAttribute('data-uraian').toLowerCase();
+          const jumlah = row.getAttribute('data-jumlah').toLowerCase();
+          const satuan = row.getAttribute('data-satuan').toLowerCase();
+          
+          if (nama.includes(searchTerm) || uraian.includes(searchTerm) || jumlah.includes(searchTerm) || satuan.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        // Show/hide no data message
+        if (noDataMessageLkh) {
+          if (visibleCount === 0 && searchTerm.length > 0) {
+            noDataMessageLkh.classList.remove('d-none');
+          } else {
+            noDataMessageLkh.classList.add('d-none');
+          }
+        }
+      });
+    }
+    
+    // Reset form ketika modal tambah LKH ditutup (hanya reset jika benar-benar ditutup oleh user)
+    const modalTambahLkhElement = document.getElementById('modalTambahLkh');
+    if (modalTambahLkhElement) {
+      modalTambahLkhElement.addEventListener('hidden.bs.modal', function(e) {
+        // Cek apakah modal LKH terdahulu sedang terbuka
+        const modalLkhTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalLkhTerdahulu'));
+        if (!modalLkhTerdahulu || !modalLkhTerdahulu._isShown) {
+          // Reset form hanya jika modal LKH terdahulu tidak terbuka
+          this.querySelector('form').reset();
+          // Reset tanggal ke current date
+          const tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
+          if (tanggalInput) {
+            tanggalInput.value = '<?php echo $current_date; ?>';
+          }
+        }
+      });
+    }
 });
 </script>
