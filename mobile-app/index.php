@@ -28,23 +28,8 @@ function validateLoginAccess() {
     $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'] ?? '';
     
     if (!empty($receivedToken) && !empty($receivedPackage)) {
-        // Validate token with debug info
-        $expectedToken = generateMobileToken();
-        if ($receivedToken !== $expectedToken) {
-            error_log("Login Token Validation Failed - Received: " . $receivedToken . ", Expected: " . $expectedToken);
-            http_response_code(403);
-            die(json_encode([
-                'error' => 'Invalid mobile token.',
-                'code' => 'INVALID_TOKEN',
-                'debug' => [
-                    'received' => $receivedToken,
-                    'expected' => $expectedToken,
-                    'date_php' => date('Y-m-d'),
-                    'timezone_php' => date_default_timezone_get(),
-                    'timestamp_php' => time()
-                ]
-            ]));
-        }
+        // Use the improved token validation from mobile_session.php
+        validateMobileToken();
         
         // Validate package
         if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
@@ -158,6 +143,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                     <input type="password" class="form-control" id="password" name="password" required>
                                 </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                                <i class="fas fa-sign-in-alt me-2"></i>Masuk
+                            </button>
+                        </form>
+                    </div>
+                    <div class="card-footer text-center text-muted py-3">
+                        <small>&copy; <?= date('Y') ?> E-LAPKIN Mobile</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
                             </div>
                             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
                                 <i class="fas fa-sign-in-alt me-2"></i>Masuk
