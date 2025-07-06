@@ -17,6 +17,9 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__FILE__) . '/');
 }
 
+// Start session first
+session_start();
+
 // Include mobile security
 require_once __DIR__ . '/../config/mobile_security.php';
 
@@ -25,37 +28,28 @@ if (file_exists(__DIR__ . '/../config/mobile_database.php')) {
     require_once __DIR__ . '/../config/mobile_database.php';
 }
 
-// Include session if exists
-if (file_exists(__DIR__ . '/../template/session_mobile.php')) {
-    require_once __DIR__ . '/../template/session_mobile.php';
-} else {
-    // Basic session check
-    session_start();
-    if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
-        header("Location: /mobile-app/auth/mobile_login.php");
-        exit();
-    }
-}
-
-// Blokir akses non-mobile
-block_non_mobile_access();
-
-// Log akses dashboard
-log_mobile_access('dashboard_access');
-
-// Set page title
-$page_title = "Dashboard - E-LAPKIN Mobile";
-
-// Debug: Check if user is properly logged in
+// Single session check - remove duplicate checks
 if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
-    error_log("Mobile dashboard access without proper login");
+    error_log("Mobile dashboard access denied - redirecting to login");
     header("Location: /mobile-app/auth/mobile_login.php?error=session_required");
     exit();
 }
 
-// Override getMobileUserData to use session data properly
-if (!function_exists('getMobileUserData') || !function_exists('getMobileLKHSummary')) {
-    // Use session data directly for mobile dashboard
+// Blokir akses non-mobile
+if (function_exists('block_non_mobile_access')) {
+    block_non_mobile_access();
+}
+
+// Log akses dashboard
+if (function_exists('log_mobile_access')) {
+    log_mobile_access('dashboard_access');
+}
+
+// Set page title
+$page_title = "Dashboard - E-LAPKIN Mobile";
+
+// Define getMobileUserData function if not exists
+if (!function_exists('getMobileUserData')) {
     function getMobileUserData() {
         return [
             'nama' => $_SESSION['nama'] ?? 'User Mobile',
@@ -70,9 +64,11 @@ if (!function_exists('getMobileUserData') || !function_exists('getMobileLKHSumma
 // Get user data
 $user_data = getMobileUserData();
 
-// Debug information
-error_log("Mobile Dashboard Debug - User Data: " . print_r($user_data, true));
-error_log("Mobile Dashboard Debug - Session: " . print_r($_SESSION, true));
+// Debug information (only in development)
+if (isset($_GET['debug']) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false) {
+    error_log("Mobile Dashboard Debug - User Data: " . print_r($user_data, true));
+    error_log("Mobile Dashboard Debug - Session Keys: " . implode(', ', array_keys($_SESSION)));
+}
 
 // Get statistics with proper error handling
 $current_month = (int)date('m');
@@ -753,6 +749,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
         font-size: 1.5rem;
     }
 }
+</style>
+
+</body>
+</html>
 </style>
 
 </body>
