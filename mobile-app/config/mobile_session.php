@@ -33,11 +33,20 @@ function generateMobileTokenWithTimezone($timezone = 'UTC') {
 
 // Validate mobile token with multiple timezone attempts
 function validateMobileToken() {
-    $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'] ?? '';
+    // Handle both uppercase and lowercase header names
+    $headers = getallheaders();
+    $receivedToken = '';
     
-    // Debug: Log all received headers
-    error_log("All HTTP Headers: " . print_r(getallheaders(), true));
-    error_log("Received Token from SERVER: " . $receivedToken);
+    // Check different possible header name variations
+    if (isset($headers['X-Mobile-Token'])) {
+        $receivedToken = $headers['X-Mobile-Token'];
+    } elseif (isset($headers['x-mobile-token'])) {
+        $receivedToken = $headers['x-mobile-token'];
+    } elseif (isset($_SERVER['HTTP_X_MOBILE_TOKEN'])) {
+        $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'];
+    }
+    
+    error_log("Received Token: " . $receivedToken);
     
     // Try different timezone possibilities
     $timezones = ['UTC', 'Asia/Jakarta', 'GMT'];
@@ -46,8 +55,10 @@ function validateMobileToken() {
     
     foreach ($timezones as $tz) {
         $expectedToken = generateMobileTokenWithTimezone($tz);
+        error_log("Trying timezone $tz - Expected: " . $expectedToken);
         if ($receivedToken === $expectedToken) {
             $validToken = true;
+            error_log("Token matched with timezone: " . $tz);
             break;
         }
     }
@@ -55,23 +66,38 @@ function validateMobileToken() {
     if (!$validToken) {
         // Also try the default function
         $expectedToken = generateMobileToken();
+        error_log("Trying default method - Expected: " . $expectedToken);
         if ($receivedToken === $expectedToken) {
             $validToken = true;
+            error_log("Token matched with default method");
         }
     }
     
     if (!$validToken) {
+        error_log("Token validation failed - no match found");
         http_response_code(403);
         die(json_encode([
             'error' => 'Invalid mobile token.',
             'code' => 'INVALID_TOKEN'
         ]));
     }
+    
+    error_log("Token validation successful");
 }
 
 // Validate package name
 function validatePackageName() {
-    $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'] ?? '';
+    // Handle both uppercase and lowercase header names
+    $headers = getallheaders();
+    $receivedPackage = '';
+    
+    if (isset($headers['X-App-Package'])) {
+        $receivedPackage = $headers['X-App-Package'];
+    } elseif (isset($headers['x-app-package'])) {
+        $receivedPackage = $headers['x-app-package'];
+    } elseif (isset($_SERVER['HTTP_X_APP_PACKAGE'])) {
+        $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'];
+    }
     
     if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
         http_response_code(403);
