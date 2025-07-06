@@ -10,16 +10,42 @@ session_start();
 // Include mobile session config for validation functions
 require_once __DIR__ . '/config/mobile_session.php';
 
-// For login page, only validate User Agent (not token/package since user hasn't logged in yet)
+// For login page, validate User Agent and optionally validate token/package if provided
 function validateLoginAccess() {
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
     
+    // Always validate User Agent
     if ($user_agent !== MOBILE_USER_AGENT) {
         http_response_code(403);
         die(json_encode([
             'error' => 'Access denied. This mobile interface is only accessible via the official E-LAPKIN Mobile App.',
             'required_user_agent' => MOBILE_USER_AGENT
         ]));
+    }
+    
+    // If token and package headers are provided, validate them too
+    $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'] ?? '';
+    $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'] ?? '';
+    
+    if (!empty($receivedToken) && !empty($receivedPackage)) {
+        // Validate token
+        $expectedToken = generateMobileToken();
+        if ($receivedToken !== $expectedToken) {
+            http_response_code(403);
+            die(json_encode([
+                'error' => 'Invalid mobile token.',
+                'code' => 'INVALID_TOKEN'
+            ]));
+        }
+        
+        // Validate package
+        if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
+            http_response_code(403);
+            die(json_encode([
+                'error' => 'Invalid app package.',
+                'code' => 'INVALID_PACKAGE'
+            ]));
+        }
     }
 }
 
