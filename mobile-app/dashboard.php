@@ -552,7 +552,7 @@ ob_clean();
                             Pastikan Anda melaporkan aktivitas harian Anda secara rutin untuk menjaga akurasi kinerja.
                         </p>
                         <a href="lkh.php" class="btn btn-warning notification-btn">
-                            <i class="fas fa-plus me-1"></i>Isi Laporan Harian
+                            <i class="fas fa-list d-block"></i>Lihat Laporan Harian
                         </a>
                     </div>
                 </div>
