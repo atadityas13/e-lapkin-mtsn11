@@ -70,22 +70,32 @@ ob_clean();
             background: white;
             border-top: 1px solid #dee2e6;
             z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
         .bottom-nav .nav-item {
             flex: 1;
             text-align: center;
         }
         .bottom-nav .nav-link {
-            padding: 12px 0;
+            padding: 10px 8px;
             color: #6c757d;
             text-decoration: none;
             display: block;
+            font-size: 12px;
         }
         .bottom-nav .nav-link.active {
             color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        .bottom-nav .nav-link i {
+            font-size: 16px;
+            margin-bottom: 4px;
         }
         .main-content {
-            padding-bottom: 80px;
+            padding-bottom: 100px;
+        }
+        body {
+            padding-bottom: 70px;
         }
     </style>
 </head>
@@ -180,7 +190,7 @@ ob_clean();
     </div>
 
     <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
+    <div class="bottom-nav">
         <div class="d-flex">
             <div class="nav-item">
                 <a href="dashboard.php" class="nav-link active">
@@ -207,7 +217,7 @@ ob_clean();
                 </a>
             </div>
         </div>
-    </nav>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

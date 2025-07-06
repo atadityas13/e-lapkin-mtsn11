@@ -7,8 +7,23 @@
 
 session_start();
 
-// Include mobile session config for validation functions
-require_once __DIR__ . '/config/mobile_session.php';
+// Mobile app configuration (define here to avoid including full mobile_session.php)
+define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
+define('MOBILE_PACKAGE_NAME', 'id.sch.mtsn11majalengka.elapkin');
+define('MOBILE_USER_AGENT', 'E-LAPKIN-MTSN11-Mobile-App/1.0');
+
+// Generate mobile token for validation
+function generateLoginToken() {
+    $originalTimezone = date_default_timezone_get();
+    date_default_timezone_set('Asia/Jakarta');
+    
+    $currentDate = date('Y-m-d');
+    $input = MOBILE_SECRET_KEY . $currentDate;
+    $token = md5($input);
+    
+    date_default_timezone_set($originalTimezone);
+    return $token;
+}
 
 // For login page, validate User Agent and optionally validate token/package if provided
 function validateLoginAccess() {
@@ -24,12 +39,33 @@ function validateLoginAccess() {
     }
     
     // If token and package headers are provided, validate them too
-    $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'] ?? '';
-    $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'] ?? '';
+    $headers = getallheaders();
+    $receivedToken = '';
+    $receivedPackage = '';
+    
+    // Handle case-insensitive headers
+    if (isset($headers['X-Mobile-Token'])) {
+        $receivedToken = $headers['X-Mobile-Token'];
+    } elseif (isset($headers['x-mobile-token'])) {
+        $receivedToken = $headers['x-mobile-token'];
+    }
+    
+    if (isset($headers['X-App-Package'])) {
+        $receivedPackage = $headers['X-App-Package'];
+    } elseif (isset($headers['x-app-package'])) {
+        $receivedPackage = $headers['x-app-package'];
+    }
     
     if (!empty($receivedToken) && !empty($receivedPackage)) {
-        // Use the improved token validation from mobile_session.php
-        validateMobileToken();
+        // Validate token
+        $expectedToken = generateLoginToken();
+        if ($receivedToken !== $expectedToken) {
+            http_response_code(403);
+            die(json_encode([
+                'error' => 'Invalid mobile token.',
+                'code' => 'INVALID_TOKEN'
+            ]));
+        }
         
         // Validate package
         if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
@@ -143,21 +179,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                     <input type="password" class="form-control" id="password" name="password" required>
                                 </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-                                <i class="fas fa-sign-in-alt me-2"></i>Masuk
-                            </button>
-                        </form>
-                    </div>
-                    <div class="card-footer text-center text-muted py-3">
-                        <small>&copy; <?= date('Y') ?> E-LAPKIN Mobile</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
                             </div>
                             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
                                 <i class="fas fa-sign-in-alt me-2"></i>Masuk
