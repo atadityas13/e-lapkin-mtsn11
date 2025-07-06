@@ -33,7 +33,17 @@
  * ========================================================
  */
 
-// Mengarahkan (redirect) pengguna ke halaman login
+// Deteksi Mobile App User Agent
+$user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+$is_mobile_app = strpos($user_agent, 'E-LAPKIN-MTSN11-Mobile-App') !== false;
+
+// Jika request dari Mobile App, redirect ke mobile app
+if ($is_mobile_app) {
+    header("Location: /mobile-app/index.php");
+    exit();
+}
+
+// Untuk web browser biasa, redirect ke login web
 header("Location: login.php");
-exit(); // Penting untuk menghentikan eksekusi script setelah redirect
+exit();
 ?>
