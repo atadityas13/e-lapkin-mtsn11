@@ -322,47 +322,42 @@ ob_clean();
         <!-- Main Content -->
         <div class="container-fluid px-3 mt-3">
             <!-- Notifications -->
-            <?php foreach ($notifications as $notification): ?>
-                <div class="alert alert-<?= $notification['type'] ?> d-flex align-items-center mb-3" role="alert">
-                    <i class="<?= $notification['icon'] ?> me-3"></i>
-                    <div class="flex-grow-1">
-                        <div><?= htmlspecialchars($notification['message']) ?></div>
-                        <?php if (isset($notification['link'])): ?>
-                            <a href="<?= htmlspecialchars($notification['link']) ?>" class="btn btn-sm btn-outline-<?= $notification['type'] ?> mt-2">
-                                <i class="fas fa-arrow-right me-1"></i>
-                                <?php if (strpos($notification['link'], 'generate') !== false): ?>
-                                    <?php if (strpos($notification['message'], 'Selamat') !== false): ?>
-                                        Lihat Laporan
-                                    <?php else: ?>
-                                        Generate Laporan
+            <?php if (!empty($notifications)): ?>
+                <?php foreach ($notifications as $notification): ?>
+                    <div class="alert alert-<?= $notification['type'] ?> d-flex align-items-start mb-3" role="alert">
+                        <i class="<?= $notification['icon'] ?> me-3 mt-1"></i>
+                        <div class="flex-grow-1">
+                            <div class="mb-2"><?= htmlspecialchars($notification['message']) ?></div>
+                            <?php if (isset($notification['link'])): ?>
+                                <a href="<?= htmlspecialchars($notification['link']) ?>" class="btn btn-sm btn-outline-<?= $notification['type'] ?>">
+                                    <i class="fas fa-arrow-right me-1"></i>
+                                    <?php if (strpos($notification['link'], 'generate') !== false): ?>
+                                        <?php if (strpos($notification['message'], 'Selamat') !== false): ?>
+                                            Lihat Laporan
+                                        <?php else: ?>
+                                            Generate Laporan
+                                        <?php endif; ?>
+                                    <?php elseif (strpos($notification['link'], 'rhk') !== false): ?>
+                                        Atur Periode RHK
+                                    <?php elseif (strpos($notification['link'], 'rkb') !== false): ?>
+                                        Atur Periode RKB
+                                    <?php elseif (strpos($notification['link'], 'lkh') !== false): ?>
+                                        Isi LKH Sekarang
                                     <?php endif; ?>
-                                <?php elseif (strpos($notification['link'], 'rhk') !== false): ?>
-                                    Atur Periode RHK
-                                <?php elseif (strpos($notification['link'], 'rkb') !== false): ?>
-                                    Atur Periode RKB
-                                <?php elseif (strpos($notification['link'], 'lkh') !== false): ?>
-                                    Isi LKH Sekarang
-                                <?php endif; ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-
-            <!-- Quick Actions -->
-            <div class="card notification-card">
-                <div class="card-body">
-                    <h6 class="card-title mb-3"><i class="fas fa-bolt text-warning me-2"></i>Aksi Cepat</h6>
-                    <div class="row g-2">
-                        <div class="col-12">
-                            <a href="lkh_add.php" class="btn btn-primary w-100 py-3">
-                                <i class="fas fa-plus-circle fa-lg mb-2 d-block"></i>
-                                <span>Tambah Laporan Kinerja Harian</span>
-                            </a>
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="card notification-card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h6 class="text-muted">Semua dalam kondisi baik</h6>
+                        <p class="text-muted mb-0">Tidak ada notifikasi yang perlu ditindaklanjuti</p>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -394,6 +389,11 @@ ob_clean();
                 </a>
             </div>
         </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
