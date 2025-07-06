@@ -3,21 +3,24 @@
  * ========================================================
  * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE APP
  * ========================================================
- * 
- * File: Mobile App Entry Point
+ * * File: Mobile App Entry Point
  * Deskripsi: Halaman utama aplikasi mobile (WebView)
- * 
- * @package    E-Lapkin-MTSN11-Mobile
- * @version    1.0.0
+ * * @package     E-Lapkin-MTSN11-Mobile
+ * @version     1.0.0
  * ========================================================
  */
-date_default_timezone_set('UTC+7');
+
+// --- PERBAIKAN PENTING DI SINI ---
+// Pastikan server menggunakan UTC untuk konsistensi token dengan Android
+date_default_timezone_set('UTC'); 
+// --- AKHIR PERBAIKAN PENTING ---
+
 // Define ABSPATH
 if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__FILE__) . '/');
 }
 
-// Include mobile security
+// Include mobile security (file ini yang berisi fungsi is_valid_mobile_app)
 require_once __DIR__ . '/config/mobile_security.php';
 
 // Blokir akses non-mobile
@@ -40,7 +43,9 @@ if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true
 // Redirect ke login
 header("Location: /mobile-app/auth/mobile_login.php");
 exit();
-?>
+
+// Tidak perlu ada penutup PHP ?> di sini jika langsung diikuti oleh HTML
+// Jika ada kode PHP lagi di bawah, sebaiknya gabungkan dalam satu blok PHP utama
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -49,30 +54,23 @@ exit();
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>E-LAPKIN Mobile - MTsN 11 Majalengka</title>
     
-    <!-- Mobile App Meta -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4e73df">
     
-    <!-- Favicon -->
     <link rel="icon" href="/assets/img/favicon.png" type="image/png">
     
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Mobile Custom CSS -->
     <link href="/mobile-app/assets/css/mobile.css" rel="stylesheet">
 </head>
 <body class="mobile-body">
     <div class="mobile-container">
-        <!-- Header -->
         <div class="mobile-header">
             <div class="text-center py-4">
                 <img src="/assets/img/favicon.png" alt="Logo" class="mobile-logo mb-3">
@@ -81,7 +79,6 @@ exit();
             </div>
         </div>
         
-        <!-- Login Form -->
         <div class="mobile-content">
             <div class="login-card">
                 <div class="card-header text-center">
@@ -92,7 +89,12 @@ exit();
                 </div>
                 
                 <div class="card-body">
-                    <?php if (!empty($error_message)): ?>
+                    <?php 
+                    // Pastikan $error_message didefinisikan sebelum digunakan
+                    // Jika ini file utama, Anda mungkin perlu mengambilnya dari $_SESSION atau $_GET
+                    $error_message = $error_message ?? ''; 
+                    if (!empty($error_message)): 
+                    ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         <?= htmlspecialchars($error_message) ?>
@@ -107,12 +109,12 @@ exit();
                                 NIP / Username
                             </label>
                             <input type="text" 
-                                   class="form-control form-control-lg" 
-                                   id="nip" 
-                                   name="nip" 
-                                   placeholder="Masukkan NIP Anda"
-                                   required 
-                                   autocomplete="username">
+                                    class="form-control form-control-lg" 
+                                    id="nip" 
+                                    name="nip" 
+                                    placeholder="Masukkan NIP Anda"
+                                    required 
+                                    autocomplete="username">
                         </div>
                         
                         <div class="mb-4">
@@ -122,12 +124,12 @@ exit();
                             </label>
                             <div class="input-group">
                                 <input type="password" 
-                                       class="form-control form-control-lg" 
-                                       id="password" 
-                                       name="password" 
-                                       placeholder="Masukkan Password"
-                                       required 
-                                       autocomplete="current-password">
+                                        class="form-control form-control-lg" 
+                                        id="password" 
+                                        name="password" 
+                                        placeholder="Masukkan Password"
+                                        required 
+                                        autocomplete="current-password">
                                 <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                     <i class="fas fa-eye"></i>
                                 </button>
@@ -142,7 +144,12 @@ exit();
                         </div>
                         
                         <input type="hidden" name="mobile_app" value="1">
-                        <input type="hidden" name="app_version" value="<?= MOBILE_APP_VERSION ?>">
+                        <?php 
+                        // Pastikan MOBILE_APP_VERSION didefinisikan di config/mobile_security.php atau tempat lain
+                        // Jika tidak, akan ada warning: Use of undefined constant MOBILE_APP_VERSION
+                        $mobile_app_version = defined('MOBILE_APP_VERSION') ? MOBILE_APP_VERSION : 'unknown';
+                        ?>
+                        <input type="hidden" name="app_version" value="<?= $mobile_app_version ?>">
                     </form>
                 </div>
                 
@@ -155,19 +162,23 @@ exit();
             </div>
         </div>
         
-        <!-- Footer -->
         <div class="mobile-footer">
             <div class="text-center py-3">
                 <small class="text-white-50">
                     &copy; <?= date('Y') ?> MTsN 11 Majalengka<br>
-                    Versi Mobile: <?= MOBILE_APP_VERSION ?>
+                    Versi Mobile: <?= $mobile_app_version ?>
                 </small>
             </div>
         </div>
     </div>
     
-    <!-- Development Info (hanya tampil jika localhost) -->
-    <?php if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false): ?>
+    <?php 
+    // Pastikan $mobile_info didefinisikan sebelum digunakan
+    // Ini biasanya diisi oleh fungsi block_non_mobile_access() atau set_mobile_headers()
+    $mobile_info = $mobile_info ?? ['user_agent' => 'N/A', 'is_mobile_app' => false, 'ip_address' => 'N/A'];
+
+    if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false): 
+    ?>
     <div class="dev-info">
         <small>
             <strong>Dev Info:</strong><br>
@@ -178,7 +189,6 @@ exit();
     </div>
     <?php endif; ?>
     
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/mobile-app/assets/js/mobile.js"></script>
     
