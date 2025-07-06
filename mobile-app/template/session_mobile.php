@@ -4,67 +4,67 @@
  * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE SESSION
  * ========================================================
  * 
- * File: Mobile Session Checker
- * Deskripsi: Pengecekan session khusus untuk aplikasi mobile
+ * File: Mobile Session Management
+ * Deskripsi: Pengelolaan session untuk aplikasi mobile
  * 
  * @package    E-Lapkin-MTSN11-Mobile
  * @version    1.0.0
  * ========================================================
  */
 
-// Prevent direct access
-if (!defined('ABSPATH')) {
-    define('ABSPATH', dirname(__FILE__) . '/');
-}
-
-// Include mobile security
-require_once __DIR__ . '/../config/mobile_security.php';
-
-// Blokir akses non-mobile
-block_non_mobile_access();
-
-// Pastikan session dimulai
-if (session_status() == PHP_SESSION_NONE) {
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Check if mobile user is logged in
+if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
+    // Redirect to mobile login
+    header("Location: /mobile-app/auth/mobile_login.php");
+    exit();
+}
+
+// Validate session data
+if (!isset($_SESSION['mobile_user_id']) || !isset($_SESSION['mobile_user_nip'])) {
+    // Invalid session, destroy and redirect
+    session_destroy();
+    header("Location: /mobile-app/auth/mobile_login.php");
+    exit();
+}
+
+// Update last activity
+$_SESSION['mobile_last_activity'] = time();
+
+// Session timeout (30 minutes)
+$timeout_duration = 1800; // 30 minutes
+if (isset($_SESSION['mobile_last_activity']) && 
+    (time() - $_SESSION['mobile_last_activity']) > $timeout_duration) {
+    // Session expired
+    session_destroy();
+    header("Location: /mobile-app/auth/mobile_login.php?timeout=1");
+    exit();
+}
+
 /**
- * Fungsi untuk memeriksa apakah user sudah login di mobile
+ * Get current mobile user info
  */
-function checkMobileLogin() {
-    // Cek session mobile login
-    if (!isset($_SESSION['mobile_loggedin']) || $_SESSION['mobile_loggedin'] !== true) {
-        redirectToMobileLogin("Session tidak ditemukan");
-    }
-    
-    // Cek data user
-    $required_session_data = ['id_pegawai', 'nip', 'nama', 'role'];
-    foreach ($required_session_data as $key) {
-        if (!isset($_SESSION[$key])) {
-            redirectToMobileLogin("Data session tidak lengkap");
-        }
-    }
-    
-    // Cek apakah user adalah admin (admin tidak boleh akses mobile)
-    if ($_SESSION['role'] === 'admin') {
-        redirectToMobileLogin("Admin tidak dapat menggunakan aplikasi mobile");
-    }
-    
-    // Cek timeout session (24 jam)
-    $session_timeout = 24 * 60 * 60; // 24 jam
-    if (isset($_SESSION['mobile_login_time'])) {
-        if ((time() - $_SESSION['mobile_login_time']) > $session_timeout) {
-            redirectToMobileLogin("Session expired");
-        }
-    }
-    
-    // Update last activity
-    $_SESSION['mobile_last_activity'] = time();
-    
-    // Log activity
-    log_mobile_access('session_check_passed');
-    
-    return true;
+function getCurrentMobileUser() {
+    return [
+        'id' => $_SESSION['mobile_user_id'] ?? null,
+        'nama' => $_SESSION['mobile_user_name'] ?? '',
+        'nip' => $_SESSION['mobile_user_nip'] ?? '',
+        'jabatan' => $_SESSION['mobile_user_jabatan'] ?? ''
+    ];
+}
+
+/**
+ * Check if user has mobile permission
+ */
+function hasMobilePermission($permission = '') {
+    // Basic permission check
+    return isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true;
+}
+?>
 }
 
 /**
