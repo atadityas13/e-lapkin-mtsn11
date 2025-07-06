@@ -28,13 +28,21 @@ function validateLoginAccess() {
     $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'] ?? '';
     
     if (!empty($receivedToken) && !empty($receivedPackage)) {
-        // Validate token
+        // Validate token with debug info
         $expectedToken = generateMobileToken();
         if ($receivedToken !== $expectedToken) {
+            error_log("Login Token Validation Failed - Received: " . $receivedToken . ", Expected: " . $expectedToken);
             http_response_code(403);
             die(json_encode([
                 'error' => 'Invalid mobile token.',
-                'code' => 'INVALID_TOKEN'
+                'code' => 'INVALID_TOKEN',
+                'debug' => [
+                    'received' => $receivedToken,
+                    'expected' => $expectedToken,
+                    'date_php' => date('Y-m-d'),
+                    'timezone_php' => date_default_timezone_get(),
+                    'timestamp_php' => time()
+                ]
             ]));
         }
         

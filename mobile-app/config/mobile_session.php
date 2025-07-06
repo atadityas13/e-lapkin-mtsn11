@@ -8,11 +8,21 @@ define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
 define('MOBILE_PACKAGE_NAME', 'id.sch.mtsn11majalengka.elapkin');
 define('MOBILE_USER_AGENT', 'E-LAPKIN-MTSN11-Mobile-App/1.0');
 
+// Set timezone to match Android (assuming WIB - Indonesia Western Time)
+date_default_timezone_set('Asia/Jakarta');
+
 // Generate mobile token (same logic as Android app)
 function generateMobileToken() {
     $currentDate = date('Y-m-d');
     $input = MOBILE_SECRET_KEY . $currentDate;
-    return md5($input);
+    $token = md5($input);
+    
+    // Debug logging
+    error_log("PHP Token Debug - Date: " . $currentDate);
+    error_log("PHP Token Debug - Input: " . $input);
+    error_log("PHP Token Debug - Generated: " . $token);
+    
+    return $token;
 }
 
 // Validate mobile token
@@ -20,11 +30,22 @@ function validateMobileToken() {
     $receivedToken = $_SERVER['HTTP_X_MOBILE_TOKEN'] ?? '';
     $expectedToken = generateMobileToken();
     
+    // Debug logging
+    error_log("Token Validation - Received: " . $receivedToken);
+    error_log("Token Validation - Expected: " . $expectedToken);
+    error_log("Token Validation - Match: " . ($receivedToken === $expectedToken ? 'YES' : 'NO'));
+    
     if ($receivedToken !== $expectedToken) {
         http_response_code(403);
         die(json_encode([
             'error' => 'Invalid mobile token.',
-            'code' => 'INVALID_TOKEN'
+            'code' => 'INVALID_TOKEN',
+            'debug' => [
+                'received' => $receivedToken,
+                'expected' => $expectedToken,
+                'date_used' => date('Y-m-d'),
+                'timezone' => date_default_timezone_get()
+            ]
         ]));
     }
 }
