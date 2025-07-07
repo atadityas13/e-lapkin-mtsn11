@@ -646,34 +646,34 @@ ob_clean();
     </div>
 
     <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="d-flex">
-            <div class="nav-item">
-                <a href="rhk.php" class="nav-link">
-                    <i class="fas fa-tasks d-block"></i>
-                    <small>RHK</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="rkb.php" class="nav-link">
-                    <i class="fas fa-calendar d-block"></i>
-                    <small>RKB</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="dashboard.php" class="nav-link active">
-                    <i class="fas fa-home d-block"></i>
-                    <small>Beranda</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="lkh.php" class="nav-link">
-                    <i class="fas fa-list d-block"></i>
-                    <small>LKH</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="laporan.php" class="nav-link">
+    <?php 
+    // Ensure the components directory exists
+    if (!is_dir(__DIR__ . '/components')) {
+        mkdir(__DIR__ . '/components', 0755, true);
+    }
+    include __DIR__ . '/components/bottom-nav.php'; 
+    ?>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Live time update
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('liveTime').textContent = `${hours}:${minutes}:${seconds} WIB`;
+        }
+        
+        // Update time immediately and then every second
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Add smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
+    </script>
+</body>
+</html>
                     <i class="fas fa-file-alt d-block"></i>
                     <small>Laporan</small>
                 </a>

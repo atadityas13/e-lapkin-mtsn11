@@ -1206,40 +1206,7 @@ ob_clean();
     </div>
 
     <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="d-flex">
-            <div class="nav-item">
-                <a href="dashboard.php" class="nav-link">
-                    <i class="fas fa-home d-block"></i>
-                    <small>Beranda</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="rhk.php" class="nav-link">
-                    <i class="fas fa-tasks d-block"></i>
-                    <small>RHK</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="rkb.php" class="nav-link">
-                    <i class="fas fa-calendar d-block"></i>
-                    <small>RKB</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="lkh.php" class="nav-link active">
-                    <i class="fas fa-list d-block"></i>
-                    <small>LKH</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="laporan.php" class="nav-link">
-                    <i class="fas fa-file-alt d-block"></i>
-                    <small>Laporan</small>
-                </a>
-            </div>
-        </div>
-    </div>
+    <?php include __DIR__ . '/components/bottom-nav.php'; ?>
 
     <!-- Hidden Forms for Actions -->
     <form id="deleteForm" method="POST" style="display: none;">
@@ -1294,5 +1261,126 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
-           
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
+                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+            };
+            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
+            
+            // Show lampiran div only if editing existing LKH with lampiran
+            const lampiranDiv = document.getElementById('lampiranDiv');
+            if (id && lampiranDiv) {
+                lampiranDiv.style.display = 'block';
+            }
+            
+            document.getElementById('submitBtn').textContent = 'Perbarui';
+            new bootstrap.Modal(document.getElementById('lkhModal')).show();
+        }
+
+        function showPreviewModal() {
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        }
+
+        function confirmSubmitVerval() {
+            Swal.fire({
+                title: 'Ajukan Verval LKH',
+                text: "Anda yakin ingin mengajukan verval LKH untuk periode ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Ajukan!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('vervalForm').submit();
+                }
+            });
+        }
+
+        function confirmCancelVerval() {
+            Swal.fire({
+                title: 'Batal Ajukan Verval',
+                text: "Anda yakin ingin membatalkan pengajuan verval LKH untuk periode ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Batalkan!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('cancelVervalForm').submit();
+                }
+            });
+        }
+
+        function deleteLkh(id) {
+            document.getElementById('deleteId').value = id;
+            Swal.fire({
+                title: 'Hapus LKH',
+                text: "Anda yakin ingin menghapus LKH ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteForm').submit();
+                }
+            });
+        }
+
+        function showPreviousLkh() {
+            new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
+        }
+
+        function selectPreviousLkh(nama, uraian, jumlah, satuan) {
+            document.getElementById('namaKegiatan').value = nama;
+            document.getElementById('uraianKegiatan').value = uraian;
+            document.getElementById('jumlahRealisasi').value = jumlah;
+            
+            // Set satuan dropdown
+            const satuanMap = {
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
+                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+            };
+            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
+            
+            // Hide previous LKH modal
+            var previousLkhModal = bootstrap.Modal.getInstance(document.getElementById('previousLkhModal'));
+            if (previousLkhModal) {
+                previousLkhModal.hide();
+            }
+        }
+
+        // Search functionality for previous LKH modal
+        document.getElementById('searchPreviousLkh').addEventListener('input', function() {
+            var query = this.value.toLowerCase();
+            var items = document.querySelectorAll('.previous-lkh-item');
+            var noDataDiv = document.getElementById('noDataPrevious');
+            var hasVisibleItem = false;
+            
+            items.forEach(function(item) {
+                var nama = item.getAttribute('data-nama').toLowerCase();
+                var uraian = item.getAttribute('data-uraian').toLowerCase();
+                
+                if (nama.includes(query) || uraian.includes(query)) {
+                    item.style.display = 'block';
+                    hasVisibleItem = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no data message
+            if (hasVisibleItem) {
+                noDataDiv.classList.add('d-none');
+            } else {
+                noDataDiv.classList.remove('d-none');
+            }
+        });
+    </script>
+</body>
+</html>
