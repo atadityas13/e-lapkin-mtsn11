@@ -740,7 +740,7 @@ ob_clean();
 <body>
     <!-- Header -->
     <nav class="navbar nav-header">
-        <div class="container-fluid">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
                 <i class="fas fa-arrow-left me-3"></i>
                 <div>
@@ -748,7 +748,7 @@ ob_clean();
                     <small class="opacity-75">Manajemen LKH</small>
                 </div>
             </a>
-            <div class="text-white text-end d-flex flex-column justify-content-center" style="margin-right: 15px;">
+            <div class="text-white text-end">
                 <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
                 <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
                 <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
