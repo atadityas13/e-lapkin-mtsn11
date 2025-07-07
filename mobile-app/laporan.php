@@ -321,12 +321,10 @@ ob_clean();
                     <small class="opacity-75">Generate & Download LKB/LKH</small>
                 </div>
             </a>
-            <div class="d-flex align-items-center text-white">
-                <div class="text-end">
-                    <div class="fw-semibold"><?= htmlspecialchars($userData['nama']) ?></div>
-                    <div class="small opacity-75"><?= htmlspecialchars($userData['nip']) ?></div>
-                    <div class="small opacity-75"><?= htmlspecialchars($activePeriod) ?></div>
-                </div>
+            <div class="text-white text-end" style="min-width: 140px;">
+                <div class="fw-semibold" style="font-size: 0.9rem;"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.8rem;"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.8rem;"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>
@@ -888,5 +886,7 @@ ob_clean();
             });
         });
     </script>
+</body>
+</html>
 </body>
 </html>
