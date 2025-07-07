@@ -631,7 +631,7 @@ ob_clean();
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
         });
 
-        // Enhanced download function with better Android WebView support
+        // Fixed download function for Android WebView compatibility
         function downloadFile(url, filename) {
             console.log('Download initiated:', url, filename);
             
@@ -798,7 +798,7 @@ ob_clean();
             }
         }
 
-        // Main download function with multiple fallbacks
+        // Main download function with multiple fallbacks - FIXED VERSION
         function enhancedDownload(url, filename) {
             console.log('Enhanced download called:', url, filename);
             
@@ -851,10 +851,26 @@ ob_clean();
             
             // Strategy 4: Traditional download for regular browsers
             console.log('Using traditional download');
-            downloadFile(url, filename);
+            // Call the original downloadFile function, NOT recursively calling enhancedDownload
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.target = '_blank';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'Download Diproses',
+                text: 'Silakan periksa folder Download Anda.',
+                timer: 3000,
+                showConfirmButton: false
+            });
         }
 
-        // Update download function reference
+        // Set the main download function
         window.downloadFile = enhancedDownload;
 
         // Add smooth scroll animation for report items
