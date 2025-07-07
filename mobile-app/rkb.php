@@ -331,46 +331,53 @@ ob_clean();
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(0,0,0,0.1);
-            z-index: 1000;
+            z-index: 1050;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            height: 70px;
         }
         .bottom-nav .nav-item {
             flex: 1;
             text-align: center;
         }
         .bottom-nav .nav-link {
-            padding: 12px 8px;
+            padding: 8px 4px;
             color: #6c757d;
             text-decoration: none;
             display: block;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
             transition: all 0.3s ease;
-            border-radius: 12px;
-            margin: 4px;
+            border-radius: 8px;
+            margin: 2px;
+            line-height: 1.2;
         }
         .bottom-nav .nav-link.active {
             color: #0d6efd;
             background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         .bottom-nav .nav-link i {
-            font-size: 18px;
-            margin-bottom: 4px;
+            font-size: 16px;
+            margin-bottom: 2px;
             transition: transform 0.2s ease;
+            display: block;
         }
         .bottom-nav .nav-link.active i {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
         body {
-            padding-bottom: 80px;
+            padding-bottom: 85px;
             background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            min-height: 100vh;
+        }
+        .container-fluid {
+            padding-bottom: 20px;
         }
         .card {
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             border: none;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .btn {
             border-radius: 10px;
@@ -386,16 +393,34 @@ ob_clean();
             border-radius: 0;
         }
         .btn-primary-large {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             font-weight: 600;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
             transition: all 0.3s ease;
+            width: 100%;
         }
         .btn-primary-large:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(13, 110, 253, 0.4);
+        }
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+        .action-buttons .btn-sm {
+            padding: 8px 12px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .card-body {
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -441,8 +466,8 @@ ob_clean();
                 <?php endif; ?>
 
                 <!-- Action Buttons -->
-                <div class="mb-3">
-                    <div class="d-flex gap-2 flex-wrap mb-2">
+                <div class="action-buttons">
+                    <div class="d-flex gap-2 flex-wrap mb-3">
                         <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
                             <?= empty($rkbs) ? 'disabled' : '' ?>>
                             <i class="fas fa-eye me-1"></i>Preview RKB
@@ -460,7 +485,7 @@ ob_clean();
                         <?php endif; ?>
                     </div>
                     
-                    <div>
+                    <div class="d-grid">
                         <button class="btn btn-primary btn-primary-large" onclick="showAddModal()"
                             <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui' || $periode_rhk_belum_diatur) ? 'disabled' : '' ?>>
                             <i class="fas fa-plus me-2"></i>Tambah RKB
