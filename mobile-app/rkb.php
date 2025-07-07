@@ -521,44 +521,6 @@ ob_clean();
         </div>
         <?php endif; ?>
 
-        <!-- Change Period Modal -->
-        <div class="modal fade" id="changePeriodModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">
-                            <i class="fas fa-calendar me-2"></i>Ubah Periode RKB
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="periodeForm" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Pilih Bulan:</label>
-                                <select class="form-select" name="bulan_aktif" required>
-                                    <?php foreach ($months as $num => $name): ?>
-                                        <option value="<?= $num ?>" <?= ($filter_month == $num) ? 'selected' : '' ?>><?= $name ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Tahun Periode:</label>
-                                <input type="text" class="form-control" value="<?= $filter_year ?>" readonly>
-                                <div class="form-text">Tahun mengikuti periode aktif RHK.</div>
-                            </div>
-                            <input type="hidden" name="set_periode_aktif" value="1">
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="button" class="btn btn-primary" onclick="confirmChangePeriod()">
-                            <i class="fas fa-check me-1"></i>Ubah Periode
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- RKB List -->
         <?php if (empty($rkbs)): ?>
             <div class="card text-center">
@@ -1042,59 +1004,40 @@ ob_clean();
             });
         }
 
-        function showPeriodModal() {
-            new bootstrap.Modal(document.getElementById('changePeriodModal')).show();
-        }
-
-        function confirmChangePeriod() {
-            Swal.fire({
-                title: 'Konfirmasi Ubah Periode',
-                text: 'Apakah anda yakin ingin mengubah periode bulan aktif? Data RKB yang tampil akan mengikuti periode yang dipilih.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Ubah Periode',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('periodeForm').submit();
-                }
-            });
-        }
-
         // Search functionality for previous RKB
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('searchPreviousRkb');
             const items = document.querySelectorAll('.previous-rkb-item');
             const noDataMessage = document.getElementById('noDataPrevious');
             
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                let visibleCount = 0;
-                
-                items.forEach(function(item) {
-                    const uraian = item.getAttribute('data-uraian').toLowerCase();
-                    const kuantitas = item.getAttribute('data-kuantitas').toLowerCase();
-                    const satuan = item.getAttribute('data-satuan').toLowerCase();
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    let visibleCount = 0;
                     
-                    if (uraian.includes(searchTerm) || kuantitas.includes(searchTerm) || satuan.includes(searchTerm)) {
-                        item.style.display = '';
-                        visibleCount++;
-                    } else {
-                        item.style.display = 'none';
+                    items.forEach(function(item) {
+                        const uraian = item.getAttribute('data-uraian').toLowerCase();
+                        const kuantitas = item.getAttribute('data-kuantitas').toLowerCase();
+                        const satuan = item.getAttribute('data-satuan').toLowerCase();
+                        
+                        if (uraian.includes(searchTerm) || kuantitas.includes(searchTerm) || satuan.includes(searchTerm)) {
+                            item.style.display = '';
+                            visibleCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                    
+                    // Show/hide no data message
+                    if (noDataMessage) {
+                      if (visibleCount === 0 && searchTerm.length > 0) {
+                        noDataMessage.classList.remove('d-none');
+                      } else {
+                        noDataMessage.classList.add('d-none');
+                      }
                     }
                 });
-                
-                // Show/hide no data message
-                if (noDataMessage) {
-                  if (visibleCount === 0 && searchTerm.length > 0) {
-                    noDataMessage.classList.remove('d-none');
-                  } else {
-                    noDataMessage.classList.add('d-none');
-                  }
-                }
-            });
+            }
         });
     </script>
 </body>
