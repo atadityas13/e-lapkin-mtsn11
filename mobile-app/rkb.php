@@ -422,24 +422,6 @@ ob_clean();
                     Periode: <?= $months[$filter_month] . ' ' . $filter_year ?>
                 </h6>
                 
-                <!-- Period Selection Form -->
-                <form id="periodeForm" method="POST" class="d-flex align-items-center gap-2 mb-3">
-                    <label class="form-label mb-0 me-2 fw-semibold">Pilih Bulan:</label>
-                    <select class="form-select w-auto" name="bulan_aktif">
-                        <?php foreach ($months as $num => $name): ?>
-                            <option value="<?= $num ?>" <?= ($filter_month == $num) ? 'selected' : '' ?>><?= $name ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="confirmChangePeriod()">Ubah</button>
-                    <input type="hidden" name="set_periode_aktif" value="1">
-                </form>
-                
-                <div class="alert alert-info mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <small><strong>Tahun mengikuti periode RHK:</strong> <?= $filter_year ?>. 
-                    Untuk mengubah tahun, silakan ubah di <a href="rhk.php" class="alert-link">halaman RHK</a>.</small>
-                </div>
-
                 <!-- Status Alert -->
                 <?php if ($status_verval_rkb == 'diajukan'): ?>
                     <div class="alert alert-info alert-dismissible">
@@ -476,6 +458,10 @@ ob_clean();
                                 <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
                             </button>
                         <?php endif; ?>
+                        
+                        <button class="btn btn-secondary btn-sm" onclick="showPeriodModal()">
+                            <i class="fas fa-calendar me-1"></i>Ubah Periode
+                        </button>
                     </div>
                     
                     <div>
@@ -484,6 +470,12 @@ ob_clean();
                             <i class="fas fa-plus me-2"></i>Tambah RKB
                         </button>
                     </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small><strong>Tahun mengikuti periode RHK:</strong> <?= $filter_year ?>. 
+                    Untuk mengubah tahun, silakan ubah di <a href="rhk.php" class="alert-link">halaman RHK</a>.</small>
                 </div>
                 
                 <?php if ($periode_rhk_belum_diatur): ?>
@@ -538,6 +530,44 @@ ob_clean();
             </div>
         </div>
         <?php endif; ?>
+
+        <!-- Change Period Modal -->
+        <div class="modal fade" id="changePeriodModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar me-2"></i>Ubah Periode RKB
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="periodeForm" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Pilih Bulan:</label>
+                                <select class="form-select" name="bulan_aktif" required>
+                                    <?php foreach ($months as $num => $name): ?>
+                                        <option value="<?= $num ?>" <?= ($filter_month == $num) ? 'selected' : '' ?>><?= $name ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Tahun Periode:</label>
+                                <input type="text" class="form-control" value="<?= $filter_year ?>" readonly>
+                                <div class="form-text">Tahun mengikuti periode aktif RHK.</div>
+                            </div>
+                            <input type="hidden" name="set_periode_aktif" value="1">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmChangePeriod()">
+                            <i class="fas fa-check me-1"></i>Ubah Periode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- RKB List -->
         <?php if (empty($rkbs)): ?>
@@ -900,23 +930,6 @@ ob_clean();
             document.getElementById('setPeriodeForm').submit();
         }
 
-        function confirmChangePeriod() {
-            Swal.fire({
-                title: 'Konfirmasi Ubah Periode',
-                text: 'Apakah anda yakin ingin mengubah periode bulan aktif? Data RKB yang tampil akan mengikuti periode yang dipilih.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Ubah Periode',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('periodeForm').submit();
-                }
-            });
-        }
-
         function showAddModal() {
             document.getElementById('rkbModalTitle').textContent = 'Tambah RKB';
             document.getElementById('rkbAction').value = 'add';
@@ -1035,6 +1048,27 @@ ob_clean();
                 if (result.isConfirmed) {
                     document.getElementById('deleteId').value = id;
                     document.getElementById('deleteForm').submit();
+                }
+            });
+        }
+
+        function showPeriodModal() {
+            new bootstrap.Modal(document.getElementById('changePeriodModal')).show();
+        }
+
+        function confirmChangePeriod() {
+            Swal.fire({
+                title: 'Konfirmasi Ubah Periode',
+                text: 'Apakah anda yakin ingin mengubah periode bulan aktif? Data RKB yang tampil akan mengikuti periode yang dipilih.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Ubah Periode',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('periodeForm').submit();
                 }
             });
         }
