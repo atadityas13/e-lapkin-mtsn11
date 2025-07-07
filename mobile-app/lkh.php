@@ -407,6 +407,18 @@ ob_clean();
             padding: 15px;
             border-radius: 0;
         }
+        .btn-primary-large {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-primary-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(13, 110, 253, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -451,7 +463,11 @@ ob_clean();
                 <?php endif; ?>
 
                 <!-- Action Buttons -->
-                <div class="d-flex gap-2 flex-wrap">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <button class="btn btn-primary btn-primary-large" onclick="showAddModal()"
+                        <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
+                        <i class="fas fa-plus me-2"></i>Tambah LKH
+                    </button>
                     
                     <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
                         <?= empty($lkhs) ? 'disabled' : '' ?>>
@@ -468,11 +484,6 @@ ob_clean();
                             <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
                         </button>
                     <?php endif; ?>
-
-                    <button class="btn btn-primary btn-sm" onclick="showAddModal()"
-                        <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
-                        <i class="fas fa-plus me-1"></i>Tambah LKH
-                    </button>
                 </div>
                 
                 <?php if ($periode_rkb_belum_diatur): ?>
@@ -493,7 +504,7 @@ ob_clean();
                     <h6 class="text-muted">Belum ada LKH bulan ini</h6>
                     <p class="text-muted">Mulai tambahkan kegiatan harian Anda</p>
                     <?php if (!$periode_rkb_belum_diatur): ?>
-                        <button class="btn btn-primary" onclick="showAddModal()">
+                        <button class="btn btn-primary btn-primary-large" onclick="showAddModal()">
                             <i class="fas fa-plus me-2"></i>Tambah LKH
                         </button>
                     <?php endif; ?>

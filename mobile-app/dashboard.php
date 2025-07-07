@@ -293,6 +293,33 @@ ob_clean();
         .profile-img:hover {
             transform: scale(1.05);
         }
+        .profile-img-userinfo {
+            width: 60px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .profile-img-userinfo:hover {
+            transform: scale(1.05);
+        }
+        .profile-placeholder-userinfo {
+            width: 60px;
+            height: 80px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        .profile-placeholder-userinfo:hover {
+            transform: scale(1.05);
+        }
         .app-title {
             font-weight: 700;
             font-size: 1.4rem;
@@ -500,9 +527,9 @@ ob_clean();
                 <div class="user-info">
                     <div class="d-flex align-items-center">
                         <?php if (!empty($foto_profil) && file_exists($photo_file_path)): ?>
-                            <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img me-3">
+                            <img src="<?= htmlspecialchars($photo_web_path) ?>" alt="Foto Profil" class="profile-img-userinfo me-3">
                         <?php else: ?>
-                            <div class="profile-img me-3 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.2);">
+                            <div class="profile-placeholder-userinfo me-3">
                                 <i class="fas fa-user text-white fa-lg"></i>
                             </div>
                         <?php endif; ?>
