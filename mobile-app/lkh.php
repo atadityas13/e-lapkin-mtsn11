@@ -1,38 +1,291 @@
 <?php
-// Start output buffering to prevent any unwanted output
+/**
+ * E-LAPKIN Mobile LKH Management
+ */
+
+// Start output buffering to catch any unwanted output
 ob_start();
 
 session_start();
-require_once 'config/mobile_session.php';
 
-// Only check login session, not headers for internal pages
-checkMobileLogin();
-
+// Include mobile session config
+require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
 
-$user = getMobileSessionData();
-$id_pegawai = $user['id_pegawai'];
-$page_title = 'LKH - E-LAPKIN Mobile';
+// Check mobile login (only validate session, not headers for dashboard)
+checkMobileLogin();
 
-// Get current month/year
+// Get user session data
+$userData = getMobileSessionData();
+$id_pegawai_login = $userData['id_pegawai'];
+$nama_pegawai_login = $userData['nama'];
+
+$current_date = date('Y-m-d');
 $current_month = (int)date('m');
 $current_year = (int)date('Y');
+
+// Get active period from user settings
+function get_periode_aktif($conn, $id_pegawai) {
+    $stmt = $conn->prepare("SELECT tahun_aktif, bulan_aktif FROM pegawai WHERE id_pegawai = ?");
+    $stmt->bind_param("i", $id_pegawai);
+    $stmt->execute();
+    $stmt->bind_result($tahun_aktif, $bulan_aktif);
+    $stmt->fetch();
+    $stmt->close();
+    return [
+        'tahun' => $tahun_aktif ?: (int)date('Y'),
+        'bulan' => $bulan_aktif ?: (int)date('m')
+    ];
+}
+
+$periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
+$filter_month = $periode_aktif['bulan'];
+$filter_year = $periode_aktif['tahun'];
+
+// Get LKH verification status
+$status_verval_lkh = '';
+$stmt_status = $conn->prepare("SELECT status_verval FROM lkh WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ? LIMIT 1");
+$stmt_status->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+$stmt_status->execute();
+$stmt_status->bind_result($status_verval_lkh);
+$stmt_status->fetch();
+$stmt_status->close();
+
+// Helper function for SweetAlert-like notifications
+function set_mobile_notification($type, $title, $text) {
+    $_SESSION['mobile_notification'] = [
+        'type' => $type,
+        'title' => $title,
+        'text' => $text
+    ];
+}
+
+// Handle POST requests
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Prevent actions if LKH is already approved
+    if ($status_verval_lkh == 'disetujui') {
+        set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah.');
+        header('Location: lkh.php');
+        exit();
+    }
+
+    if (isset($_POST['action'])) {
+        $action = $_POST['action'];
+
+        if ($action == 'add' || $action == 'edit') {
+            $tanggal_lkh = trim($_POST['tanggal_lkh']);
+            $id_rkb = (int)$_POST['id_rkb'];
+            $uraian_kegiatan_lkh = trim($_POST['uraian_kegiatan_lkh']);
+            $jumlah_realisasi = trim($_POST['jumlah_realisasi']);
+            
+            // Map satuan_realisasi from number to string
+            $satuan_map = [
+                "1" => "Kegiatan", "2" => "JP", "3" => "Dokumen", "4" => "Laporan",
+                "5" => "Hari", "6" => "Jam", "7" => "Menit", "8" => "Unit"
+            ];
+            $satuan_realisasi = isset($_POST['satuan_realisasi']) && isset($satuan_map[$_POST['satuan_realisasi']])
+                ? $satuan_map[$_POST['satuan_realisasi']] : '';
+            $nama_kegiatan_harian = isset($_POST['nama_kegiatan_harian']) ? trim($_POST['nama_kegiatan_harian']) : '';
+
+            // Handle file upload for add action
+            $lampiran = NULL;
+            if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
+                $file_tmp_name = $_FILES['lampiran']['tmp_name'];
+                $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                
+                if (!in_array($file_extension, $allowed_extensions)) {
+                    set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
+                    header('Location: lkh.php');
+                    exit();
+                }
+                
+                if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
+                    set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
+                    header('Location: lkh.php');
+                    exit();
+                }
+                
+                $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
+                $upload_dir = __DIR__ . '/../uploads/lkh/';
+                $file_path = $upload_dir . $file_name;
+
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0777, true);
+                }
+
+                if (move_uploaded_file($file_tmp_name, $file_path)) {
+                    $lampiran = $file_name;
+                } else {
+                    set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
+                    header('Location: lkh.php');
+                    exit();
+                }
+            }
+
+            // Validation
+            if (empty($tanggal_lkh) || empty($id_rkb) || empty($nama_kegiatan_harian) || empty($uraian_kegiatan_lkh) || empty($jumlah_realisasi) || empty($satuan_realisasi)) {
+                set_mobile_notification('error', 'Gagal', 'Semua field harus diisi.');
+            } else {
+                try {
+                    if ($action == 'add') {
+                        $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
+                    } else {
+                        $id_lkh = (int)$_POST['id_lkh'];
+                        $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
+                        $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
+                    }
+
+                    if ($stmt->execute()) {
+                        set_mobile_notification('success', ($action == 'add') ? 'Berhasil' : 'Update Berhasil', ($action == 'add') ? "LKH berhasil ditambahkan!" : "LKH berhasil diperbarui!");
+                    } else {
+                        set_mobile_notification('error', 'Gagal', ($action == 'add') ? "Gagal menambahkan LKH: " . $stmt->error : "Gagal memperbarui LKH: " . $stmt->error);
+                    }
+                    $stmt->close();
+                } catch (Exception $e) {
+                    set_mobile_notification('error', 'Gagal', 'Terjadi kesalahan database. Periksa data yang dimasukkan.');
+                }
+            }
+            header('Location: lkh.php');
+            exit();
+            
+        } elseif ($action == 'delete') {
+            $id_lkh_to_delete = (int)$_POST['id_lkh'];
+            
+            // Get file name to delete
+            $stmt_get_file = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt_get_file->bind_param("ii", $id_lkh_to_delete, $id_pegawai_login);
+            $stmt_get_file->execute();
+            $stmt_get_file->bind_result($file_to_delete);
+            $stmt_get_file->fetch();
+            $stmt_get_file->close();
+            
+            $stmt = $conn->prepare("DELETE FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt->bind_param("ii", $id_lkh_to_delete, $id_pegawai_login);
+
+            if ($stmt->execute()) {
+                if ($file_to_delete && file_exists(__DIR__ . '/../uploads/lkh/' . $file_to_delete)) {
+                    unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
+                }
+                set_mobile_notification('success', 'Berhasil', 'LKH berhasil dihapus!');
+            } else {
+                set_mobile_notification('error', 'Gagal', "Gagal menghapus LKH: " . $stmt->error);
+            }
+            $stmt->close();
+            header('Location: lkh.php');
+            exit();
+        }
+    }
+    
+    // Submit/cancel LKH verification
+    if (isset($_POST['ajukan_verval_lkh'])) {
+        if ($status_verval_lkh == 'disetujui') {
+            set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
+            header('Location: lkh.php');
+            exit();
+        }
+        
+        // Check if there's LKH data for this period
+        $stmt_check = $conn->prepare("SELECT COUNT(*) FROM lkh WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?");
+        $stmt_check->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+        $stmt_check->execute();
+        $stmt_check->bind_result($count_lkh);
+        $stmt_check->fetch();
+        $stmt_check->close();
+        
+        if ($count_lkh == 0) {
+            set_mobile_notification('error', 'Gagal', 'Tidak dapat mengajukan verval karena belum ada data LKH untuk periode ini.');
+            header('Location: lkh.php');
+            exit();
+        }
+        
+        $stmt = $conn->prepare("UPDATE lkh SET status_verval = 'diajukan' WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?");
+        $stmt->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+        if ($stmt->execute()) {
+            set_mobile_notification('success', 'Berhasil', 'Pengajuan verval LKH berhasil dikirim. Menunggu verifikasi Pejabat Penilai.');
+        } else {
+            set_mobile_notification('error', 'Gagal', 'Gagal mengajukan verval LKH: ' . htmlspecialchars($stmt->error));
+        }
+        $stmt->close();
+        header('Location: lkh.php');
+        exit();
+        
+    } elseif (isset($_POST['batal_verval_lkh'])) {
+        if ($status_verval_lkh == 'disetujui') {
+            set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
+            header('Location: lkh.php');
+            exit();
+        }
+        
+        $stmt = $conn->prepare("UPDATE lkh SET status_verval = NULL WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?");
+        $stmt->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+        if ($stmt->execute()) {
+            set_mobile_notification('success', 'Dibatalkan', 'Pengajuan verval LKH dibatalkan. Anda dapat mengedit/mengirim ulang.');
+        } else {
+            set_mobile_notification('error', 'Gagal', 'Gagal membatalkan verval LKH: ' . htmlspecialchars($stmt->error));
+        }
+        $stmt->close();
+        header('Location: lkh.php');
+        exit();
+    }
+}
+
+// Ensure status_verval column exists
+function ensure_status_verval_column_lkh($conn) {
+    $result = $conn->query("SHOW COLUMNS FROM lkh LIKE 'status_verval'");
+    if ($result && $result->num_rows == 0) {
+        $conn->query("ALTER TABLE lkh ADD COLUMN status_verval ENUM('diajukan','disetujui','ditolak') DEFAULT NULL");
+    }
+}
+ensure_status_verval_column_lkh($conn);
+
+// Ensure lampiran column exists
+function ensure_lampiran_column_lkh($conn) {
+    $result = $conn->query("SHOW COLUMNS FROM lkh LIKE 'lampiran'");
+    if ($result && $result->num_rows == 0) {
+        $conn->query("ALTER TABLE lkh ADD COLUMN lampiran VARCHAR(255) DEFAULT NULL");
+    }
+}
+ensure_lampiran_column_lkh($conn);
 
 // Get LKH data for current month
 $lkhs = [];
 $stmt_lkh = $conn->prepare("
-    SELECT lkh.*, rkb.uraian_kegiatan as rkb_uraian 
+    SELECT lkh.id_lkh, lkh.id_rkb, lkh.tanggal_lkh, lkh.uraian_kegiatan_lkh, lkh.jumlah_realisasi, 
+           lkh.satuan_realisasi, lkh.lampiran, lkh.nama_kegiatan_harian, rkb.uraian_kegiatan AS rkb_uraian 
     FROM lkh 
     JOIN rkb ON lkh.id_rkb = rkb.id_rkb 
-    WHERE lkh.id_pegawai = ? AND MONTH(lkh.tanggal_lkh) = ? AND YEAR(lkh.tanggal_lkh) = ?
+    WHERE lkh.id_pegawai = ? AND MONTH(lkh.tanggal_lkh) = ? AND YEAR(lkh.tanggal_lkh) = ? 
     ORDER BY lkh.tanggal_lkh DESC
 ");
-$stmt_lkh->bind_param("iii", $id_pegawai, $current_month, $current_year);
+$stmt_lkh->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
 $stmt_lkh->execute();
 $result_lkh = $stmt_lkh->get_result();
 while ($row = $result_lkh->fetch_assoc()) {
     $lkhs[] = $row;
 }
+$stmt_lkh->close();
+
+// Get RKB list for current period
+$rkb_list = [];
+$stmt_rkb_list = $conn->prepare("SELECT id_rkb, uraian_kegiatan FROM rkb WHERE id_pegawai = ? AND bulan = ? AND tahun = ? ORDER BY uraian_kegiatan ASC");
+$stmt_rkb_list->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+$stmt_rkb_list->execute();
+$result_rkb_list = $stmt_rkb_list->get_result();
+while ($row = $result_rkb_list->fetch_assoc()) {
+    $rkb_list[] = $row;
+}
+$stmt_rkb_list->close();
+
+// Check if RKB period is not set
+$periode_rkb_belum_diatur = empty($rkb_list);
+
+$months = [
+    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+];
 
 // Clear any unwanted output before HTML
 ob_clean();
@@ -42,37 +295,148 @@ ob_clean();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?></title>
+    <title>LKH - E-Lapkin Mobile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        .bottom-nav .nav-item {
+            flex: 1;
+            text-align: center;
+        }
+        .bottom-nav .nav-link {
+            padding: 12px 8px;
+            color: #6c757d;
+            text-decoration: none;
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 4px;
+        }
+        .bottom-nav .nav-link.active {
+            color: #0d6efd;
+            background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+            transform: translateY(-2px);
+        }
+        .bottom-nav .nav-link i {
+            font-size: 18px;
+            margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav .nav-link.active i {
+            transform: scale(1.1);
+        }
+        body {
+            padding-bottom: 80px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: none;
+            margin-bottom: 20px;
+        }
+        .btn {
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        .status-badge {
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .nav-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 0;
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <!-- Mobile Navigation -->
-    <nav class="navbar navbar-dark bg-primary">
+<body>
+    <!-- Header -->
+    <nav class="navbar nav-header">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
+            <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
                 <i class="fas fa-arrow-left me-2"></i>
-                <span>LKH</span>
+                <span>Laporan Kinerja Harian</span>
             </a>
             <div class="d-flex align-items-center text-white">
-                <small><?= htmlspecialchars($user['nama']) ?></small>
+                <small><?= htmlspecialchars($userData['nama']) ?></small>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid py-3">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0"><i class="fas fa-book me-2"></i>Laporan Kinerja Harian</h5>
-            <a href="lkh_add.php" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus"></i>
-            </a>
-        </div>
-        
-        <!-- Month info -->
-        <div class="alert alert-info">
-            <i class="fas fa-calendar-alt me-2"></i>
-            <?= date('F Y') ?> - <?= count($lkhs) ?> kegiatan
+    <div class="container-fluid px-3 pt-3">
+        <!-- Period Info -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title mb-3">
+                    <i class="fas fa-calendar-alt text-primary me-2"></i>
+                    Periode: <?= $months[$filter_month] . ' ' . $filter_year ?>
+                </h6>
+                
+                <!-- Status Alert -->
+                <?php if ($status_verval_lkh == 'diajukan'): ?>
+                    <div class="alert alert-info alert-dismissible">
+                        <i class="fas fa-clock me-2"></i>
+                        LKH periode ini sudah diajukan dan menunggu verifikasi Pejabat Penilai.
+                    </div>
+                <?php elseif ($status_verval_lkh == 'disetujui'): ?>
+                    <div class="alert alert-success alert-dismissible">
+                        <i class="fas fa-check-circle me-2"></i>
+                        LKH periode ini sudah diverifikasi/validasi oleh Pejabat Penilai.
+                    </div>
+                <?php elseif ($status_verval_lkh == 'ditolak'): ?>
+                    <div class="alert alert-danger alert-dismissible">
+                        <i class="fas fa-times-circle me-2"></i>
+                        LKH periode ini ditolak oleh Pejabat Penilai. Silakan perbaiki dan ajukan ulang.
+                    </div>
+                <?php endif; ?>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-primary btn-sm" onclick="showAddModal()"
+                        <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
+                        <i class="fas fa-plus me-1"></i>Tambah LKH
+                    </button>
+                    
+                    <?php if ($status_verval_lkh == 'diajukan'): ?>
+                        <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
+                            <i class="fas fa-times me-1"></i>Batal Ajukan
+                        </button>
+                    <?php elseif ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak'): ?>
+                        <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
+                            <?= empty($lkhs) ? 'disabled' : '' ?>>
+                            <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
+                        </button>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if ($periode_rkb_belum_diatur): ?>
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Perhatian:</strong> Belum ada RKB untuk periode ini. 
+                        <a href="rkb.php" class="alert-link">Buat RKB terlebih dahulu</a>.
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- LKH List -->
@@ -82,16 +446,18 @@ ob_clean();
                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                     <h6 class="text-muted">Belum ada LKH bulan ini</h6>
                     <p class="text-muted">Mulai tambahkan kegiatan harian Anda</p>
-                    <a href="lkh_add.php" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Tambah LKH
-                    </a>
+                    <?php if (!$periode_rkb_belum_diatur): ?>
+                        <button class="btn btn-primary" onclick="showAddModal()">
+                            <i class="fas fa-plus me-2"></i>Tambah LKH
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php else: ?>
             <?php foreach ($lkhs as $lkh): ?>
-                <div class="card mb-3 shadow-sm">
+                <div class="card">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
                             <div class="flex-grow-1">
                                 <div class="d-flex align-items-center mb-2">
                                     <span class="badge bg-primary me-2">
@@ -105,28 +471,34 @@ ob_clean();
                                 <p class="card-text small text-muted mb-2">
                                     <?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?>
                                 </p>
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center mb-2">
                                     <span class="badge bg-success me-2">
                                         <?= htmlspecialchars($lkh['jumlah_realisasi'] . ' ' . $lkh['satuan_realisasi']) ?>
                                     </span>
                                     <?php if ($lkh['lampiran']): ?>
-                                        <i class="fas fa-paperclip text-muted"></i>
+                                        <a href="../uploads/lkh/<?= htmlspecialchars($lkh['lampiran']) ?>" target="_blank" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-paperclip me-1"></i>Lampiran
+                                        </a>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="lkh_edit.php?id=<?= $lkh['id_lkh'] ?>">
-                                        <i class="fas fa-edit me-2"></i>Edit
-                                    </a></li>
-                                    <?php if ($lkh['lampiran']): ?>
-                                    <li><a class="dropdown-item" href="../uploads/lkh/<?= $lkh['lampiran'] ?>" target="_blank">
-                                        <i class="fas fa-eye me-2"></i>Lihat Lampiran
-                                    </a></li>
-                                    <?php endif; ?>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>)" 
+                                           <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                            <i class="fas fa-edit me-2"></i>Edit
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)"
+                                           <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                            <i class="fas fa-trash me-2"></i>Hapus
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -136,6 +508,212 @@ ob_clean();
         <?php endif; ?>
     </div>
 
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="d-flex">
+            <div class="nav-item">
+                <a href="dashboard.php" class="nav-link">
+                    <i class="fas fa-home d-block"></i>
+                    <small>Beranda</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="lkh.php" class="nav-link active">
+                    <i class="fas fa-list d-block"></i>
+                    <small>LKH</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rkb.php" class="nav-link">
+                    <i class="fas fa-calendar d-block"></i>
+                    <small>RKB</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rhk.php" class="nav-link">
+                    <i class="fas fa-tasks d-block"></i>
+                    <small>RHK</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="laporan.php" class="nav-link">
+                    <i class="fas fa-file-alt d-block"></i>
+                    <small>Laporan</small>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit LKH Modal -->
+    <div class="modal fade" id="lkhModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form id="lkhForm" method="POST" enctype="multipart/form-data">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="lkhModalTitle">Tambah LKH</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="action" id="lkhAction" value="add">
+                        <input type="hidden" name="id_lkh" id="lkhId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Tanggal Kegiatan</label>
+                            <input type="date" class="form-control" name="tanggal_lkh" id="tanggalLkh" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">RKB Terkait</label>
+                            <select class="form-select" name="id_rkb" id="rkbSelect" required>
+                                <option value="">-- Pilih RKB --</option>
+                                <?php foreach ($rkb_list as $rkb): ?>
+                                    <option value="<?= $rkb['id_rkb'] ?>"><?= htmlspecialchars($rkb['uraian_kegiatan']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nama Kegiatan Harian</label>
+                            <input type="text" class="form-control" name="nama_kegiatan_harian" id="namaKegiatan" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Uraian Kegiatan LKH</label>
+                            <textarea class="form-control" name="uraian_kegiatan_lkh" id="uraianKegiatan" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Jumlah Realisasi</label>
+                            <input type="text" class="form-control" name="jumlah_realisasi" id="jumlahRealisasi" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Satuan Realisasi</label>
+                            <select class="form-select" name="satuan_realisasi" id="satuanRealisasi" required>
+                                <option value="">-- Pilih Satuan --</option>
+                                <option value="1">Kegiatan</option>
+                                <option value="2">JP</option>
+                                <option value="3">Dokumen</option>
+                                <option value="4">Laporan</option>
+                                <option value="5">Hari</option>
+                                <option value="6">Jam</option>
+                                <option value="7">Menit</option>
+                                <option value="8">Unit</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="lampiranDiv">
+                            <label class="form-label">Lampiran (opsional)</label>
+                            <input type="file" class="form-control" name="lampiran" accept=".pdf,.jpg,.jpeg,.png">
+                            <div class="form-text">Format: PDF, JPG, JPEG, PNG. Maksimal 2MB.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Forms for Actions -->
+    <form id="deleteForm" method="POST" style="display: none;">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="id_lkh" id="deleteId">
+    </form>
+
+    <form id="vervalForm" method="POST" style="display: none;">
+        <input type="hidden" name="ajukan_verval_lkh" id="vervalAction">
+    </form>
+
+    <form id="cancelVervalForm" method="POST" style="display: none;">
+        <input type="hidden" name="batal_verval_lkh" value="1">
+    </form>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // Show notifications
+        <?php if (isset($_SESSION['mobile_notification'])): ?>
+            Swal.fire({
+                icon: '<?= $_SESSION['mobile_notification']['type'] ?>',
+                title: '<?= $_SESSION['mobile_notification']['title'] ?>',
+                text: '<?= $_SESSION['mobile_notification']['text'] ?>',
+                timer: 3000,
+                showConfirmButton: false
+            });
+            <?php unset($_SESSION['mobile_notification']); ?>
+        <?php endif; ?>
+
+        function showAddModal() {
+            document.getElementById('lkhModalTitle').textContent = 'Tambah LKH';
+            document.getElementById('lkhAction').value = 'add';
+            document.getElementById('lkhForm').reset();
+            document.getElementById('tanggalLkh').value = '<?= $current_date ?>';
+            document.getElementById('lampiranDiv').style.display = 'block';
+            document.getElementById('submitBtn').textContent = 'Simpan';
+            new bootstrap.Modal(document.getElementById('lkhModal')).show();
+        }
+
+        function editLkh(id) {
+            // This would need to fetch data via AJAX in a real implementation
+            // For now, redirect to a GET parameter-based edit
+            window.location.href = `lkh_edit.php?id=${id}`;
+        }
+
+        function deleteLkh(id) {
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: 'Anda yakin ingin menghapus LKH ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteId').value = id;
+                    document.getElementById('deleteForm').submit();
+                }
+            });
+        }
+
+        function confirmSubmitVerval() {
+            Swal.fire({
+                title: 'Ajukan Verval LKH?',
+                text: 'LKH akan bisa digenerate setelah di verval oleh Pejabat Penilai.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Ajukan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('vervalForm').submit();
+                }
+            });
+        }
+
+        function confirmCancelVerval() {
+            Swal.fire({
+                title: 'Batalkan Pengajuan?',
+                text: 'Anda dapat mengedit/menghapus/mengirim ulang LKH setelah membatalkan.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Batalkan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('cancelVervalForm').submit();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
