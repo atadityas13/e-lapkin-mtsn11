@@ -748,10 +748,10 @@ ob_clean();
                     <small class="opacity-75">Manajemen LKH</small>
                 </div>
             </a>
-            <div class="text-white text-end" style="min-width: 140px;">
-                <div class="fw-semibold" style="font-size: 0.9rem;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.8rem;"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.8rem;"><?= htmlspecialchars($activePeriod) ?></div>
+            <div class="text-white text-end">
+                <div class="fw-semibold"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="small opacity-75"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>
