@@ -47,9 +47,9 @@ function get_periode_aktif($conn, $id_pegawai) {
     ];
 }
 
-function set_periode_aktif($conn, $id_pegawai, $tahun, $bulan) {
-    $stmt = $conn->prepare("UPDATE pegawai SET tahun_aktif = ?, bulan_aktif = ? WHERE id_pegawai = ?");
-    $stmt->bind_param("iii", $tahun, $bulan, $id_pegawai);
+function set_periode_aktif($conn, $id_pegawai, $bulan) {
+    $stmt = $conn->prepare("UPDATE pegawai SET bulan_aktif = ? WHERE id_pegawai = ?");
+    $stmt->bind_param("ii", $bulan, $id_pegawai);
     $stmt->execute();
     $stmt->close();
 }
@@ -90,9 +90,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (isset($_POST['set_periode_aktif'])) {
-        $tahun_aktif_baru = (int)$_POST['tahun_aktif'];
         $bulan_aktif_baru = (int)$_POST['bulan_aktif'];
-        set_periode_aktif($conn, $id_pegawai_login, $tahun_aktif_baru, $bulan_aktif_baru);
+        set_periode_aktif($conn, $id_pegawai_login, $bulan_aktif_baru);
         set_mobile_notification('success', 'Periode Diubah', 'Periode aktif berhasil diubah.');
         header('Location: rkb.php');
         exit();
@@ -233,17 +232,11 @@ $stmt_check_periode->close();
 
 $periode_belum_diatur = ($tahun_aktif_db === null || $bulan_aktif_db === null);
 
-// Get available years/months
-$years = [];
+// Get available months
 $months_available = [];
-$res = $conn->query("SELECT DISTINCT tahun, bulan FROM rkb WHERE id_pegawai = $id_pegawai_login ORDER BY tahun DESC, bulan DESC");
+$res = $conn->query("SELECT DISTINCT bulan FROM rkb WHERE id_pegawai = $id_pegawai_login AND tahun = $filter_year ORDER BY bulan DESC");
 while ($row = $res->fetch_assoc()) {
-    if (!in_array($row['tahun'], $years)) $years[] = $row['tahun'];
-    if (!in_array($row['bulan'], $months_available)) $months_available[] = $row['bulan'];
-}
-if (empty($years)) $years[] = $current_year;
-if (!in_array($current_year, $years)) {
-    array_unshift($years, $current_year);
+    $months_available[] = $row['bulan'];
 }
 
 // Get RKB data for current period
@@ -296,7 +289,6 @@ $stmt_previous_rkb = $conn->prepare("
          AND r1.created_at = r2.max_created_at
     WHERE r1.id_pegawai = ? AND NOT (r1.bulan = ? AND r1.tahun = ?)
     ORDER BY r1.created_at DESC, r1.uraian_kegiatan ASC
-    LIMIT 20
 ");
 
 $stmt_previous_rkb->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
@@ -431,22 +423,23 @@ ob_clean();
                 </h6>
                 
                 <!-- Period Selection Form -->
-                <form id="periodeForm" method="POST" class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-                    <label class="form-label mb-0 me-2 fw-semibold">Pilih Periode:</label>
+                <form id="periodeForm" method="POST" class="d-flex align-items-center gap-2 mb-3">
+                    <label class="form-label mb-0 me-2 fw-semibold">Pilih Bulan:</label>
                     <select class="form-select w-auto" name="bulan_aktif">
                         <?php foreach ($months as $num => $name): ?>
                             <option value="<?= $num ?>" <?= ($filter_month == $num) ? 'selected' : '' ?>><?= $name ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <select class="form-select w-auto" name="tahun_aktif">
-                        <?php foreach ($years as $year): ?>
-                            <option value="<?= $year ?>" <?= ($filter_year == $year) ? 'selected' : '' ?>><?= $year ?></option>
                         <?php endforeach; ?>
                     </select>
                     <button type="button" class="btn btn-primary btn-sm" onclick="confirmChangePeriod()">Ubah</button>
                     <input type="hidden" name="set_periode_aktif" value="1">
                 </form>
                 
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small><strong>Tahun mengikuti periode RHK:</strong> <?= $filter_year ?>. 
+                    Untuk mengubah tahun, silakan ubah di <a href="rhk.php" class="alert-link">halaman RHK</a>.</small>
+                </div>
+
                 <!-- Status Alert -->
                 <?php if ($status_verval_rkb == 'diajukan'): ?>
                     <div class="alert alert-info alert-dismissible">
@@ -510,13 +503,13 @@ ob_clean();
                 <div class="modal-content">
                     <div class="modal-header bg-warning text-dark">
                         <h5 class="modal-title">
-                            <i class="fas fa-exclamation-triangle me-2"></i>Periode Belum Diatur
+                            <i class="fas fa-exclamation-triangle me-2"></i>Periode Bulan Belum Diatur
                         </h5>
                     </div>
                     <div class="modal-body">
                         <div class="alert alert-info mb-3">
                             <i class="fas fa-info-circle me-1"></i>
-                            <strong>Informasi:</strong> Periode bulan dan tahun untuk RKB belum diatur. Silakan pilih periode yang akan digunakan.
+                            <strong>Informasi:</strong> Periode bulan untuk RKB belum diatur. Tahun mengikuti periode RHK (<?= $filter_year ?>). Silakan pilih bulan yang akan digunakan.
                         </div>
                         <form id="setPeriodeForm" method="POST">
                             <div class="mb-3">
@@ -529,14 +522,9 @@ ob_clean();
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">Pilih Tahun Periode:</label>
-                                <select class="form-select" name="tahun_aktif" required>
-                                    <option value="">-- Pilih Tahun --</option>
-                                    <?php 
-                                    for ($i = $current_year - 2; $i <= $current_year + 2; $i++): ?>
-                                        <option value="<?= $i ?>" <?= ($i == $current_year) ? 'selected' : '' ?>><?= $i ?></option>
-                                    <?php endfor; ?>
-                                </select>
+                                <label class="form-label fw-semibold">Tahun Periode:</label>
+                                <input type="text" class="form-control" value="<?= $filter_year ?>" readonly>
+                                <div class="form-text">Tahun mengikuti periode aktif RHK.</div>
                             </div>
                             <input type="hidden" name="set_periode_aktif" value="1">
                         </form>
@@ -900,12 +888,11 @@ ob_clean();
 
         function submitPeriodForm() {
             const bulanDipilih = document.querySelector('#setPeriodeForm select[name="bulan_aktif"]').value;
-            const tahunDipilih = document.querySelector('#setPeriodeForm select[name="tahun_aktif"]').value;
-            if (!bulanDipilih || !tahunDipilih) {
+            if (!bulanDipilih) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Peringatan',
-                    text: 'Silakan pilih bulan dan tahun terlebih dahulu.',
+                    text: 'Silakan pilih bulan terlebih dahulu.',
                     timer: 2000
                 });
                 return;
@@ -916,7 +903,7 @@ ob_clean();
         function confirmChangePeriod() {
             Swal.fire({
                 title: 'Konfirmasi Ubah Periode',
-                text: 'Apakah anda yakin ingin mengubah periode aktif? Data RKB yang tampil akan mengikuti periode yang dipilih.',
+                text: 'Apakah anda yakin ingin mengubah periode bulan aktif? Data RKB yang tampil akan mengikuti periode yang dipilih.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
