@@ -576,7 +576,7 @@ ob_clean();
 
     <div class="container-fluid px-3">
         <!-- Stats Overview -->
-        <div class="stats-grid">
+        <!-- <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number"><?= count($rhks) ?></div>
                 <div class="stat-label">Total RHK</div>
@@ -585,7 +585,7 @@ ob_clean();
                 <div class="stat-number"><?= $periode_aktif ?></div>
                 <div class="stat-label">Periode Aktif</div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Period Selection Card -->
         <div class="card period-card">

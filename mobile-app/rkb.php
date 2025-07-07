@@ -829,7 +829,7 @@ ob_clean();
 
     <div class="container-fluid px-3">
         <!-- Stats Overview -->
-        <div class="stats-grid">
+        <!-- <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number"><?= count($rkbs) ?></div>
                 <div class="stat-label">Total RKB</div>
@@ -842,7 +842,7 @@ ob_clean();
                 <div class="stat-number"><?= count($rhk_list) ?></div>
                 <div class="stat-label">RHK Tersedia</div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Modal for Period Not Set -->
         <?php if ($periode_bulan_belum_diatur): ?>

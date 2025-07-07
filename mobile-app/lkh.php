@@ -365,7 +365,7 @@ ob_clean();
             --accent-purple: #764ba2;
             --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
             --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --lkh-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            --lkh-gradient: linear-gradient(135deg,rgb(255, 245, 154) 0%, #fecfef 100%);
         }
 
         .bottom-nav {
@@ -448,11 +448,11 @@ ob_clean();
 
         .lkh-card {
             background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
-            border-left: 4px solid #ff6b9d;
+            border-left: 4px solidrgb(171, 171, 32);
         }
 
         .lkh-card:hover {
-            border-left-color: #c44569;
+            border-left-color:rgb(169, 167, 5);
         }
 
         .btn {
@@ -638,7 +638,7 @@ ob_clean();
             border-radius: 15px;
             padding: 15px;
             margin-bottom: 15px;
-            border-left: 4px solid #ff6b9d;
+            border-left: 4px solidrgb(197, 170, 20);
         }
 
         .action-buttons {
@@ -688,7 +688,7 @@ ob_clean();
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: #ff6b9d;
+            border-color:rgb(107, 191, 255);
             box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
         }
 
@@ -759,7 +759,7 @@ ob_clean();
 
     <div class="container-fluid px-3">
         <!-- Stats Overview -->
-        <div class="stats-grid">
+        <!-- <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number"><?= count($lkhs) ?></div>
                 <div class="stat-label">Total LKH</div>
@@ -776,7 +776,7 @@ ob_clean();
                 <div class="stat-number"><?= count(array_unique(array_column($lkhs, 'tanggal_lkh'))) ?></div>
                 <div class="stat-label">Hari Kerja</div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Period Info -->
         <div class="card period-card">
