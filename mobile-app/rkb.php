@@ -1087,12 +1087,40 @@ ob_clean();
         <?php endif; ?>
     </div>
 
-    <!-- Floating Action Button -->
-    <div class="floating-action">
-        <button class="floating-btn" onclick="showAddModal()" title="Tambah RKB"
-            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui' || $periode_rhk_belum_diatur) ? 'style="display:none;"' : '' ?>>
-            <i class="fas fa-plus"></i>
-        </button>
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="d-flex">
+            <div class="nav-item">
+                <a href="dashboard.php" class="nav-link">
+                    <i class="fas fa-home d-block"></i>
+                    <small>Beranda</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rhk.php" class="nav-link">
+                    <i class="fas fa-tasks d-block"></i>
+                    <small>RHK</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rkb.php" class="nav-link active">
+                    <i class="fas fa-calendar d-block"></i>
+                    <small>RKB</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="lkh.php" class="nav-link">
+                    <i class="fas fa-list d-block"></i>
+                    <small>LKH</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="laporan.php" class="nav-link">
+                    <i class="fas fa-file-alt d-block"></i>
+                    <small>Laporan</small>
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- Add/Edit RKB Modal -->
@@ -1622,3 +1650,5 @@ ob_clean();
             }
         });
     </script>
+</body>
+</html>

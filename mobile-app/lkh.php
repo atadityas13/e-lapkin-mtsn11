@@ -1205,6 +1205,42 @@ ob_clean();
         </div>
     </div>
 
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="d-flex">
+            <div class="nav-item">
+                <a href="dashboard.php" class="nav-link">
+                    <i class="fas fa-home d-block"></i>
+                    <small>Beranda</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rhk.php" class="nav-link">
+                    <i class="fas fa-tasks d-block"></i>
+                    <small>RHK</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rkb.php" class="nav-link">
+                    <i class="fas fa-calendar d-block"></i>
+                    <small>RKB</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="lkh.php" class="nav-link active">
+                    <i class="fas fa-list d-block"></i>
+                    <small>LKH</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="laporan.php" class="nav-link">
+                    <i class="fas fa-file-alt d-block"></i>
+                    <small>Laporan</small>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden Forms for Actions -->
     <form id="deleteForm" method="POST" style="display: none;">
         <input type="hidden" name="action" value="delete">
@@ -1258,178 +1294,5 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
-            };
-            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
-            
-            // Hide file upload for edit
-            document.getElementById('lampiranDiv').style.display = 'none';
-            document.getElementById('submitBtn').textContent = 'Update';
-            
-            new bootstrap.Modal(document.getElementById('lkhModal')).show();
-        }
-
-        function showPreviewModal() {
-            new bootstrap.Modal(document.getElementById('previewModal')).show();
-        }
-
-        function showPreviousLkh() {
-            new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
-        }
-
-        function selectPreviousLkh(nama, uraian, jumlah, satuan) {
-            document.getElementById('namaKegiatan').value = nama;
-            document.getElementById('uraianKegiatan').value = uraian;
-            document.getElementById('jumlahRealisasi').value = jumlah;
-            
-            // Set satuan dropdown
-            const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
-            };
-            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
-            
-            // Close previous LKH modal
-            bootstrap.Modal.getInstance(document.getElementById('previousLkhModal')).hide();
-            
-            // Show success message
-            Swal.fire({
-                icon: 'success',
-                title: 'LKH Terpilih!',
-                text: 'Data LKH terdahulu berhasil disalin ke form.',
-                timer: 1500,
-                showConfirmButton: false
-            });
-            
-            // Ensure add LKH modal stays open
-            setTimeout(function() {
-                const modalLkh = bootstrap.Modal.getInstance(document.getElementById('lkhModal'));
-                if (!modalLkh || !modalLkh._isShown) {
-                    const newModalLkh = new bootstrap.Modal(document.getElementById('lkhModal'));
-                    newModalLkh.show();
-                }
-            }, 100);
-        }
-
-        function confirmSubmitVerval() {
-            Swal.fire({
-                title: 'Ajukan Verval LKH?',
-                text: 'LKH akan bisa digenerate setelah di verval oleh Pejabat Penilai.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Ajukan',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('vervalAction').value = '1';
-                    document.getElementById('vervalForm').submit();
-                }
-            });
-        }
-
-        function confirmCancelVerval() {
-            Swal.fire({
-                title: 'Batalkan Pengajuan?',
-                text: 'Anda dapat mengedit/menghapus/mengirim ulang LKH setelah membatalkan.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ffc107',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Batalkan',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('cancelVervalForm').submit();
-                }
-            });
-        }
-
-        function deleteLkh(id) {
-            Swal.fire({
-                title: 'Konfirmasi Hapus',
-                text: 'Anda yakin ingin menghapus LKH ini?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Hapus',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('deleteId').value = id;
-                    document.getElementById('deleteForm').submit();
-                }
-            });
-        }
-
-        // File input handling for mobile
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('lampiranInput');
-            const filePreview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-            
-            if (fileInput) {
-                fileInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        fileName.textContent = file.name;
-                        filePreview.style.display = 'block';
-                        
-                        // Validate file size
-                        if (file.size > 2 * 1024 * 1024) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'File Terlalu Besar',
-                                text: 'Ukuran file maksimal 2MB',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                            fileInput.value = '';
-                            filePreview.style.display = 'none';
-                            return;
-                        }
-                        
-                        // Validate file type
-                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-                        if (!allowedTypes.includes(file.type)) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Format File Tidak Didukung',
-                                text: 'Hanya file PDF, JPG, JPEG, dan PNG yang diperbolehkan',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                            fileInput.value = '';
-                            filePreview.style.display = 'none';
-                            return;
-                        }
-                    } else {
-                        filePreview.style.display = 'none';
-                    }
-                });
-                
-                // Force click for better mobile compatibility
-                fileInput.addEventListener('touchstart', function(e) {
-                    e.preventDefault();
-                    this.click();
-                });
-            }
-            
-            // Add smooth scroll animation for cards
-            const cards = document.querySelectorAll('.card');
-            cards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    card.style.transition = 'all 0.5s ease';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
-        });
-    </script>
-</body>
-</html>
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
+           
