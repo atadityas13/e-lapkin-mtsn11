@@ -54,9 +54,37 @@ function get_periode_aktif($conn, $id_pegawai) {
     ];
 }
 
+function get_bulan_aktif($conn, $id_pegawai) {
+    $stmt = $conn->prepare("SELECT bulan_aktif FROM pegawai WHERE id_pegawai = ?");
+    $stmt->bind_param("i", $id_pegawai);
+    $stmt->execute();
+    $stmt->bind_result($bulan_aktif);
+    $stmt->fetch();
+    $stmt->close();
+    return $bulan_aktif ?: (int)date('m');
+}
+
+function set_bulan_aktif($conn, $id_pegawai, $bulan) {
+    $stmt = $conn->prepare("UPDATE pegawai SET bulan_aktif = ? WHERE id_pegawai = ?");
+    $stmt->bind_param("ii", $bulan, $id_pegawai);
+    $stmt->execute();
+    $stmt->close();
+}
+
 $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $filter_month = $periode_aktif['bulan'];
 $filter_year = $periode_aktif['tahun'];
+
+// Check if period has been set before
+$stmt_check_bulan = $conn->prepare("SELECT bulan_aktif FROM pegawai WHERE id_pegawai = ?");
+$stmt_check_bulan->bind_param("i", $id_pegawai_login);
+$stmt_check_bulan->execute();
+$stmt_check_bulan->bind_result($bulan_aktif_db);
+$stmt_check_bulan->fetch();
+$stmt_check_bulan->close();
+
+// Period not set if bulan_aktif is still NULL in database
+$periode_bulan_belum_diatur = ($bulan_aktif_db === null);
 
 // Get RKB verification status
 $status_verval_rkb = '';
@@ -78,6 +106,15 @@ function set_mobile_notification($type, $title, $text) {
 
 // Handle POST requests
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Process period change
+    if (isset($_POST['set_bulan_aktif'])) {
+        $bulan_aktif_baru = (int)$_POST['bulan_aktif'];
+        set_bulan_aktif($conn, $id_pegawai_login, $bulan_aktif_baru);
+        set_mobile_notification('success', 'Periode Diubah', 'Periode bulan aktif berhasil diubah.');
+        header('Location: rkb.php');
+        exit();
+    }
+
     // Prevent actions if RKB is already approved
     if ($status_verval_rkb == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah.');
@@ -355,7 +392,6 @@ $stmt_previous_rkb = $conn->prepare("
          AND r1.created_at = r2.max_created_at
     WHERE r1.id_pegawai = ? AND NOT (r1.bulan = ? AND r1.tahun = ?)
     ORDER BY r1.created_at DESC, r1.uraian_kegiatan ASC
-    LIMIT 20
 ");
 
 $stmt_previous_rkb->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
@@ -494,13 +530,57 @@ ob_clean();
     </nav>
 
     <div class="container-fluid px-3 pt-3">
-        <!-- Period Info -->
+        <!-- Modal for Period Not Set -->
+        <?php if ($periode_bulan_belum_diatur): ?>
+        <div class="modal fade" id="modalPeriodeBulanBelumDiatur" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar-alt me-2"></i>Periode Bulan Belum Diatur
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Informasi:</strong> Periode bulan untuk RKB belum diatur. Silakan pilih periode bulan yang akan digunakan.
+                        </div>
+                        <p>Silakan pilih periode bulan yang akan digunakan untuk Rencana Kerja Bulanan (RKB) Anda:</p>
+                        <form id="setBulanForm" method="POST">
+                            <div class="mb-3">
+                                <label for="bulan_aktif_modal" class="form-label fw-semibold">Pilih Bulan Periode:</label>
+                                <select class="form-select" id="bulan_aktif_modal" name="bulan_aktif" required>
+                                    <option value="">-- Pilih Bulan --</option>
+                                    <?php foreach ($months as $num => $name): ?>
+                                        <option value="<?= $num ?>" <?= ($num == (int)date('m')) ? 'selected' : '' ?>><?= $name ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <input type="hidden" name="set_bulan_aktif" value="1">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-info" onclick="submitPeriodForm()">
+                            <i class="fas fa-check me-1"></i>Atur Periode Bulan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Period Info with Change Option -->
         <div class="card">
             <div class="card-body">
-                <h6 class="card-title mb-3">
-                    <i class="fas fa-calendar-alt text-primary me-2"></i>
-                    Periode: <?= $months[$filter_month] . ' ' . $filter_year ?>
-                </h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt text-primary me-2"></i>
+                        Periode: <?= $months[$filter_month] . ' ' . $filter_year ?>
+                    </h6>
+                    <button class="btn btn-outline-primary btn-sm" onclick="showPeriodChangeModal()">
+                        <i class="fas fa-edit me-1"></i>Ubah
+                    </button>
+                </div>
                 
                 <!-- Status Alert -->
                 <?php if ($status_verval_rkb == 'diajukan'): ?>
@@ -555,6 +635,67 @@ ob_clean();
                         <a href="rhk.php" class="alert-link">Buat RHK terlebih dahulu</a>.
                     </div>
                 <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Period Change Modal -->
+        <div class="modal fade" id="modalUbahPeriode" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar-alt me-2"></i>Ubah Periode Bulan
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="ubahPeriodeForm" method="POST">
+                            <div class="mb-3">
+                                <label for="bulan_aktif_ubah" class="form-label">Pilih Bulan Periode:</label>
+                                <select class="form-select" id="bulan_aktif_ubah" name="bulan_aktif" required>
+                                    <?php foreach ($months as $num => $name): ?>
+                                        <option value="<?= $num ?>" <?= ($num == $filter_month) ? 'selected' : '' ?>><?= $name ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Data RKB yang tampil akan mengikuti bulan yang dipilih.
+                            </div>
+                            <input type="hidden" name="set_bulan_aktif" value="1">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmPeriodChange()">
+                            <i class="fas fa-check me-1"></i>Ubah Periode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal for Period Change -->
+        <div class="modal fade" id="modalKonfirmasiUbahPeriode" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Ubah Periode
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Apakah Anda yakin ingin mengubah periode bulan aktif?</p>
+                        <p class="text-muted small">Data RKB yang tampil akan mengikuti bulan yang dipilih.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-warning" onclick="submitPeriodChange()">
+                            <i class="fas fa-check me-1"></i>Ya, Ubah Periode
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -930,6 +1071,45 @@ ob_clean();
             });
             <?php unset($_SESSION['mobile_notification']); ?>
         <?php endif; ?>
+
+        // Auto show modal if period not set
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if ($periode_bulan_belum_diatur): ?>
+            var modalBulan = new bootstrap.Modal(document.getElementById('modalPeriodeBulanBelumDiatur'));
+            modalBulan.show();
+            <?php endif; ?>
+        });
+
+        function submitPeriodForm() {
+            const bulanDipilih = document.getElementById('bulan_aktif_modal').value;
+            if (!bulanDipilih) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan',
+                    text: 'Silakan pilih bulan terlebih dahulu.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            document.getElementById('setBulanForm').submit();
+        }
+
+        function showPeriodChangeModal() {
+            new bootstrap.Modal(document.getElementById('modalUbahPeriode')).show();
+        }
+
+        function confirmPeriodChange() {
+            // Hide period change modal and show confirmation
+            bootstrap.Modal.getInstance(document.getElementById('modalUbahPeriode')).hide();
+            setTimeout(() => {
+                new bootstrap.Modal(document.getElementById('modalKonfirmasiUbahPeriode')).show();
+            }, 300);
+        }
+
+        function submitPeriodChange() {
+            document.getElementById('ubahPeriodeForm').submit();
+        }
 
         function showAddModal() {
             document.getElementById('rkbModalTitle').textContent = 'Tambah RKB';
