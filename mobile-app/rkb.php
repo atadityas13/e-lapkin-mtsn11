@@ -1130,9 +1130,3 @@ ob_clean();
             }
         });
     </script>
-</body>
-</html>
-        });
-    </script>
-</body>
-</html>
