@@ -281,6 +281,46 @@ $stmt_rkb_list->close();
 // Check if RKB period is not set
 $periode_rkb_belum_diatur = empty($rkb_list);
 
+// Get previous LKH list for reference
+$previous_lkh_list = [];
+$stmt_previous_lkh = $conn->prepare("
+    SELECT 
+        l1.nama_kegiatan_harian,
+        l1.uraian_kegiatan_lkh,
+        l1.jumlah_realisasi,
+        l1.satuan_realisasi
+    FROM lkh l1
+    INNER JOIN (
+        SELECT 
+            nama_kegiatan_harian,
+            uraian_kegiatan_lkh,
+            MAX(id_lkh) as max_id_lkh
+        FROM lkh 
+        WHERE id_pegawai = ? AND NOT (MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?)
+        GROUP BY nama_kegiatan_harian, uraian_kegiatan_lkh
+    ) l2 ON l1.nama_kegiatan_harian = l2.nama_kegiatan_harian 
+         AND l1.uraian_kegiatan_lkh = l2.uraian_kegiatan_lkh
+         AND l1.id_lkh = l2.max_id_lkh
+    WHERE l1.id_pegawai = ? AND NOT (MONTH(l1.tanggal_lkh) = ? AND YEAR(l1.tanggal_lkh) = ?)
+    ORDER BY l1.id_lkh DESC, l1.nama_kegiatan_harian ASC
+    LIMIT 20
+");
+
+$stmt_previous_lkh->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
+$stmt_previous_lkh->execute();
+$result_previous_lkh = $stmt_previous_lkh->get_result();
+
+while ($row = $result_previous_lkh->fetch_assoc()) {
+    $previous_lkh_list[] = [
+        'nama_kegiatan_harian' => $row['nama_kegiatan_harian'],
+        'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
+        'jumlah_realisasi' => $row['jumlah_realisasi'],
+        'satuan_realisasi' => $row['satuan_realisasi']
+    ];
+}
+
+$stmt_previous_lkh->close();
+
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
     5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
@@ -517,15 +557,9 @@ ob_clean();
     <div class="bottom-nav">
         <div class="d-flex">
             <div class="nav-item">
-                <a href="dashboard.php" class="nav-link">
-                    <i class="fas fa-home d-block"></i>
-                    <small>Beranda</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="lkh.php" class="nav-link active">
-                    <i class="fas fa-list d-block"></i>
-                    <small>LKH</small>
+                <a href="rhk.php" class="nav-link">
+                    <i class="fas fa-tasks d-block"></i>
+                    <small>RHK</small>
                 </a>
             </div>
             <div class="nav-item">
@@ -535,9 +569,15 @@ ob_clean();
                 </a>
             </div>
             <div class="nav-item">
-                <a href="rhk.php" class="nav-link">
-                    <i class="fas fa-tasks d-block"></i>
-                    <small>RHK</small>
+                <a href="dashboard.php" class="nav-link">
+                    <i class="fas fa-home d-block"></i>
+                    <small>Beranda</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="lkh.php" class="nav-link active">
+                    <i class="fas fa-list d-block"></i>
+                    <small>LKH</small>
                 </a>
             </div>
             <div class="nav-item">
