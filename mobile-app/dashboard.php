@@ -219,19 +219,21 @@ if (!$reports_already_generated) {
             'type' => 'success',
             'icon' => 'fas fa-check-circle',
             'message' => 'RKB/LKH periode ini sudah disetujui, Anda sudah bisa generate laporan',
-            'link' => '#'
+            'link' => 'laporan.php'
         ];
     } elseif ($rkb_status === 'disetujui') {
         $notifications[] = [
             'type' => 'info',
             'icon' => 'fas fa-info-circle', 
-            'message' => 'RKB periode ini sudah disetujui'
+            'message' => 'RKB periode ini sudah disetujui',
+            'link' => 'laporan.php'
         ];
     } elseif ($lkh_status === 'disetujui') {
         $notifications[] = [
             'type' => 'info',
             'icon' => 'fas fa-info-circle',
-            'message' => 'LKH periode ini sudah disetujui'
+            'message' => 'LKH periode ini sudah disetujui',
+            'link' => 'laporan.php'
         ];
     }
 } else {

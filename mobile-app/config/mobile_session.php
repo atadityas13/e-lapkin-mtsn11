@@ -133,22 +133,28 @@ function getMobileSessionData() {
     ];
 }
 
-// Mobile logout
-function mobileLogout() {
-    unset($_SESSION['mobile_loggedin']);
-    unset($_SESSION['mobile_id_pegawai']);
-    unset($_SESSION['mobile_nip']);
-    unset($_SESSION['mobile_nama']);
-    unset($_SESSION['mobile_jabatan']);
-    unset($_SESSION['mobile_unit_kerja']);
-    unset($_SESSION['mobile_role']);
-    header("Location: index.php");
-    exit();
+// Get formatted active period
+function getMobileActivePeriod($conn, $id_pegawai) {
+    $months = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    
+    $stmt = $conn->prepare("SELECT tahun_aktif, bulan_aktif FROM pegawai WHERE id_pegawai = ?");
+    $stmt->bind_param("i", $id_pegawai);
+    $stmt->execute();
+    $stmt->bind_result($tahun_aktif, $bulan_aktif);
+    $stmt->fetch();
+    $stmt->close();
+    
+    $tahun = $tahun_aktif ?: (int)date('Y');
+    $bulan = $bulan_aktif ?: (int)date('m');
+    
+    return $months[$bulan] . ' - ' . $tahun;
 }
 
-// DON'T automatically validate - let each page decide when to validate
-// validateMobileAccess(); // REMOVED THIS LINE
-?>
+// Mobile logout
 function mobileLogout() {
     unset($_SESSION['mobile_loggedin']);
     unset($_SESSION['mobile_id_pegawai']);

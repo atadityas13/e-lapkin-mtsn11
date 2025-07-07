@@ -750,8 +750,9 @@ ob_clean();
             </a>
             <div class="d-flex align-items-center text-white">
                 <div class="text-end">
-                    <small class="opacity-75">Selamat datang,</small>
                     <div class="fw-semibold"><?= htmlspecialchars($userData['nama']) ?></div>
+                    <div class="small opacity-75"><?= htmlspecialchars($userData['nip']) ?></div>
+                    <div class="small opacity-75"><?= htmlspecialchars($activePeriod) ?></div>
                 </div>
             </div>
         </div>
