@@ -417,6 +417,11 @@ ob_clean();
                         <i class="fas fa-plus me-1"></i>Tambah LKH
                     </button>
                     
+                    <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
+                        <?= empty($lkhs) ? 'disabled' : '' ?>>
+                        <i class="fas fa-eye me-1"></i>Preview LKH
+                    </button>
+                    
                     <?php if ($status_verval_lkh == 'diajukan'): ?>
                         <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
                             <i class="fas fa-times me-1"></i>Batal Ajukan
@@ -624,6 +629,126 @@ ob_clean();
         </div>
     </div>
 
+    <!-- Preview LKH Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i>Preview Laporan Kinerja Harian (LKH)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Periode: <?= $months[$filter_month] . ' ' . $filter_year ?></h6>
+                        <h6 class="fw-bold">Nama Pegawai: <?= htmlspecialchars($userData['nama']) ?></h6>
+                    </div>
+                    
+                    <?php if (empty($lkhs)): ?>
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">Belum ada data LKH untuk periode ini.</p>
+                        </div>
+                    <?php else: ?>
+                        <?php
+                        // Group LKH by date
+                        $lkh_grouped = [];
+                        foreach ($lkhs as $lkh) {
+                            $date_key = $lkh['tanggal_lkh'];
+                            if (!isset($lkh_grouped[$date_key])) {
+                                $lkh_grouped[$date_key] = [];
+                            }
+                            $lkh_grouped[$date_key][] = $lkh;
+                        }
+                        ?>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-sm">
+                                <thead class="table-primary">
+                                    <tr class="text-center">
+                                        <th width="5%">No</th>
+                                        <th width="15%">Hari / Tanggal</th>
+                                        <th width="30%">Kegiatan</th>
+                                        <th width="40%">Uraian Tugas Kegiatan</th>
+                                        <th width="10%">Jumlah</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php 
+                                    $no = 1; 
+                                    $hariList = [
+                                        'Sun' => 'Minggu', 'Mon' => 'Senin', 'Tue' => 'Selasa', 'Wed' => 'Rabu',
+                                        'Thu' => 'Kamis', 'Fri' => 'Jumat', 'Sat' => 'Sabtu'
+                                    ];
+                                    
+                                    foreach ($lkh_grouped as $date => $lkh_items): 
+                                        $hari = $hariList[date('D', strtotime($date))];
+                                        $tanggal_formatted = $hari . ', ' . date('d-m-Y', strtotime($date));
+                                        $first_item = true;
+                                    ?>
+                                        <?php foreach ($lkh_items as $lkh): ?>
+                                            <tr>
+                                                <?php if ($first_item): ?>
+                                                    <td class="text-center" rowspan="<?= count($lkh_items) ?>">
+                                                        <?= $no++ ?>
+                                                    </td>
+                                                    <td class="text-center" rowspan="<?= count($lkh_items) ?>">
+                                                        <small><?= $tanggal_formatted ?></small>
+                                                    </td>
+                                                <?php endif; ?>
+                                                <td>
+                                                    <small>- <?= htmlspecialchars($lkh['nama_kegiatan_harian'] ?? '') ?></small>
+                                                </td>
+                                                <td>
+                                                    <small>- <?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?></small>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-primary">
+                                                        <small><?= htmlspecialchars($lkh['jumlah_realisasi'] . ' ' . $lkh['satuan_realisasi']) ?></small>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <?php $first_item = false; ?>
+                                        <?php endforeach; ?>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">
+                                        <strong>Total LKH:</strong> <?= count($lkhs) ?> kegiatan
+                                    </small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <small class="text-muted">
+                                        <strong>Status:</strong> 
+                                        <?php 
+                                        if ($status_verval_lkh == 'diajukan') {
+                                            echo '<span class="badge bg-warning">Menunggu Verifikasi</span>';
+                                        } elseif ($status_verval_lkh == 'disetujui') {
+                                            echo '<span class="badge bg-success">Disetujui</span>';
+                                        } elseif ($status_verval_lkh == 'ditolak') {
+                                            echo '<span class="badge bg-danger">Ditolak</span>';
+                                        } else {
+                                            echo '<span class="badge bg-secondary">Belum Diajukan</span>';
+                                        }
+                                        ?>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Previous LKH Modal -->
     <div class="modal fade" id="previousLkhModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -637,13 +762,13 @@ ob_clean();
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-1"></i>
-                        Pilih salah satu LKH terdahulu untuk mengisi form otomatis.
+                        Pilih salah satu LKH terdahulu untuk mengisi form otomatis. Data akan disalin ke form tambah LKH.
                     </div>
                     
                     <?php if (empty($previous_lkh_list)): ?>
                         <div class="text-center py-4">
                             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">Belum ada data LKH terdahulu.</p>
+                            <p class="text-muted">Belum ada data LKH terdahulu yang dapat dijadikan referensi.</p>
                         </div>
                     <?php else: ?>
                         <div class="mb-3">
@@ -755,6 +880,10 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('lkhModal')).show();
         }
 
+        function showPreviewModal() {
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        }
+
         function showPreviousLkh() {
             new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
         }
@@ -782,6 +911,15 @@ ob_clean();
                 timer: 1500,
                 showConfirmButton: false
             });
+            
+            // Ensure add LKH modal stays open
+            setTimeout(function() {
+                const modalLkh = bootstrap.Modal.getInstance(document.getElementById('lkhModal'));
+                if (!modalLkh || !modalLkh._isShown) {
+                    const newModalLkh = new bootstrap.Modal(document.getElementById('lkhModal'));
+                    newModalLkh.show();
+                }
+            }, 100);
         }
 
         // Search functionality for previous LKH
@@ -815,6 +953,39 @@ ob_clean();
                             noDataMessage.classList.remove('d-none');
                         } else {
                             noDataMessage.classList.add('d-none');
+                        }
+                    }
+                });
+            }
+
+            // Event listener for previous LKH modal when closed
+            const modalPreviousLkhElement = document.getElementById('previousLkhModal');
+            if (modalPreviousLkhElement) {
+                modalPreviousLkhElement.addEventListener('hidden.bs.modal', function() {
+                    // Ensure add LKH modal stays open after previous LKH modal is closed
+                    setTimeout(function() {
+                        const modalLkh = bootstrap.Modal.getInstance(document.getElementById('lkhModal'));
+                        if (!modalLkh || !modalLkh._isShown) {
+                            const newModalLkh = new bootstrap.Modal(document.getElementById('lkhModal'));
+                            newModalLkh.show();
+                        }
+                    }, 100);
+                });
+            }
+
+            // Reset form when add LKH modal is closed (only reset if actually closed by user)
+            const modalLkhElement = document.getElementById('lkhModal');
+            if (modalLkhElement) {
+                modalLkhElement.addEventListener('hidden.bs.modal', function(e) {
+                    // Check if previous LKH modal is open
+                    const modalPrevLkh = bootstrap.Modal.getInstance(document.getElementById('previousLkhModal'));
+                    if (!modalPrevLkh || !modalPrevLkh._isShown) {
+                        // Reset form only if previous LKH modal is not open
+                        this.querySelector('form').reset();
+                        // Reset date to current date
+                        const tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
+                        if (tanggalInput) {
+                            tanggalInput.value = '<?= $current_date ?>';
                         }
                     }
                 });
