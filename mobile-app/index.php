@@ -95,6 +95,7 @@ $nip = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nip = trim($_POST['nip']);
     $password = trim($_POST['password']);
+    $remember_me = isset($_POST['remember_me']) ? true : false;
 
     if (empty($nip) || empty($password)) {
         $error_message = "NIP dan Password harus diisi.";
@@ -121,6 +122,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $_SESSION['mobile_unit_kerja'] = $pegawai['unit_kerja'];
                         $_SESSION['mobile_role'] = $pegawai['role'];
 
+                        // Set remember me flag for JavaScript
+                        $remember_js = $remember_me ? 'true' : 'false';
+                        echo "<script>localStorage.setItem('rememberLogin', '$remember_js');</script>";
+                        
                         header("Location: dashboard.php");
                         exit();
                     } else {
@@ -612,6 +617,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <i class="fas fa-eye password-toggle" onclick="togglePassword()" id="toggleEye"></i>
                     </div>
 
+                    <!-- Remember Me Checkbox -->
+                    <div class="form-group d-flex align-items-center justify-content-between mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="remember_me" name="remember_me">
+                            <label class="form-check-label" for="remember_me" style="font-size: 0.9rem; color: #666;">
+                                <i class="fas fa-heart me-1" style="color: #ff6b6b;"></i>
+                                Ingat saya
+                            </label>
+                        </div>
+                    </div>
+
                     <button type="submit" class="login-btn" id="loginBtn">
                         <span class="loading" id="loading"></span>
                         <span id="btnText">
@@ -636,6 +652,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // Load saved login information
+        function loadSavedLogin() {
+            const rememberLogin = localStorage.getItem('rememberLogin');
+            const savedNip = localStorage.getItem('savedNip');
+            
+            if (rememberLogin === 'true' && savedNip) {
+                document.getElementById('nip').value = savedNip;
+                document.getElementById('remember_me').checked = true;
+            }
+        }
+
+        // Save login information
+        function saveLoginInfo() {
+            const rememberMe = document.getElementById('remember_me').checked;
+            const nip = document.getElementById('nip').value;
+            
+            if (rememberMe && nip) {
+                localStorage.setItem('rememberLogin', 'true');
+                localStorage.setItem('savedNip', nip);
+            } else {
+                localStorage.removeItem('rememberLogin');
+                localStorage.removeItem('savedNip');
+            }
+        }
+
         // Create floating graphics
         function createFloatingGraphics() {
             const graphicsContainer = document.getElementById('floatingGraphics');
@@ -706,6 +747,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Form submission with loading animation
         document.getElementById('loginForm').addEventListener('submit', function(e) {
+            // Save login info before submission
+            saveLoginInfo();
+            
             const btn = document.getElementById('loginBtn');
             const loading = document.getElementById('loading');
             const btnText = document.getElementById('btnText');
@@ -720,8 +764,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             createParticles();
             createFloatingGraphics();
             
-            // Auto focus on NIP field
-            document.getElementById('nip').focus();
+            // Load saved login information
+            loadSavedLogin();
+            
+            // Auto focus on appropriate field
+            const nipField = document.getElementById('nip');
+            const passwordField = document.getElementById('password');
+            
+            if (nipField.value) {
+                passwordField.focus();
+            } else {
+                nipField.focus();
+            }
+        });
+
+        // Remember me checkbox animation
+        document.getElementById('remember_me').addEventListener('change', function() {
+            const label = this.nextElementSibling;
+            if (this.checked) {
+                label.classList.add('animate__animated', 'animate__heartBeat');
+                setTimeout(() => {
+                    label.classList.remove('animate__animated', 'animate__heartBeat');
+                }, 1000);
+            }
         });
 
         // Add interactive effects
