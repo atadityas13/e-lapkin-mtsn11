@@ -488,7 +488,7 @@ ob_clean();
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>)" 
+                                        <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>, '<?= htmlspecialchars($lkh['tanggal_lkh']) ?>', '<?= $lkh['id_rkb'] ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($lkh['satuan_realisasi']) ?>')" 
                                            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                             <i class="fas fa-edit me-2"></i>Edit
                                         </a>
@@ -573,7 +573,14 @@ ob_clean();
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Nama Kegiatan Harian</label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">Nama Kegiatan Harian</label>
+                                <?php if (!empty($previous_lkh_list)): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="showPreviousLkh()">
+                                        <i class="fas fa-history me-1"></i>LKH Terdahulu
+                                    </button>
+                                <?php endif; ?>
+                            </div>
                             <input type="text" class="form-control" name="nama_kegiatan_harian" id="namaKegiatan" required>
                         </div>
                         
@@ -617,6 +624,72 @@ ob_clean();
         </div>
     </div>
 
+    <!-- Previous LKH Modal -->
+    <div class="modal fade" id="previousLkhModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-history me-2"></i>LKH Terdahulu
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Pilih salah satu LKH terdahulu untuk mengisi form otomatis.
+                    </div>
+                    
+                    <?php if (empty($previous_lkh_list)): ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Belum ada data LKH terdahulu.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="searchPreviousLkh" placeholder="🔍 Cari LKH terdahulu...">
+                        </div>
+                        
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <?php foreach ($previous_lkh_list as $index => $prev_lkh): ?>
+                                <div class="card mb-2 previous-lkh-item" 
+                                     data-nama="<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>"
+                                     data-uraian="<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>"
+                                     data-jumlah="<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>"
+                                     data-satuan="<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title mb-2"><?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?></h6>
+                                        <p class="card-text small text-muted mb-2">
+                                            <?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span class="badge bg-secondary me-1"><?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?></span>
+                                                <span class="badge bg-primary"><?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?></span>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                    onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
+                                                <i class="fas fa-check me-1"></i>Gunakan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        
+                        <div id="noDataPrevious" class="text-center py-3 d-none">
+                            <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Tidak ada LKH yang sesuai dengan pencarian.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden Forms for Actions -->
     <form id="deleteForm" method="POST" style="display: none;">
         <input type="hidden" name="action" value="delete">
@@ -650,6 +723,7 @@ ob_clean();
         function showAddModal() {
             document.getElementById('lkhModalTitle').textContent = 'Tambah LKH';
             document.getElementById('lkhAction').value = 'add';
+            document.getElementById('lkhId').value = '';
             document.getElementById('lkhForm').reset();
             document.getElementById('tanggalLkh').value = '<?= $current_date ?>';
             document.getElementById('lampiranDiv').style.display = 'block';
@@ -657,63 +731,110 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('lkhModal')).show();
         }
 
-        function editLkh(id) {
-            // This would need to fetch data via AJAX in a real implementation
-            // For now, redirect to a GET parameter-based edit
-            window.location.href = `lkh_edit.php?id=${id}`;
+        function editLkh(id, tanggal, idRkb, nama, uraian, jumlah, satuan) {
+            document.getElementById('lkhModalTitle').textContent = 'Edit LKH';
+            document.getElementById('lkhAction').value = 'edit';
+            document.getElementById('lkhId').value = id;
+            document.getElementById('tanggalLkh').value = tanggal;
+            document.getElementById('rkbSelect').value = idRkb;
+            document.getElementById('namaKegiatan').value = nama;
+            document.getElementById('uraianKegiatan').value = uraian;
+            document.getElementById('jumlahRealisasi').value = jumlah;
+            
+            // Set satuan dropdown
+            const satuanMap = {
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
+                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+            };
+            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
+            
+            // Hide file upload for edit
+            document.getElementById('lampiranDiv').style.display = 'none';
+            document.getElementById('submitBtn').textContent = 'Update';
+            
+            new bootstrap.Modal(document.getElementById('lkhModal')).show();
         }
 
-        function deleteLkh(id) {
+        function showPreviousLkh() {
+            new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
+        }
+
+        function selectPreviousLkh(nama, uraian, jumlah, satuan) {
+            document.getElementById('namaKegiatan').value = nama;
+            document.getElementById('uraianKegiatan').value = uraian;
+            document.getElementById('jumlahRealisasi').value = jumlah;
+            
+            // Set satuan dropdown
+            const satuanMap = {
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
+                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+            };
+            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
+            
+            // Close previous LKH modal
+            bootstrap.Modal.getInstance(document.getElementById('previousLkhModal')).hide();
+            
+            // Show success message
             Swal.fire({
-                title: 'Konfirmasi Hapus',
-                text: 'Anda yakin ingin menghapus LKH ini?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Hapus',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('deleteId').value = id;
-                    document.getElementById('deleteForm').submit();
-                }
+                icon: 'success',
+                title: 'LKH Terpilih!',
+                text: 'Data LKH terdahulu berhasil disalin ke form.',
+                timer: 1500,
+                showConfirmButton: false
             });
         }
 
-        function confirmSubmitVerval() {
-            Swal.fire({
-                title: 'Ajukan Verval LKH?',
-                text: 'LKH akan bisa digenerate setelah di verval oleh Pejabat Penilai.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Ajukan',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('vervalForm').submit();
-                }
-            });
-        }
+        // Search functionality for previous LKH
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchPreviousLkh');
+            const previousItems = document.querySelectorAll('.previous-lkh-item');
+            const noDataMessage = document.getElementById('noDataPrevious');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    let visibleCount = 0;
+                    
+                    previousItems.forEach(function(item) {
+                        const nama = item.getAttribute('data-nama').toLowerCase();
+                        const uraian = item.getAttribute('data-uraian').toLowerCase();
+                        const jumlah = item.getAttribute('data-jumlah').toLowerCase();
+                        const satuan = item.getAttribute('data-satuan').toLowerCase();
+                        
+                        if (nama.includes(searchTerm) || uraian.includes(searchTerm) || 
+                            jumlah.includes(searchTerm) || satuan.includes(searchTerm)) {
+                            item.style.display = '';
+                            visibleCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                    
+                    if (noDataMessage) {
+                        if (visibleCount === 0 && searchTerm.length > 0) {
+                            noDataMessage.classList.remove('d-none');
+                        } else {
+                            noDataMessage.classList.add('d-none');
+                        }
+                    }
+                });
+            }
+        });
 
-        function confirmCancelVerval() {
-            Swal.fire({
-                title: 'Batalkan Pengajuan?',
-                text: 'Anda dapat mengedit/menghapus/mengirim ulang LKH setelah membatalkan.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ffc107',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Batalkan',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('cancelVervalForm').submit();
-                }
+        // Auto-show edit modal if in edit mode
+        <?php if ($edit_mode): ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                editLkh(
+                    <?= $edit_lkh['id_lkh'] ?>,
+                    '<?= $edit_lkh['tanggal_lkh'] ?>',
+                    '<?= $edit_lkh['id_rkb'] ?>',
+                    '<?= htmlspecialchars($edit_lkh['nama_kegiatan_harian']) ?>',
+                    '<?= htmlspecialchars($edit_lkh['uraian_kegiatan_lkh']) ?>',
+                    '<?= htmlspecialchars($edit_lkh['jumlah_realisasi']) ?>',
+                    '<?= htmlspecialchars($edit_lkh['satuan_realisasi']) ?>'
+                );
             });
-        }
+        <?php endif; ?>
     </script>
 </body>
 </html>
