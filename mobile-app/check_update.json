@@ -1,0 +1,22 @@
+{
+  "version_code": 2,
+  "version_name": "1.1.0",
+  "minimum_version_code": 1,
+  "update_required": false,
+  "update_recommended": true,
+  "release_date": "2025-01-07",
+  "changelog": [
+    "Perbaikan bug pada download file",
+    "Peningkatan performa aplikasi",
+    "Penambahan fitur splash screen yang lebih modern",
+    "Perbaikan tampilan mobile responsif"
+  ],
+  "download_url": "https://e-lapkin.mtsn11majalengka.sch.id/mobile-app/downloads/elapkin-v1.1.0.apk",
+  "file_size": "8.5 MB",
+  "message": {
+    "title": "Update Tersedia",
+    "description": "Versi terbaru E-LAPKIN sudah tersedia dengan berbagai perbaikan dan fitur baru.",
+    "force_update_title": "Update Diperlukan",
+    "force_update_description": "Aplikasi memerlukan update untuk dapat digunakan. Silakan update ke versi terbaru."
+  }
+}
