@@ -298,7 +298,7 @@ ob_clean();
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
                 <i class="fas fa-arrow-left me-2"></i>
-                <span>Rencana Hasil Kerja</span>
+                <span>RHK</span>
             </a>
             <div class="d-flex align-items-center text-white">
                 <small><?= htmlspecialchars($userData['nama']) ?></small>
@@ -328,13 +328,6 @@ ob_clean();
 
                 <!-- Action Buttons -->
                 <div class="mb-3">
-                    <div class="d-flex gap-2 flex-wrap mb-2">
-                        <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
-                            <?= empty($rhks) ? 'disabled' : '' ?>>
-                            <i class="fas fa-eye me-1"></i>Preview RHK
-                        </button>
-                    </div>
-                    
                     <div>
                         <button class="btn btn-primary btn-primary-large" onclick="showAddModal()">
                             <i class="fas fa-plus me-2"></i>Tambah RHK
@@ -521,79 +514,6 @@ ob_clean();
         </div>
     </div>
 
-    <!-- Preview RHK Modal -->
-    <div class="modal fade" id="previewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-eye me-2"></i>Preview Rencana Hasil Kerja (RHK)
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <h6 class="fw-bold">Periode: Tahun <?= $periode_aktif ?></h6>
-                        <h6 class="fw-bold">Nama Pegawai: <?= htmlspecialchars($userData['nama']) ?></h6>
-                    </div>
-                    
-                    <?php if (empty($rhks)): ?>
-                        <div class="alert alert-info text-center">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <p class="text-muted mb-0">Belum ada data RHK untuk periode ini.</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-sm">
-                                <thead class="table-primary">
-                                    <tr class="text-center">
-                                        <th width="10%">No</th>
-                                        <th width="50%">Nama RHK</th>
-                                        <th width="20%">Aspek</th>
-                                        <th width="20%">Target</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php 
-                                    $no = 1; 
-                                    foreach ($rhks as $rhk): ?>
-                                        <tr>
-                                            <td class="text-center"><?= $no++ ?></td>
-                                            <td><small><?= htmlspecialchars($rhk['nama_rhk']) ?></small></td>
-                                            <td class="text-center">
-                                                <span class="badge bg-info">
-                                                    <small><?= htmlspecialchars($rhk['aspek']) ?></small>
-                                                </span>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-success">
-                                                    <small><?= htmlspecialchars($rhk['target']) ?></small>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <div class="row">
-                                <div class="col-6">
-                                    <small class="text-muted">
-                                        <strong>Total RHK:</strong> <?= count($rhks) ?> kegiatan
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Previous RHK Modal -->
     <div class="modal fade" id="previousRhkModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -737,10 +657,6 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('rhkModal')).show();
         }
 
-        function showPreviewModal() {
-            new bootstrap.Modal(document.getElementById('previewModal')).show();
-        }
-
         function showPreviousRhk() {
             new bootstrap.Modal(document.getElementById('previousRhkModal')).show();
         }
@@ -808,53 +724,6 @@ ob_clean();
                         
                         if (nama.includes(searchTerm) || aspek.includes(searchTerm) || target.includes(searchTerm)) {
                             item.style.display = '';
-                            visibleCount++;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                    
-                    if (noDataMessage) {
-                        if (visibleCount === 0 && searchTerm.length > 0) {
-                            noDataMessage.classList.remove('d-none');
-                        } else {
-                            noDataMessage.classList.add('d-none');
-                        }
-                    }
-                });
-            }
-
-            // Event listener for previous RHK modal when closed
-            const modalPreviousRhkElement = document.getElementById('previousRhkModal');
-            if (modalPreviousRhkElement) {
-                modalPreviousRhkElement.addEventListener('hidden.bs.modal', function() {
-                    // Ensure add RHK modal stays open after previous RHK modal is closed
-                    setTimeout(function() {
-                        const modalRhk = bootstrap.Modal.getInstance(document.getElementById('rhkModal'));
-                        if (!modalRhk || !modalRhk._isShown) {
-                            const newModalRhk = new bootstrap.Modal(document.getElementById('rhkModal'));
-                            newModalRhk.show();
-                        }
-                    }, 100);
-                });
-            }
-
-            // Reset form when add RHK modal is closed
-            const modalRhkElement = document.getElementById('rhkModal');
-            if (modalRhkElement) {
-                modalRhkElement.addEventListener('hidden.bs.modal', function(e) {
-                    // Check if previous RHK modal is open
-                    const modalPrevRhk = bootstrap.Modal.getInstance(document.getElementById('previousRhkModal'));
-                    if (!modalPrevRhk || !modalPrevRhk._isShown) {
-                        // Reset form only if previous RHK modal is not open
-                        this.querySelector('form').reset();
-                    }
-                });
-            }
-        });
-    </script>
-</body>
-</html>
                             visibleCount++;
                         } else {
                             item.style.display = 'none';

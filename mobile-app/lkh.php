@@ -445,7 +445,7 @@ ob_clean();
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
                 <i class="fas fa-arrow-left me-2"></i>
-                <span>Laporan Kinerja Harian</span>
+                <span>LKH</span>
             </a>
             <div class="d-flex align-items-center text-white">
                 <small><?= htmlspecialchars($userData['nama']) ?></small>
