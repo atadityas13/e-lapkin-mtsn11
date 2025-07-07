@@ -1627,28 +1627,3 @@ ob_clean();
     </script>
 </body>
 </html>
-                        const uraian = item.getAttribute('data-uraian').toLowerCase();
-                        const kuantitas = item.getAttribute('data-kuantitas').toLowerCase();
-                        const satuan = item.getAttribute('data-satuan').toLowerCase();
-                        
-                        if (uraian.includes(searchTerm) || kuantitas.includes(searchTerm) || satuan.includes(searchTerm)) {
-                            item.style.display = 'block';
-                            visibleCount++;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                    
-                    // Show/hide no data message
-                    const noDataMsg = document.getElementById('noDataPrevious');
-                    if (visibleCount === 0 && searchTerm.length > 0) {
-                        noDataMsg.classList.remove('d-none');
-                    } else {
-                        noDataMsg.classList.add('d-none');
-                    }
-                });
-            }
-        });
-    </script>
-</body>
-</html>
