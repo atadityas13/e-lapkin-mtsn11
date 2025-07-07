@@ -385,10 +385,10 @@ ob_clean();
                                 </div>
                                 <div class="report-actions">
                                     <?php if ($pdf_exists_lkb): ?>
-                                        <a href="../generated/<?= $lkb_filename_for_download ?>" 
-                                           class="btn btn-download btn-sm" target="_blank">
+                                        <button type="button" class="btn btn-download btn-sm" 
+                                                onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
                                             <i class="fas fa-download me-1"></i>Download
-                                        </a>
+                                        </button>
                                         <button type="button" class="btn btn-regenerate btn-sm" 
                                                 data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
                                                 data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
@@ -477,10 +477,10 @@ ob_clean();
                                 </div>
                                 <div class="report-actions">
                                     <?php if ($pdf_exists_lkh): ?>
-                                        <a href="../generated/<?= $lkh_filename_for_download ?>" 
-                                           class="btn btn-download btn-sm" target="_blank">
+                                        <button type="button" class="btn btn-download btn-sm" 
+                                                onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
                                             <i class="fas fa-download me-1"></i>Download
-                                        </a>
+                                        </button>
                                         <button type="button" class="btn btn-regenerate btn-sm" 
                                                 data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
                                                 data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
@@ -619,7 +619,7 @@ ob_clean();
             var bulan = button.getAttribute('data-bulan');
             var tahun = button.getAttribute('data-tahun');
             var form = document.getElementById('generateLkbForm');
-            form.action = '../user/generate_lkb.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+            form.action = 'generate_lkb.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
         });
 
         // Set form action when LKH modal is opened
@@ -628,8 +628,151 @@ ob_clean();
             var bulan = button.getAttribute('data-bulan');
             var tahun = button.getAttribute('data-tahun');
             var form = document.getElementById('generateLkhForm');
-            form.action = '../user/generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+            form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
         });
+
+        // Download function for Android WebView compatibility
+        function downloadFile(url, filename) {
+            try {
+                // Try to use Android interface if available
+                if (typeof Android !== 'undefined' && Android.downloadFile) {
+                    Android.downloadFile(url, filename);
+                    return;
+                }
+                
+                // Fallback for web browsers and other WebViews
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                
+                // Add to DOM temporarily
+                document.body.appendChild(link);
+                
+                // Trigger click
+                link.click();
+                
+                // Clean up
+                document.body.removeChild(link);
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Download Dimulai',
+                    text: 'File sedang diunduh...',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                
+                // Alternative: Open in new window/tab
+                const newWindow = window.open(url, '_blank');
+                if (!newWindow) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Popup Diblokir',
+                        text: 'Silakan izinkan popup untuk mengunduh file, atau klik tombol di bawah untuk membuka file.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Buka File',
+                        cancelButtonText: 'Tutup'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = url;
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'File Dibuka',
+                        text: 'File telah dibuka di tab baru.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        }
+
+        // Alternative download function using fetch (for better compatibility)
+        async function downloadFileWithFetch(url, filename) {
+            try {
+                Swal.fire({
+                    title: 'Mengunduh...',
+                    text: 'Sedang memproses unduhan',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Download Berhasil',
+                    text: 'File berhasil diunduh!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Download Gagal',
+                    text: 'Terjadi kesalahan saat mengunduh file. Coba lagi nanti.',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Enhanced download with multiple fallbacks
+        function enhancedDownload(url, filename) {
+            // First try: Direct download with Android interface
+            if (typeof Android !== 'undefined' && Android.downloadFile) {
+                try {
+                    Android.downloadFile(url, filename);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Dimulai',
+                        text: 'File sedang diunduh melalui aplikasi...',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    return;
+                } catch (e) {
+                    console.log('Android download failed, trying alternatives');
+                }
+            }
+
+            // Second try: Modern download with fetch
+            if (window.fetch && window.URL && window.URL.createObjectURL) {
+                downloadFileWithFetch(url, filename);
+                return;
+            }
+
+            // Third try: Traditional download
+            downloadFile(url, filename);
+        }
+
+        // Update download calls to use enhanced function
+        window.downloadFile = enhancedDownload;
 
         // Add smooth scroll animation for report items
         document.addEventListener('DOMContentLoaded', function() {
