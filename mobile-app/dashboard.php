@@ -542,8 +542,9 @@ ob_clean();
                         </div>
                         <div class="mb-0">
                             <i class="fas fa-check-circle text-success me-2"></i>
-                            <small>Penilaian kinerja dilakukan secara digital lebih efektif dan efisien</small>
+                            <small>Penilaian kinerja dilakukan secara digital lebih efektif dan efisien.</small>
                         </div>
+                        <br>
                         <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
                             Generate dan Cetak LKB - LKH sementara hanya dilakukan pada <strong>E-Lapkin versi Web</strong>.
                         </p>
