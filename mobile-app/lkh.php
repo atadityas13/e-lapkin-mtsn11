@@ -1004,90 +1004,58 @@ ob_clean();
             }, 100);
         }
 
-        // Search functionality for previous LKH
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchPreviousLkh');
-            const previousItems = document.querySelectorAll('.previous-lkh-item');
-            const noDataMessage = document.getElementById('noDataPrevious');
-            
-            if (searchInput) {
-                searchInput.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    let visibleCount = 0;
-                    
-                    previousItems.forEach(function(item) {
-                        const nama = item.getAttribute('data-nama').toLowerCase();
-                        const uraian = item.getAttribute('data-uraian').toLowerCase();
-                        const jumlah = item.getAttribute('data-jumlah').toLowerCase();
-                        const satuan = item.getAttribute('data-satuan').toLowerCase();
-                        
-                        if (nama.includes(searchTerm) || uraian.includes(searchTerm) || 
-                            jumlah.includes(searchTerm) || satuan.includes(searchTerm)) {
-                            item.style.display = '';
-                            visibleCount++;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                    
-                    if (noDataMessage) {
-                        if (visibleCount === 0 && searchTerm.length > 0) {
-                            noDataMessage.classList.remove('d-none');
-                        } else {
-                            noDataMessage.classList.add('d-none');
-                        }
-                    }
-                });
-            }
-
-            // Event listener for previous LKH modal when closed
-            const modalPreviousLkhElement = document.getElementById('previousLkhModal');
-            if (modalPreviousLkhElement) {
-                modalPreviousLkhElement.addEventListener('hidden.bs.modal', function() {
-                    // Ensure add LKH modal stays open after previous LKH modal is closed
-                    setTimeout(function() {
-                        const modalLkh = bootstrap.Modal.getInstance(document.getElementById('lkhModal'));
-                        if (!modalLkh || !modalLkh._isShown) {
-                            const newModalLkh = new bootstrap.Modal(document.getElementById('lkhModal'));
-                            newModalLkh.show();
-                        }
-                    }, 100);
-                });
-            }
-
-            // Reset form when add LKH modal is closed (only reset if actually closed by user)
-            const modalLkhElement = document.getElementById('lkhModal');
-            if (modalLkhElement) {
-                modalLkhElement.addEventListener('hidden.bs.modal', function(e) {
-                    // Check if previous LKH modal is open
-                    const modalPrevLkh = bootstrap.Modal.getInstance(document.getElementById('previousLkhModal'));
-                    if (!modalPrevLkh || !modalPrevLkh._isShown) {
-                        // Reset form only if previous LKH modal is not open
-                        this.querySelector('form').reset();
-                        // Reset date to current date
-                        const tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
-                        if (tanggalInput) {
-                            tanggalInput.value = '<?= $current_date ?>';
-                        }
-                    }
-                });
-            }
-        });
-
-        // Auto-show edit modal if in edit mode
-        <?php if ($edit_mode): ?>
-            document.addEventListener('DOMContentLoaded', function() {
-                editLkh(
-                    <?= $edit_lkh['id_lkh'] ?>,
-                    '<?= $edit_lkh['tanggal_lkh'] ?>',
-                    '<?= $edit_lkh['id_rkb'] ?>',
-                    '<?= htmlspecialchars($edit_lkh['nama_kegiatan_harian']) ?>',
-                    '<?= htmlspecialchars($edit_lkh['uraian_kegiatan_lkh']) ?>',
-                    '<?= htmlspecialchars($edit_lkh['jumlah_realisasi']) ?>',
-                    '<?= htmlspecialchars($edit_lkh['satuan_realisasi']) ?>'
-                );
+        function confirmSubmitVerval() {
+            Swal.fire({
+                title: 'Ajukan Verval LKH?',
+                text: 'LKH akan bisa digenerate setelah di verval oleh Pejabat Penilai.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Ajukan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('vervalAction').value = '1';
+                    document.getElementById('vervalForm').submit();
+                }
             });
-        <?php endif; ?>
+        }
+
+        function confirmCancelVerval() {
+            Swal.fire({
+                title: 'Batalkan Pengajuan?',
+                text: 'Anda dapat mengedit/menghapus/mengirim ulang LKH setelah membatalkan.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Batalkan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('cancelVervalForm').submit();
+                }
+            });
+        }
+
+        function deleteLkh(id) {
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: 'Anda yakin ingin menghapus LKH ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteId').value = id;
+                    document.getElementById('deleteForm').submit();
+                }
+            });
+        }
 
         // File input handling for mobile
         document.addEventListener('DOMContentLoaded', function() {
@@ -1115,6 +1083,38 @@ ob_clean();
                             filePreview.style.display = 'none';
                             return;
                         }
+                        
+                        // Validate file type
+                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+                        if (!allowedTypes.includes(file.type)) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Format File Tidak Didukung',
+                                text: 'Hanya file PDF, JPG, JPEG, dan PNG yang diperbolehkan',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                            fileInput.value = '';
+                            filePreview.style.display = 'none';
+                            return;
+                        }
+                    } else {
+                        filePreview.style.display = 'none';
+                    }
+                });
+                
+                // Force click for better mobile compatibility
+                fileInput.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.click();
+                });
+            }
+            
+            // ...existing code...
+        });
+    </script>
+</body>
+</html>
                         
                         // Validate file type
                         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
