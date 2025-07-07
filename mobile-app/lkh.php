@@ -452,10 +452,6 @@ ob_clean();
 
                 <!-- Action Buttons -->
                 <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-primary btn-sm" onclick="showAddModal()"
-                        <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
-                        <i class="fas fa-plus me-1"></i>Tambah LKH
-                    </button>
                     
                     <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
                         <?= empty($lkhs) ? 'disabled' : '' ?>>
@@ -472,6 +468,11 @@ ob_clean();
                             <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
                         </button>
                     <?php endif; ?>
+
+                    <button class="btn btn-primary btn-sm" onclick="showAddModal()"
+                        <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
+                        <i class="fas fa-plus me-1"></i>Tambah LKH
+                    </button>
                 </div>
                 
                 <?php if ($periode_rkb_belum_diatur): ?>

@@ -55,7 +55,7 @@ $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
 
 $day_name = $days[date('w')];
 $month_name = $months[date('n')];
-$current_date = $day_name . ', ' . date('d') . ' ' . $month_name . ' ' . date('Y') . ' - ' . date('H:i');
+$current_date = $day_name . ', ' . date('d') . ' ' . $month_name . ' ' . date('Y');
 
 // Get notifications implementation from topbar.php adapted for mobile
 $notifications = [];
@@ -510,7 +510,17 @@ ob_clean();
                             <h6 class="mb-1 fw-bold"><?= htmlspecialchars($userInfo['nama']) ?></h6>
                             <small class="opacity-75">NIP: <?= htmlspecialchars($userInfo['nip']) ?></small><br>
                             <small class="opacity-75"><?= htmlspecialchars($userInfo['jabatan']) ?></small><br>
-                            <small class="opacity-75"><?= htmlspecialchars($userInfo['unit_kerja']) ?></small>
+                            <small class="opacity-75"><?= htmlspecialchars($userInfo['unit_kerja']) ?></small><br>
+                            <small class="opacity-75">
+                                <?php 
+                                $months_indo = [
+                                    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                                ];
+                                echo "Periode Aktif: " . $months_indo[$current_month] . " - " . $current_year;
+                                ?>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -521,6 +531,19 @@ ob_clean();
         <div class="container-fluid px-3 mt-4">
             <!-- App Info Section -->
             <div class="row mb-4 info-section">
+                <div class="col-lg-6 mb-3">
+                    <div class="notification-card warning p-4">
+                        <h6 class="text-warning mb-3 fw-bold">
+                            <i class="fas fa-question-circle me-2"></i>Sudahkah Anda mengisi kegiatan hari ini?
+                        </h6>
+                        <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
+                            Pastikan Anda melaporkan aktivitas harian Anda secara rutin untuk menjaga akurasi kinerja.
+                        </p>
+                        <a href="lkh.php" class="btn btn-warning notification-btn">
+                            <i class="fas fa-list d-block"></i>Lihat Laporan Harian
+                        </a>
+                    </div>
+                </div>
                 <div class="col-lg-6 mb-3">
                     <div class="notification-card info p-4">
                         <h6 class="text-primary mb-3 fw-bold">
@@ -548,19 +571,6 @@ ob_clean();
                         <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
                             Generate dan Cetak LKB - LKH sementara hanya dilakukan pada <strong>E-Lapkin versi Web</strong>.
                         </p>
-                    </div>
-                </div>
-                <div class="col-lg-6 mb-3">
-                    <div class="notification-card warning p-4">
-                        <h6 class="text-warning mb-3 fw-bold">
-                            <i class="fas fa-question-circle me-2"></i>Sudahkah Anda mengisi kegiatan hari ini?
-                        </h6>
-                        <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
-                            Pastikan Anda melaporkan aktivitas harian Anda secara rutin untuk menjaga akurasi kinerja.
-                        </p>
-                        <a href="lkh.php" class="btn btn-warning notification-btn">
-                            <i class="fas fa-list d-block"></i>Lihat Laporan Harian
-                        </a>
                     </div>
                 </div>
             </div>
@@ -612,6 +622,18 @@ ob_clean();
     <div class="bottom-nav">
         <div class="d-flex">
             <div class="nav-item">
+                <a href="rhk.php" class="nav-link">
+                    <i class="fas fa-tasks d-block"></i>
+                    <small>RHK</small>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="rkb.php" class="nav-link">
+                    <i class="fas fa-calendar d-block"></i>
+                    <small>RKB</small>
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="dashboard.php" class="nav-link active">
                     <i class="fas fa-home d-block"></i>
                     <small>Beranda</small>
@@ -624,15 +646,9 @@ ob_clean();
                 </a>
             </div>
             <div class="nav-item">
-                <a href="rkb.php" class="nav-link">
-                    <i class="fas fa-calendar d-block"></i>
-                    <small>RKB</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="rhk.php" class="nav-link">
-                    <i class="fas fa-tasks d-block"></i>
-                    <small>RHK</small>
+                <a href="laporan.php" class="nav-link">
+                    <i class="fas fa-file-alt d-block"></i>
+                    <small>Laporan</small>
                 </a>
             </div>
         </div>
