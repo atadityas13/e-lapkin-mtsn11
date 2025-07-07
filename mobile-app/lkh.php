@@ -878,7 +878,18 @@ ob_clean();
                                         <?= date('d M', strtotime($lkh['tanggal_lkh'])) ?>
                                     </span>
                                     <span class="day-badge">
-                                        <?= date('l', strtotime($lkh['tanggal_lkh'])) ?>
+                                        <?php
+                                        $hariIndonesia = [
+                                            'Sunday' => 'Minggu',
+                                            'Monday' => 'Senin', 
+                                            'Tuesday' => 'Selasa',
+                                            'Wednesday' => 'Rabu',
+                                            'Thursday' => 'Kamis',
+                                            'Friday' => 'Jumat',
+                                            'Saturday' => 'Sabtu'
+                                        ];
+                                        echo $hariIndonesia[date('l', strtotime($lkh['tanggal_lkh']))];
+                                        ?>
                                     </span>
                                 </div>
                                 <h6 class="lkh-title"><?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?></h6>
@@ -1067,12 +1078,17 @@ ob_clean();
                                     <?php 
                                     $no = 1; 
                                     $hariList = [
-                                        'Sun' => 'Minggu', 'Mon' => 'Senin', 'Tue' => 'Selasa', 'Wed' => 'Rabu',
-                                        'Thu' => 'Kamis', 'Fri' => 'Jumat', 'Sat' => 'Sabtu'
+                                        'Sunday' => 'Minggu', 
+                                        'Monday' => 'Senin', 
+                                        'Tuesday' => 'Selasa', 
+                                        'Wednesday' => 'Rabu',
+                                        'Thursday' => 'Kamis', 
+                                        'Friday' => 'Jumat', 
+                                        'Saturday' => 'Sabtu'
                                     ];
                                     
                                     foreach ($lkh_grouped as $date => $lkh_items): 
-                                        $hari = $hariList[date('D', strtotime($date))];
+                                        $hari = $hariList[date('l', strtotime($date))];
                                         $tanggal_formatted = $hari . ', ' . date('d-m-Y', strtotime($date));
                                         $first_item = true;
                                     ?>
@@ -1261,8 +1277,7 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
             };
             document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
             
@@ -1343,8 +1358,7 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
             };
             document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
             

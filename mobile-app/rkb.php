@@ -128,10 +128,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($action == 'add' || $action == 'edit') {
             $id_rhk = (int)$_POST['id_rhk'];
             $uraian_kegiatan = trim($_POST['uraian_kegiatan']);
-            $kuantitas = trim($_POST['kuantitas']); // Changed from volume to kuantitas
+            $kuantitas = trim($_POST['kuantitas']);
             $satuan = trim($_POST['satuan']);
             
-            // Handle file upload for add action
+            // Handle file upload for add action (optional)
             $lampiran = NULL;
             if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
                 $file_tmp_name = $_FILES['lampiran']['tmp_name'];
@@ -185,9 +185,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit();
             }
 
-            // Validation - match web version requirements
+            // Validation - lampiran is now truly optional
             if (empty($id_rhk) || empty($uraian_kegiatan) || empty($kuantitas) || empty($satuan)) {
-                set_mobile_notification('error', 'Gagal', 'Semua field harus diisi.');
+                set_mobile_notification('error', 'Gagal', 'Semua field wajib harus diisi.');
             } else {
                 // Validate satuan against ENUM values (same as web version)
                 $valid_satuan = ['Kegiatan','JP','Dokumen','Laporan','Hari','Jam','Menit','Unit'];
@@ -1117,7 +1117,7 @@ ob_clean();
                         </div>
                         
                         <div class="mb-3">
-                            <label for="id_rhk_modal" class="form-label">Pilih RHK Terkait</label>
+                            <label for="id_rhk_modal" class="form-label">Pilih RHK Terkait <span class="text-danger">*</span></label>
                             <select class="form-select" id="id_rhk_modal" name="id_rhk" required>
                                 <option value="">-- Pilih RHK --</option>
                                 <?php foreach ($rhk_list as $rhk): ?>
@@ -1133,7 +1133,7 @@ ob_clean();
                         
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label for="uraian_kegiatan_modal" class="form-label mb-0">Uraian Kinerja Bulanan (RKB)</label>
+                                <label for="uraian_kegiatan_modal" class="form-label mb-0">Uraian Kinerja Bulanan (RKB) <span class="text-danger">*</span></label>
                                 <?php if (!empty($previous_rkb_list)): ?>
                                     <button type="button" class="btn btn-sm btn-outline-info" onclick="showPreviousRkb()">
                                         <i class="fas fa-history me-1"></i>RKB Terdahulu
@@ -1146,13 +1146,13 @@ ob_clean();
                         <div class="row">
                             <div class="col-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Kuantitas Target</label>
+                                    <label class="form-label">Kuantitas Target <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" name="kuantitas" id="kuantitas_modal" required placeholder="Contoh: 12">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Satuan Target</label>
+                                    <label class="form-label">Satuan Target <span class="text-danger">*</span></label>
                                     <select class="form-select" name="satuan" id="satuan_modal" required>
                                         <option value="">-- Pilih Satuan --</option>
                                         <option value="Kegiatan">Kegiatan</option>
@@ -1168,18 +1168,9 @@ ob_clean();
                             </div>
                         </div>
                         
-                        <div class="mb-3" id="lampiranDiv">
-                            <label class="form-label">Lampiran (opsional)</label>
-                            <input type="file" class="form-control" name="lampiran" id="lampiranInput" 
-                                   accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" 
-                                   capture="environment">
-                            <div class="form-text">Format: PDF, JPG, JPEG, PNG. Maksimal 2MB.</div>
-                            <div id="filePreview" class="mt-2" style="display: none;">
-                                <small class="text-success">
-                                    <i class="fas fa-check-circle me-1"></i>
-                                    File dipilih: <span id="fileName"></span>
-                                </small>
-                            </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small><strong>Catatan:</strong> Semua field yang bertanda (<span class="text-danger">*</span>) wajib diisi. Lampiran bersifat opsional dan dapat ditambahkan nanti jika diperlukan.</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1416,7 +1407,6 @@ ob_clean();
             document.getElementById('rkbAction').value = 'add';
             document.getElementById('rkbId').value = '';
             document.getElementById('rkbForm').reset();
-            document.getElementById('lampiranDiv').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Simpan';
             new bootstrap.Modal(document.getElementById('rkbModal')).show();
         }
@@ -1429,11 +1419,7 @@ ob_clean();
             document.getElementById('uraian_kegiatan_modal').value = uraian;
             document.getElementById('kuantitas_modal').value = kuantitas;
             document.getElementById('satuan_modal').value = satuan;
-            
-            // Hide file upload for edit
-            document.getElementById('lampiranDiv').style.display = 'none';
             document.getElementById('submitBtn').textContent = 'Update';
-            
             new bootstrap.Modal(document.getElementById('rkbModal')).show();
         }
 
@@ -1538,91 +1524,6 @@ ob_clean();
                     card.style.transform = 'translateY(0)';
                 }, index * 100);
             });
-        });
-
-        // File input handling for mobile
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('lampiranInput');
-            const filePreview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-            
-            if (fileInput) {
-                fileInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        fileName.textContent = file.name;
-                        filePreview.style.display = 'block';
-                        
-                        // Validate file size
-                        if (file.size > 2 * 1024 * 1024) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'File Terlalu Besar',
-                                text: 'Ukuran file maksimal 2MB',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                            fileInput.value = '';
-                            filePreview.style.display = 'none';
-                            return;
-                        }
-                        
-                        // Validate file type
-                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-                        if (!allowedTypes.includes(file.type)) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Format File Tidak Didukung',
-                                text: 'Hanya file PDF, JPG, JPEG, dan PNG yang diperbolehkan',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                            fileInput.value = '';
-                            filePreview.style.display = 'none';
-                            return;
-                        }
-                    } else {
-                        filePreview.style.display = 'none';
-                    }
-                });
-                
-                // Force click for better mobile compatibility
-                fileInput.addEventListener('touchstart', function(e) {
-                    e.preventDefault();
-                    this.click();
-                });
-            }
-
-            // Search functionality for previous RKB
-            const searchInput = document.getElementById('searchPreviousRkb');
-            if (searchInput) {
-                searchInput.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    const items = document.querySelectorAll('.previous-rkb-item');
-                    let visibleCount = 0;
-                    
-                    items.forEach(function(item) {
-                        const uraian = item.getAttribute('data-uraian').toLowerCase();
-                        const kuantitas = item.getAttribute('data-kuantitas').toLowerCase();
-                        const satuan = item.getAttribute('data-satuan').toLowerCase();
-                        
-                        if (uraian.includes(searchTerm) || kuantitas.includes(searchTerm) || satuan.includes(searchTerm)) {
-                            item.style.display = 'block';
-                            visibleCount++;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                    
-                    // Show/hide no data message
-                    const noDataMsg = document.getElementById('noDataPrevious');
-                    if (visibleCount === 0 && searchTerm.length > 0) {
-                        noDataMsg.classList.remove('d-none');
-                    } else {
-                        noDataMsg.classList.add('d-none');
-                    }
-                });
-            }
         });
     </script>
 </body>
