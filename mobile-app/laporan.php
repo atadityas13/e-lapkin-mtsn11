@@ -631,19 +631,44 @@ ob_clean();
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
         });
 
-        // Download function for Android WebView compatibility
+        // Enhanced download function with better Android WebView support
         function downloadFile(url, filename) {
+            console.log('Download initiated:', url, filename);
+            
             try {
-                // Try to use Android interface if available
+                // Method 1: Try Android interface first
                 if (typeof Android !== 'undefined' && Android.downloadFile) {
+                    console.log('Using Android interface');
                     Android.downloadFile(url, filename);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Dimulai',
+                        text: 'File sedang diunduh melalui aplikasi Android...',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
                     return;
                 }
                 
-                // Fallback for web browsers and other WebViews
+                // Method 2: Try window.location for WebView
+                if (navigator.userAgent.includes('wv')) {
+                    console.log('Using WebView window.location method');
+                    window.location.href = url;
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Membuka File',
+                        text: 'File akan dibuka/diunduh...',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    return;
+                }
+                
+                // Method 3: Traditional download link
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = filename;
+                link.target = '_blank';
                 
                 // Add to DOM temporarily
                 document.body.appendChild(link);
@@ -652,126 +677,184 @@ ob_clean();
                 link.click();
                 
                 // Clean up
-                document.body.removeChild(link);
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                }, 100);
                 
-                // Show success message
+                console.log('Download link clicked');
+                
+                // Show appropriate message
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Download Dimulai',
-                    text: 'File sedang diunduh...',
-                    timer: 2000,
+                    icon: 'info',
+                    title: 'Download Diproses',
+                    text: 'Silakan periksa folder Download Anda.',
+                    timer: 3000,
                     showConfirmButton: false
                 });
                 
             } catch (error) {
                 console.error('Download error:', error);
                 
-                // Alternative: Open in new window/tab
-                const newWindow = window.open(url, '_blank');
-                if (!newWindow) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Popup Diblokir',
-                        text: 'Silakan izinkan popup untuk mengunduh file, atau klik tombol di bawah untuk membuka file.',
-                        showCancelButton: true,
-                        confirmButtonText: 'Buka File',
-                        cancelButtonText: 'Tutup'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            window.location.href = url;
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'File Dibuka',
-                        text: 'File telah dibuka di tab baru.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                }
+                // Fallback: Try direct navigation
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Metode Download Alternatif',
+                    text: 'Klik "Buka File" untuk mengunduh atau melihat file.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Buka File',
+                    cancelButtonText: 'Tutup'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.open(url, '_blank');
+                    }
+                });
             }
         }
 
-        // Alternative download function using fetch (for better compatibility)
+        // Alternative fetch-based download with proper headers
         async function downloadFileWithFetch(url, filename) {
             try {
+                console.log('Fetch download started:', url);
+                
                 Swal.fire({
                     title: 'Mengunduh...',
-                    text: 'Sedang memproses unduhan',
+                    text: 'Sedang memproses unduhan file',
                     allowOutsideClick: false,
                     didOpen: () => {
                         Swal.showLoading();
                     }
                 });
 
-                const response = await fetch(url);
+                // Add timestamp to prevent caching issues
+                const downloadUrl = url + '?t=' + new Date().getTime();
+                
+                const response = await fetch(downloadUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
+                console.log('Blob created, size:', blob.size);
                 
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Clean up
-                window.URL.revokeObjectURL(downloadUrl);
+                // Check if we're in WebView
+                if (navigator.userAgent.includes('wv')) {
+                    // For WebView, try to trigger native download
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64data = reader.result.split(',')[1];
+                        
+                        // Try Android interface for base64 download
+                        if (typeof Android !== 'undefined' && Android.downloadBase64) {
+                            Android.downloadBase64(base64data, filename, blob.type);
+                        } else {
+                            // Fallback to blob URL
+                            const downloadUrl = window.URL.createObjectURL(blob);
+                            window.location.href = downloadUrl;
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                } else {
+                    // Normal browser download
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = filename;
+                    link.style.display = 'none';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(downloadUrl);
+                    }, 1000);
+                }
                 
                 Swal.fire({
                     icon: 'success',
-                    title: 'Download Berhasil',
-                    text: 'File berhasil diunduh!',
-                    timer: 2000,
+                    title: 'Download Selesai',
+                    text: 'File berhasil diunduh! Periksa folder Download.',
+                    timer: 3000,
                     showConfirmButton: false
                 });
                 
             } catch (error) {
-                console.error('Download error:', error);
+                console.error('Fetch download error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Download Gagal',
-                    text: 'Terjadi kesalahan saat mengunduh file. Coba lagi nanti.',
+                    text: 'Terjadi kesalahan: ' + error.message,
                     confirmButtonText: 'OK'
                 });
             }
         }
 
-        // Enhanced download with multiple fallbacks
+        // Main download function with multiple fallbacks
         function enhancedDownload(url, filename) {
-            // First try: Direct download with Android interface
-            if (typeof Android !== 'undefined' && Android.downloadFile) {
-                try {
-                    Android.downloadFile(url, filename);
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Download Dimulai',
-                        text: 'File sedang diunduh melalui aplikasi...',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    return;
-                } catch (e) {
-                    console.log('Android download failed, trying alternatives');
+            console.log('Enhanced download called:', url, filename);
+            
+            // Detect environment
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isWebView = navigator.userAgent.includes('wv');
+            
+            console.log('Environment:', { isAndroid, isWebView });
+            
+            // Strategy 1: Android WebView with native interface
+            if (isAndroid && isWebView && typeof Android !== 'undefined') {
+                if (Android.downloadFile) {
+                    console.log('Using Android.downloadFile');
+                    try {
+                        Android.downloadFile(url, filename);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Download Dimulai',
+                            text: 'File sedang diunduh ke perangkat Anda...',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                        return;
+                    } catch (e) {
+                        console.error('Android download failed:', e);
+                    }
                 }
             }
-
-            // Second try: Modern download with fetch
-            if (window.fetch && window.URL && window.URL.createObjectURL) {
+            
+            // Strategy 2: Fetch API for WebView
+            if (isWebView && window.fetch) {
+                console.log('Using fetch download for WebView');
                 downloadFileWithFetch(url, filename);
                 return;
             }
-
-            // Third try: Traditional download
+            
+            // Strategy 3: Direct URL navigation for WebView
+            if (isWebView) {
+                console.log('Using direct navigation for WebView');
+                window.location.href = url;
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Membuka File',
+                    text: 'File akan dibuka atau diunduh...',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            // Strategy 4: Traditional download for regular browsers
+            console.log('Using traditional download');
             downloadFile(url, filename);
         }
 
-        // Update download calls to use enhanced function
+        // Update download function reference
         window.downloadFile = enhancedDownload;
 
         // Add smooth scroll animation for report items

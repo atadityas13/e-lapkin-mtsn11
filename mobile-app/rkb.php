@@ -1168,10 +1168,10 @@ ob_clean();
                             </div>
                         </div>
                         
-                        <div class="alert alert-info">
+                        <!-- <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             <small><strong>Catatan:</strong> Semua field yang bertanda (<span class="text-danger">*</span>) wajib diisi. Lampiran bersifat opsional dan dapat ditambahkan nanti jika diperlukan.</small>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
