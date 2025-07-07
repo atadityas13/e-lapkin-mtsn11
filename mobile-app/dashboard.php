@@ -127,7 +127,7 @@ if ($last_lkh_date) {
             'type' => 'warning',
             'icon' => 'fas fa-calendar-times',
             'message' => $lkh_message,
-            'link' => 'lkh_add.php'
+            'link' => 'lkh.php'
         ];
     }
 } else {
@@ -146,7 +146,7 @@ if ($last_lkh_date) {
         'type' => 'warning',
         'icon' => 'fas fa-calendar-times',
         'message' => $lkh_message,
-        'link' => 'lkh_add.php'
+        'link' => 'lkh.php'
     ];
 }
 
@@ -219,7 +219,7 @@ if (!$reports_already_generated) {
             'type' => 'success',
             'icon' => 'fas fa-check-circle',
             'message' => 'RKB/LKH periode ini sudah disetujui, Anda sudah bisa generate laporan',
-            'link' => 'generate_rkb-lkh.php'
+            'link' => '#'
         ];
     } elseif ($rkb_status === 'disetujui') {
         $notifications[] = [
@@ -246,7 +246,7 @@ if (!$reports_already_generated) {
         'type' => 'success',
         'icon' => 'fas fa-trophy',
         'message' => "Selamat LKB/LKH anda di periode bulan {$months_name_notif[$current_month]} berhasil digenerate, rencanakan periode berikutnya!",
-        'link' => 'generate_lkb-lkh.php'
+        'link' => 'rkb.php'
     ];
 }
 
