@@ -405,7 +405,7 @@ ob_clean();
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
                 <i class="fas fa-arrow-left me-2"></i>
-                <span>Rencana Kinerja Bulanan</span>
+                <span>RKB</span>
             </a>
             <div class="d-flex align-items-center text-white">
                 <small><?= htmlspecialchars($userData['nama']) ?></small>
@@ -458,10 +458,6 @@ ob_clean();
                                 <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
                             </button>
                         <?php endif; ?>
-                        
-                        <button class="btn btn-secondary btn-sm" onclick="showPeriodModal()">
-                            <i class="fas fa-calendar me-1"></i>Ubah Periode
-                        </button>
                     </div>
                     
                     <div>
@@ -470,12 +466,6 @@ ob_clean();
                             <i class="fas fa-plus me-2"></i>Tambah RKB
                         </button>
                     </div>
-                </div>
-                
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <small><strong>Tahun mengikuti periode RHK:</strong> <?= $filter_year ?>. 
-                    Untuk mengubah tahun, silakan ubah di <a href="rhk.php" class="alert-link">halaman RHK</a>.</small>
                 </div>
                 
                 <?php if ($periode_rhk_belum_diatur): ?>
