@@ -652,14 +652,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // Simple encryption for password storage (for demo purposes)
+        function simpleEncrypt(text) {
+            let result = '';
+            const key = 'E-LAPKIN-2025';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return btoa(result);
+        }
+
+        function simpleDecrypt(encodedText) {
+            try {
+                const text = atob(encodedText);
+                let result = '';
+                const key = 'E-LAPKIN-2025';
+                for (let i = 0; i < text.length; i++) {
+                    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+                }
+                return result;
+            } catch (e) {
+                return '';
+            }
+        }
+
         // Load saved login information
         function loadSavedLogin() {
             const rememberLogin = localStorage.getItem('rememberLogin');
             const savedNip = localStorage.getItem('savedNip');
+            const savedPassword = localStorage.getItem('savedPassword');
             
             if (rememberLogin === 'true' && savedNip) {
                 document.getElementById('nip').value = savedNip;
                 document.getElementById('remember_me').checked = true;
+                
+                // Decrypt and set password if available
+                if (savedPassword) {
+                    const decryptedPassword = simpleDecrypt(savedPassword);
+                    if (decryptedPassword) {
+                        document.getElementById('password').value = decryptedPassword;
+                    }
+                }
+                
+                // Show a subtle indication that credentials are loaded
+                const nipField = document.getElementById('nip');
+                const passwordField = document.getElementById('password');
+                nipField.style.borderColor = '#28a745';
+                if (passwordField.value) {
+                    passwordField.style.borderColor = '#28a745';
+                }
             }
         }
 
@@ -667,66 +708,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         function saveLoginInfo() {
             const rememberMe = document.getElementById('remember_me').checked;
             const nip = document.getElementById('nip').value;
+            const password = document.getElementById('password').value;
             
             if (rememberMe && nip) {
                 localStorage.setItem('rememberLogin', 'true');
                 localStorage.setItem('savedNip', nip);
+                
+                // Encrypt and save password
+                if (password) {
+                    const encryptedPassword = simpleEncrypt(password);
+                    localStorage.setItem('savedPassword', encryptedPassword);
+                }
             } else {
+                // Clear all saved data if remember me is unchecked
                 localStorage.removeItem('rememberLogin');
                 localStorage.removeItem('savedNip');
+                localStorage.removeItem('savedPassword');
             }
         }
 
-        // Create floating graphics
-        function createFloatingGraphics() {
-            const graphicsContainer = document.getElementById('floatingGraphics');
-            const shapes = ['circle', 'square', 'hexagon'];
-            const shapeCount = 6;
-
-            for (let i = 0; i < shapeCount; i++) {
-                const shape = document.createElement('div');
-                const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
-                shape.className = `floating-shape ${shapeType}`;
-                
-                const size = Math.random() * 40 + 20;
-                const startY = Math.random() * window.innerHeight;
-                const delay = Math.random() * 20;
-                const duration = Math.random() * 15 + 10;
-
-                shape.style.width = size + 'px';
-                shape.style.height = size + 'px';
-                shape.style.top = startY + 'px';
-                shape.style.left = '-100px';
-                shape.style.animationDelay = delay + 's';
-                shape.style.animationDuration = duration + 's';
-
-                graphicsContainer.appendChild(shape);
-            }
-        }
-
-        // Create floating particles
-        function createParticles() {
-            const particlesContainer = document.getElementById('particles');
-            const particleCount = 25;
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                
-                const size = Math.random() * 4 + 2;
-                const left = Math.random() * 100;
-                const delay = Math.random() * 6;
-                const duration = Math.random() * 3 + 3;
-
-                particle.style.width = size + 'px';
-                particle.style.height = size + 'px';
-                particle.style.left = left + '%';
-                particle.style.animationDelay = delay + 's';
-                particle.style.animationDuration = duration + 's';
-                particle.style.top = Math.random() * 100 + '%';
-
-                particlesContainer.appendChild(particle);
-            }
+        // Clear saved credentials
+        function clearSavedLogin() {
+            localStorage.removeItem('rememberLogin');
+            localStorage.removeItem('savedNip');
+            localStorage.removeItem('savedPassword');
+            
+            // Reset form
+            document.getElementById('nip').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('remember_me').checked = false;
+            
+            // Reset border colors
+            document.getElementById('nip').style.borderColor = '#e0e0e0';
+            document.getElementById('password').style.borderColor = '#e0e0e0';
         }
 
         // Toggle password visibility
@@ -786,8 +800,107 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 setTimeout(() => {
                     label.classList.remove('animate__animated', 'animate__heartBeat');
                 }, 1000);
+                
+                // Show tooltip
+                if (!document.getElementById('nip').value || !document.getElementById('password').value) {
+                    // Create temporary tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.innerHTML = '<small><i class="fas fa-info-circle me-1"></i>NIP dan Password akan disimpan untuk login berikutnya</small>';
+                    tooltip.style.cssText = `
+                        position: absolute;
+                        background: #667eea;
+                        color: white;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        top: -40px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        z-index: 1000;
+                        animation: fadeIn 0.3s ease;
+                    `;
+                    
+                    this.parentElement.style.position = 'relative';
+                    this.parentElement.appendChild(tooltip);
+                    
+                    setTimeout(() => {
+                        if (tooltip.parentElement) {
+                            tooltip.remove();
+                        }
+                    }, 3000);
+                }
+            } else {
+                // Clear saved data when unchecked
+                clearSavedLogin();
             }
         });
+
+        // Add event listener for NIP field to save on change if remember me is checked
+        document.getElementById('nip').addEventListener('input', function() {
+            if (document.getElementById('remember_me').checked) {
+                localStorage.setItem('savedNip', this.value);
+            }
+        });
+
+        // Add warning about password storage
+        document.getElementById('password').addEventListener('focus', function() {
+            if (document.getElementById('remember_me').checked && !localStorage.getItem('savedPassword')) {
+                // Show subtle hint
+                this.setAttribute('title', 'Password akan disimpan secara aman untuk kemudahan login');
+            }
+        });
+
+        // Create floating graphics
+        function createFloatingGraphics() {
+            const graphicsContainer = document.getElementById('floatingGraphics');
+            const shapes = ['circle', 'square', 'hexagon'];
+            const shapeCount = 6;
+
+            for (let i = 0; i < shapeCount; i++) {
+                const shape = document.createElement('div');
+                const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
+                shape.className = `floating-shape ${shapeType}`;
+                
+                const size = Math.random() * 40 + 20;
+                const startY = Math.random() * window.innerHeight;
+                const delay = Math.random() * 20;
+                const duration = Math.random() * 15 + 10;
+
+                shape.style.width = size + 'px';
+                shape.style.height = size + 'px';
+                shape.style.top = startY + 'px';
+                shape.style.left = '-100px';
+                shape.style.animationDelay = delay + 's';
+                shape.style.animationDuration = duration + 's';
+
+                graphicsContainer.appendChild(shape);
+            }
+        }
+
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 25;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 4 + 2;
+                const left = Math.random() * 100;
+                const delay = Math.random() * 6;
+                const duration = Math.random() * 3 + 3;
+
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = left + '%';
+                particle.style.animationDelay = delay + 's';
+                particle.style.animationDuration = duration + 's';
+                particle.style.top = Math.random() * 100 + '%';
+
+                particlesContainer.appendChild(particle);
+            }
+        }
 
         // Add interactive effects
         document.querySelector('.login-btn').addEventListener('mouseenter', function() {

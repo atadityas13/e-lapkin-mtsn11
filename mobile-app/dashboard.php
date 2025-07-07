@@ -527,20 +527,26 @@ ob_clean();
                             <i class="fas fa-mobile-alt me-2"></i>E-Lapkin Mobile
                         </h6>
                         <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
-                            Aplikasi E-LAPKIN digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan <strong>MTsN 11 Majalengka</strong>.
+                            Aplikasi E-LAPKIN Mobile digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan <strong>MTsN 11 Majalengka.</strong> Hadir dengan versi mobile yang ringkas dan mudah digunakan.
                         </p>
                         <div class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
-                            <small>Input RHK, RKB, dan LKH secara digital</small>
+                            <small>Atur Rencana Hasil Kerja Tahunan </small>
                         </div>
                         <div class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
-                            <small>Rekap dan cetak laporan kinerja bulanan</small>
+                            <small>Tentukan Rencana Kinerja Bulanan</small>
+                        </div><div class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Input Laporan Kinerja Harian</small>
                         </div>
                         <div class="mb-0">
                             <i class="fas fa-check-circle text-success me-2"></i>
-                            <small>Penilaian kinerja lebih efektif dan efisien</small>
+                            <small>Penilaian kinerja dilakukan secara digital lebih efektif dan efisien</small>
                         </div>
+                        <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
+                            Generate dan Cetak LKB - LKH sementara hanya dilakukan pada <strong>E-Lapkin versi Web</strong>.
+                        </p>
                     </div>
                 </div>
                 <div class="col-lg-6 mb-3">
