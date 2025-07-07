@@ -1115,35 +1115,3 @@ ob_clean();
     </script>
 </body>
 </html>
-                        
-                        // Validate file type
-                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-                        if (!allowedTypes.includes(file.type)) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Format File Tidak Didukung',
-                                text: 'Hanya file PDF, JPG, JPEG, dan PNG yang diperbolehkan',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                            fileInput.value = '';
-                            filePreview.style.display = 'none';
-                            return;
-                        }
-                    } else {
-                        filePreview.style.display = 'none';
-                    }
-                });
-                
-                // Force click for better mobile compatibility
-                fileInput.addEventListener('touchstart', function(e) {
-                    e.preventDefault();
-                    this.click();
-                });
-            }
-            
-            // ...existing code...
-        });
-    </script>
-</body>
-</html>
