@@ -80,6 +80,7 @@ function set_mobile_notification($type, $title, $text) {
 
 // Clear any unwanted output before HTML
 ob_clean();
+$activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 ?>
 <!DOCTYPE html>
 <html lang="id">
