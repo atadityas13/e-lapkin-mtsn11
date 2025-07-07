@@ -121,6 +121,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     header('Location: lkh.php');
                     exit();
                 }
+            } elseif ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
+                // Handle other upload errors
+                $upload_errors = [
+                    UPLOAD_ERR_INI_SIZE => 'File terlalu besar (melebihi upload_max_filesize)',
+                    UPLOAD_ERR_FORM_SIZE => 'File terlalu besar (melebihi MAX_FILE_SIZE)',
+                    UPLOAD_ERR_PARTIAL => 'File hanya terupload sebagian',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Direktori temporary tidak ditemukan',
+                    UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file ke disk',
+                    UPLOAD_ERR_EXTENSION => 'Upload dihentikan oleh ekstensi PHP'
+                ];
+                
+                $error_msg = isset($upload_errors[$_FILES['lampiran']['error']]) 
+                    ? $upload_errors[$_FILES['lampiran']['error']] 
+                    : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
+                    
+                set_mobile_notification('error', 'Gagal Upload', $error_msg);
+                header('Location: lkh.php');
+                exit();
             }
 
             // Validation
@@ -463,27 +481,31 @@ ob_clean();
                 <?php endif; ?>
 
                 <!-- Action Buttons -->
-                <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <button class="btn btn-primary btn-primary-large" onclick="showAddModal()"
-                        <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
-                        <i class="fas fa-plus me-2"></i>Tambah LKH
-                    </button>
-                    
-                    <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
-                        <?= empty($lkhs) ? 'disabled' : '' ?>>
-                        <i class="fas fa-eye me-1"></i>Preview LKH
-                    </button>
-                    
-                    <?php if ($status_verval_lkh == 'diajukan'): ?>
-                        <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
-                            <i class="fas fa-times me-1"></i>Batal Ajukan
-                        </button>
-                    <?php elseif ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak'): ?>
-                        <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
+                <div class="mb-3">
+                    <div class="d-flex gap-2 flex-wrap mb-2">
+                        <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
                             <?= empty($lkhs) ? 'disabled' : '' ?>>
-                            <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
+                            <i class="fas fa-eye me-1"></i>Preview LKH
                         </button>
-                    <?php endif; ?>
+                        
+                        <?php if ($status_verval_lkh == 'diajukan'): ?>
+                            <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
+                                <i class="fas fa-times me-1"></i>Batal Ajukan
+                            </button>
+                        <?php elseif ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak'): ?>
+                            <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
+                                <?= empty($lkhs) ? 'disabled' : '' ?>>
+                                <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div>
+                        <button class="btn btn-primary btn-primary-large" onclick="showAddModal()"
+                            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'disabled' : '' ?>>
+                            <i class="fas fa-plus me-2"></i>Tambah LKH
+                        </button>
+                    </div>
                 </div>
                 
                 <?php if ($periode_rkb_belum_diatur): ?>
@@ -668,8 +690,16 @@ ob_clean();
                         
                         <div class="mb-3" id="lampiranDiv">
                             <label class="form-label">Lampiran (opsional)</label>
-                            <input type="file" class="form-control" name="lampiran" accept=".pdf,.jpg,.jpeg,.png">
+                            <input type="file" class="form-control" name="lampiran" id="lampiranInput" 
+                                   accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" 
+                                   capture="environment">
                             <div class="form-text">Format: PDF, JPG, JPEG, PNG. Maksimal 2MB.</div>
+                            <div id="filePreview" class="mt-2" style="display: none;">
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    File dipilih: <span id="fileName"></span>
+                                </small>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1058,6 +1088,62 @@ ob_clean();
                 );
             });
         <?php endif; ?>
+
+        // File input handling for mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('lampiranInput');
+            const filePreview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+            
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        fileName.textContent = file.name;
+                        filePreview.style.display = 'block';
+                        
+                        // Validate file size
+                        if (file.size > 2 * 1024 * 1024) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'File Terlalu Besar',
+                                text: 'Ukuran file maksimal 2MB',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                            fileInput.value = '';
+                            filePreview.style.display = 'none';
+                            return;
+                        }
+                        
+                        // Validate file type
+                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+                        if (!allowedTypes.includes(file.type)) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Format File Tidak Didukung',
+                                text: 'Hanya file PDF, JPG, JPEG, dan PNG yang diperbolehkan',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                            fileInput.value = '';
+                            filePreview.style.display = 'none';
+                            return;
+                        }
+                    } else {
+                        filePreview.style.display = 'none';
+                    }
+                });
+                
+                // Force click for better mobile compatibility
+                fileInput.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.click();
+                });
+            }
+            
+            // ...existing code...
+        });
     </script>
 </body>
 </html>
