@@ -674,30 +674,3 @@ ob_clean();
     </script>
 </body>
 </html>
-                    <i class="fas fa-file-alt d-block"></i>
-                    <small>Laporan</small>
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Live time update
-        function updateTime() {
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            document.getElementById('liveTime').textContent = `${hours}:${minutes}:${seconds} WIB`;
-        }
-        
-        // Update time immediately and then every second
-        updateTime();
-        setInterval(updateTime, 1000);
-        
-        // Add smooth scroll behavior
-        document.documentElement.style.scrollBehavior = 'smooth';
-    </script>
-</body>
-</html>
