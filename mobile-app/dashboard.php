@@ -579,7 +579,7 @@ ob_clean();
                             <i class="fas fa-mobile-alt me-2"></i>E-Lapkin Mobile
                         </h6>
                         <p class="mb-3" style="font-size: 14px; line-height: 1.6;">
-                            Aplikasi E-LAPKIN Mobile digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan <strong>MTsN 11 Majalengka.</strong> Hadir dengan versi mobile yang ringkas dan mudah digunakan.
+                            <strong>Aplikasi E-LAPKIN Mobile</strong> digunakan untuk pengelolaan Laporan Kinerja Pegawai di lingkungan <strong>MTsN 11 Majalengka.</strong> Hadir dengan versi mobile yang ringkas dan mudah digunakan.
                         </p>
                         <div class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
