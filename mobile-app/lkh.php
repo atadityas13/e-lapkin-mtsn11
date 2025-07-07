@@ -365,7 +365,7 @@ ob_clean();
             --accent-purple: #764ba2;
             --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
             --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --lkh-gradient: linear-gradient(135deg,rgb(255, 245, 154) 0%, #fecfef 100%);
+            --lkh-gradient: linear-gradient(135deg,rgb(255, 245, 154) 0%,rgb(47, 147, 0) 100%);
         }
 
         .bottom-nav {
