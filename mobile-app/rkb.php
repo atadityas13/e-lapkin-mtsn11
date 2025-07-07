@@ -818,12 +818,10 @@ ob_clean();
                     <small class="opacity-75">Manajemen RKB</small>
                 </div>
             </a>
-            <div class="d-flex align-items-center text-white">
-                <div class="text-end">
-                    <div class="fw-semibold"><?= htmlspecialchars($userData['nama']) ?></div>
-                    <div class="small opacity-75"><?= htmlspecialchars($userData['nip']) ?></div>
-                    <div class="small opacity-75"><?= htmlspecialchars($activePeriod) ?></div>
-                </div>
+            <div class="text-white text-end d-flex flex-column justify-content-center" style="margin-right: 15px;">
+                <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>
