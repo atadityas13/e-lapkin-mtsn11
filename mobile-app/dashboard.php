@@ -535,7 +535,7 @@ ob_clean();
                         <?php endif; ?>
                         <div>
                             <h6 class="mb-1 fw-bold"><?= htmlspecialchars($userInfo['nama']) ?></h6>
-                            <small class="opacity-75">NIP: <?= htmlspecialchars($userInfo['nip']) ?></small><br>
+                            <small class="opacity-75">NIP : <?= htmlspecialchars($userInfo['nip']) ?></small><br>
                             <small class="opacity-75"><?= htmlspecialchars($userInfo['jabatan']) ?></small><br>
                             <small class="opacity-75"><?= htmlspecialchars($userInfo['unit_kerja']) ?></small><br>
                             <small class="opacity-75">
