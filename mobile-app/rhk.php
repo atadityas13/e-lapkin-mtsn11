@@ -216,6 +216,14 @@ ob_clean();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-purple: #764ba2;
+        }
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -243,8 +251,8 @@ ob_clean();
             margin: 4px;
         }
         .bottom-nav .nav-link.active {
-            color: #0d6efd;
-            background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+            color: var(--accent-blue);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
             transform: translateY(-2px);
         }
         .bottom-nav .nav-link i {
@@ -255,40 +263,294 @@ ob_clean();
         .bottom-nav .nav-link.active i {
             transform: scale(1.1);
         }
+
         body {
             padding-bottom: 80px;
             background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .card {
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: none;
+
+        .nav-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 15px;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
             margin-bottom: 20px;
         }
-        .btn {
-            border-radius: 10px;
-            transition: all 0.3s ease;
+
+        .nav-header .navbar-brand {
+            font-size: 1.3rem;
+            font-weight: 600;
         }
+
+        .card {
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .period-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.02));
+        }
+
+        .rhk-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .rhk-card:hover {
+            border-left-color: var(--accent-purple);
+        }
+
+        .btn {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
         .btn:hover {
             transform: translateY(-1px);
         }
-        .nav-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 0;
-        }
+
         .btn-primary-large {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             font-weight: 600;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+            border-radius: 15px;
+            background: var(--primary-gradient);
+            border: none;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
             transition: all 0.3s ease;
         }
+
         .btn-primary-large:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-primary-custom {
+            border: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background: transparent;
+        }
+
+        .btn-outline-primary-custom:hover {
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .badge-custom {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-kuantitas { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .badge-kualitas { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .badge-waktu { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .badge-biaya { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+        .badge-target {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .floating-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-btn:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+            color: white;
+        }
+
+        .period-selector {
+            background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,249,255,0.8));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .form-select-custom {
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .form-select-custom:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .rhk-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .rhk-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--card-shadow);
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .modal-header {
+            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(13, 110, 253, 0.4);
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 576px) {
+            .floating-action {
+                bottom: 90px;
+                right: 15px;
+            }
+            
+            .floating-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .rhk-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -297,42 +559,57 @@ ob_clean();
     <nav class="navbar nav-header">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
-                <i class="fas fa-arrow-left me-2"></i>
-                <span>RHK</span>
+                <i class="fas fa-arrow-left me-3"></i>
+                <div>
+                    <div class="fw-bold">Rencana Hasil Kerja</div>
+                    <small class="opacity-75">Manajemen RHK</small>
+                </div>
             </a>
             <div class="d-flex align-items-center text-white">
-                <small><?= htmlspecialchars($userData['nama']) ?></small>
+                <div class="text-end">
+                    <small class="opacity-75">Selamat datang,</small>
+                    <div class="fw-semibold"><?= htmlspecialchars($userData['nama']) ?></div>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid px-3 pt-3">
-        <!-- Period Selection -->
-        <div class="card">
-            <div class="card-body">
-                <h6 class="card-title mb-3">
-                    <i class="fas fa-calendar-alt text-primary me-2"></i>
-                    Periode: Tahun <?= $periode_aktif ?>
-                </h6>
-                
-                <form id="periodeForm" method="POST" class="d-flex align-items-center gap-2 mb-3">
-                    <label class="form-label mb-0 me-2 fw-semibold">Pilih Periode:</label>
-                    <select class="form-select w-auto" name="tahun_aktif">
-                        <?php foreach ($years as $year): ?>
-                            <option value="<?= $year ?>" <?= ($periode_aktif == $year) ? 'selected' : '' ?>><?= $year ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="confirmChangePeriod()">Ubah</button>
-                    <input type="hidden" name="set_periode_aktif" value="1">
-                </form>
+    <div class="container-fluid px-3">
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number"><?= count($rhks) ?></div>
+                <div class="stat-label">Total RHK</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?= $periode_aktif ?></div>
+                <div class="stat-label">Periode Aktif</div>
+            </div>
+        </div>
 
-                <!-- Action Buttons -->
-                <div class="mb-3">
-                    <div>
-                        <button class="btn btn-primary btn-primary-large" onclick="showAddModal()">
-                            <i class="fas fa-plus me-2"></i>Tambah RHK
-                        </button>
-                    </div>
+        <!-- Period Selection Card -->
+        <div class="card period-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt text-primary me-2"></i>
+                        Periode: Tahun <?= $periode_aktif ?>
+                    </h6>
+                    <button class="btn btn-outline-primary-custom btn-sm" onclick="showPeriodChangeModal()">
+                        <i class="fas fa-edit me-1"></i>Ubah
+                    </button>
+                </div>
+                
+                <div class="period-selector">
+                    <form id="periodeForm" method="POST" class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 me-2 fw-semibold flex-shrink-0">Pilih Periode:</label>
+                        <select class="form-select form-select-custom flex-grow-1" name="tahun_aktif">
+                            <?php foreach ($years as $year): ?>
+                                <option value="<?= $year ?>" <?= ($periode_aktif == $year) ? 'selected' : '' ?>><?= $year ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="hidden" name="set_periode_aktif" value="1">
+                    </form>
                 </div>
             </div>
         </div>
@@ -378,45 +655,51 @@ ob_clean();
 
         <!-- RHK List -->
         <?php if (empty($rhks)): ?>
-            <div class="card text-center">
-                <div class="card-body py-5">
-                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <h6 class="text-muted">Belum ada RHK tahun ini</h6>
-                    <p class="text-muted">Mulai buat rencana hasil kerja Anda</p>
-                    <button class="btn btn-primary btn-primary-large" onclick="showAddModal()">
-                        <i class="fas fa-plus me-2"></i>Tambah RHK
+            <div class="card">
+                <div class="card-body empty-state">
+                    <i class="fas fa-tasks"></i>
+                    <h5 class="text-muted mb-3">Belum ada RHK tahun ini</h5>
+                    <p class="text-muted mb-4">Mulai buat rencana hasil kerja untuk mencapai target kinerja Anda</p>
+                    <button class="btn btn-primary-large" onclick="showAddModal()">
+                        <i class="fas fa-plus me-2"></i>Buat RHK Pertama
                     </button>
                 </div>
             </div>
         <?php else: ?>
-            <?php foreach ($rhks as $rhk): ?>
-                <div class="card">
+            <?php foreach ($rhks as $index => $rhk): ?>
+                <div class="card rhk-card">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <h6 class="card-title mb-2"><?= htmlspecialchars($rhk['nama_rhk']) ?></h6>
                                 <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-info me-2">
+                                    <span class="badge bg-primary me-2">#<?= $index + 1 ?></span>
+                                    <small class="text-muted">RHK <?= $periode_aktif ?></small>
+                                </div>
+                                <h6 class="rhk-title"><?= htmlspecialchars($rhk['nama_rhk']) ?></h6>
+                                <div class="rhk-meta">
+                                    <span class="badge badge-custom badge-<?= strtolower($rhk['aspek']) ?>">
+                                        <i class="fas fa-<?= $rhk['aspek'] == 'Kuantitas' ? 'chart-bar' : ($rhk['aspek'] == 'Kualitas' ? 'star' : ($rhk['aspek'] == 'Waktu' ? 'clock' : 'dollar-sign')) ?> me-1"></i>
                                         <?= htmlspecialchars($rhk['aspek']) ?>
                                     </span>
-                                    <span class="badge bg-success">
-                                        Target: <?= htmlspecialchars($rhk['target']) ?>
+                                    <span class="badge badge-custom badge-target">
+                                        <i class="fas fa-bullseye me-1"></i>
+                                        <?= htmlspecialchars($rhk['target']) ?>
                                     </span>
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" style="width: 35px; height: 35px;">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
                                         <a class="dropdown-item" href="#" onclick="editRhk(<?= $rhk['id_rhk'] ?>, '<?= htmlspecialchars($rhk['nama_rhk']) ?>', '<?= htmlspecialchars($rhk['aspek']) ?>', '<?= htmlspecialchars($rhk['target']) ?>')">
-                                            <i class="fas fa-edit me-2"></i>Edit
+                                            <i class="fas fa-edit me-2 text-warning"></i>Edit RHK
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteRhk(<?= $rhk['id_rhk'] ?>)">
-                                            <i class="fas fa-trash me-2"></i>Hapus
+                                            <i class="fas fa-trash me-2"></i>Hapus RHK
                                         </a>
                                     </li>
                                 </ul>
@@ -428,38 +711,33 @@ ob_clean();
         <?php endif; ?>
     </div>
 
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="d-flex">
-            <div class="nav-item">
-                <a href="rhk.php" class="nav-link active">
-                    <i class="fas fa-tasks d-block"></i>
-                    <small>RHK</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="rkb.php" class="nav-link">
-                    <i class="fas fa-calendar d-block"></i>
-                    <small>RKB</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="dashboard.php" class="nav-link">
-                    <i class="fas fa-home d-block"></i>
-                    <small>Beranda</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="lkh.php" class="nav-link">
-                    <i class="fas fa-list d-block"></i>
-                    <small>LKH</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="laporan.php" class="nav-link">
-                    <i class="fas fa-file-alt d-block"></i>
-                    <small>Laporan</small>
-                </a>
+    <!-- Floating Action Button -->
+    <div class="floating-action">
+        <button class="floating-btn" onclick="showAddModal()" title="Tambah RHK">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- Period Change Confirmation Modal -->
+    <div class="modal fade" id="modalKonfirmasiPeriode" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Ubah Periode
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin mengubah periode aktif?</p>
+                    <p class="text-muted small">Data RHK yang tampil akan mengikuti periode yang dipilih.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning" onclick="submitPeriodChange()">
+                        <i class="fas fa-check me-1"></i>Ya, Ubah Periode
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -620,21 +898,16 @@ ob_clean();
             document.getElementById('setPeriodeForm').submit();
         }
 
+        function showPeriodChangeModal() {
+            new bootstrap.Modal(document.getElementById('modalKonfirmasiPeriode')).show();
+        }
+
+        function submitPeriodChange() {
+            document.getElementById('periodeForm').submit();
+        }
+
         function confirmChangePeriod() {
-            Swal.fire({
-                title: 'Konfirmasi Ubah Periode',
-                text: 'Apakah anda yakin ingin mengubah periode aktif? Data RHK yang tampil akan mengikuti periode yang dipilih.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Ubah Periode',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('periodeForm').submit();
-                }
-            });
+            showPeriodChangeModal();
         }
 
         function showAddModal() {
@@ -705,6 +978,21 @@ ob_clean();
                 }
             });
         }
+
+        // Add smooth scroll animation for cards
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate cards on load
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
 
         // Search functionality for previous RHK
         document.addEventListener('DOMContentLoaded', function() {

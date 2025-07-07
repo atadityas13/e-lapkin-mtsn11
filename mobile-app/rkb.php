@@ -426,6 +426,16 @@ ob_clean();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-purple: #764ba2;
+            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -453,8 +463,8 @@ ob_clean();
             margin: 4px;
         }
         .bottom-nav .nav-link.active {
-            color: #0d6efd;
-            background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+            color: var(--accent-blue);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
             transform: translateY(-2px);
         }
         .bottom-nav .nav-link i {
@@ -465,53 +475,335 @@ ob_clean();
         .bottom-nav .nav-link.active i {
             transform: scale(1.1);
         }
+
         body {
             padding-bottom: 80px;
             background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .card {
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: none;
+
+        .nav-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 15px;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
             margin-bottom: 20px;
         }
-        .btn {
-            border-radius: 10px;
-            transition: all 0.3s ease;
+
+        .nav-header .navbar-brand {
+            font-size: 1.3rem;
+            font-weight: 600;
         }
+
+        .card {
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .period-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.02));
+        }
+
+        .rkb-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .rkb-card:hover {
+            border-left-color: var(--accent-purple);
+        }
+
+        .btn {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
         .btn:hover {
             transform: translateY(-1px);
         }
-        .status-badge {
-            border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .nav-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 0;
-        }
+
         .btn-primary-large {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             font-weight: 600;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+            border-radius: 15px;
+            background: var(--primary-gradient);
+            border: none;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
             transition: all 0.3s ease;
         }
+
         .btn-primary-large:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(13, 110, 253, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
+
+        .btn-outline-primary-custom {
+            border: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background: transparent;
+        }
+
+        .btn-outline-primary-custom:hover {
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .status-badge {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-custom {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-kegiatan { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .badge-jp { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .badge-dokumen { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .badge-laporan { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .badge-hari { background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); }
+        .badge-jam { background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%); }
+        .badge-menit { background: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%); }
+        .badge-unit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
         .rhk-badge {
-            background: rgba(13, 110, 253, 0.1);
-            border-radius: 8px;
-            padding: 4px 8px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1));
+            border-radius: 12px;
+            padding: 8px 12px;
             font-size: 11px;
-            color: #0d6efd;
+            color: var(--accent-blue);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quantity-badge {
+            background: var(--success-gradient);
+            color: white;
+            border-radius: 15px;
+            padding: 6px 12px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .floating-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-btn:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .period-selector {
+            background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,249,255,0.8));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .rkb-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .rkb-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--card-shadow);
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .modal-header {
+            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .verification-status {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        @media (max-width: 576px) {
+            .floating-action {
+                bottom: 90px;
+                right: 15px;
+            }
+            
+            .floating-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .rkb-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-buttons .btn {
+                min-width: 100px;
+                font-size: 0.85rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 10px;
+            }
         }
     </style>
 </head>
@@ -520,16 +812,38 @@ ob_clean();
     <nav class="navbar nav-header">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
-                <i class="fas fa-arrow-left me-2"></i>
-                <span>RKB</span>
+                <i class="fas fa-arrow-left me-3"></i>
+                <div>
+                    <div class="fw-bold">Rencana Kerja Bulanan</div>
+                    <small class="opacity-75">Manajemen RKB</small>
+                </div>
             </a>
             <div class="d-flex align-items-center text-white">
-                <small><?= htmlspecialchars($userData['nama']) ?></small>
+                <div class="text-end">
+                    <small class="opacity-75">Selamat datang,</small>
+                    <div class="fw-semibold"><?= htmlspecialchars($userData['nama']) ?></div>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid px-3 pt-3">
+    <div class="container-fluid px-3">
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number"><?= count($rkbs) ?></div>
+                <div class="stat-label">Total RKB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?= $filter_month ?></div>
+                <div class="stat-label">Bulan Aktif</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?= count($rhk_list) ?></div>
+                <div class="stat-label">RHK Tersedia</div>
+            </div>
+        </div>
+
         <!-- Modal for Period Not Set -->
         <?php if ($periode_bulan_belum_diatur): ?>
         <div class="modal fade" id="modalPeriodeBulanBelumDiatur" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -570,69 +884,79 @@ ob_clean();
         <?php endif; ?>
 
         <!-- Period Info with Change Option -->
-        <div class="card">
+        <div class="card period-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="card-title mb-0">
                         <i class="fas fa-calendar-alt text-primary me-2"></i>
                         Periode: <?= $months[$filter_month] . ' ' . $filter_year ?>
                     </h6>
-                    <button class="btn btn-outline-primary btn-sm" onclick="showPeriodChangeModal()">
+                    <button class="btn btn-outline-primary-custom btn-sm" onclick="showPeriodChangeModal()">
                         <i class="fas fa-edit me-1"></i>Ubah
                     </button>
                 </div>
                 
                 <!-- Status Alert -->
                 <?php if ($status_verval_rkb == 'diajukan'): ?>
-                    <div class="alert alert-info alert-dismissible">
-                        <i class="fas fa-clock me-2"></i>
-                        RKB periode ini sudah diajukan dan menunggu verifikasi Pejabat Penilai.
+                    <div class="verification-status">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-clock text-info me-2 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold text-info">Status: Menunggu Verifikasi</div>
+                                <small class="text-muted">RKB periode ini sudah diajukan dan menunggu verifikasi Pejabat Penilai.</small>
+                            </div>
+                        </div>
                     </div>
                 <?php elseif ($status_verval_rkb == 'disetujui'): ?>
-                    <div class="alert alert-success alert-dismissible">
-                        <i class="fas fa-check-circle me-2"></i>
-                        RKB periode ini sudah diverifikasi/validasi oleh Pejabat Penilai.
+                    <div class="verification-status" style="border-left-color: #28a745;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle text-success me-2 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold text-success">Status: Disetujui</div>
+                                <small class="text-muted">RKB periode ini sudah diverifikasi/validasi oleh Pejabat Penilai.</small>
+                            </div>
+                        </div>
                     </div>
                 <?php elseif ($status_verval_rkb == 'ditolak'): ?>
-                    <div class="alert alert-danger alert-dismissible">
-                        <i class="fas fa-times-circle me-2"></i>
-                        RKB periode ini ditolak oleh Pejabat Penilai. Silakan perbaiki dan ajukan ulang.
+                    <div class="verification-status" style="border-left-color: #dc3545;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-times-circle text-danger me-2 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold text-danger">Status: Ditolak</div>
+                                <small class="text-muted">RKB periode ini ditolak oleh Pejabat Penilai. Silakan perbaiki dan ajukan ulang.</small>
+                            </div>
+                        </div>
                     </div>
                 <?php endif; ?>
 
                 <!-- Action Buttons -->
-                <div class="mb-3">
-                    <div class="d-flex gap-2 flex-wrap mb-2">
-                        <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
-                            <?= empty($rkbs) ? 'disabled' : '' ?>>
-                            <i class="fas fa-eye me-1"></i>Preview RKB
-                        </button>
-                        
-                        <?php if ($status_verval_rkb == 'diajukan'): ?>
-                            <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
-                                <i class="fas fa-times me-1"></i>Batal Ajukan
-                            </button>
-                        <?php elseif ($status_verval_rkb == '' || $status_verval_rkb == null || $status_verval_rkb == 'ditolak'): ?>
-                            <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
-                                <?= empty($rkbs) ? 'disabled' : '' ?>>
-                                <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
-                            </button>
-                        <?php endif; ?>
-                    </div>
+                <div class="action-buttons">
+                    <button class="btn btn-info btn-sm" onclick="showPreviewModal()" 
+                        <?= empty($rkbs) ? 'disabled' : '' ?>>
+                        <i class="fas fa-eye me-1"></i>Preview RKB
+                    </button>
                     
-                    <div>
-                        <button class="btn btn-primary btn-primary-large" onclick="showAddModal()"
-                            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui' || $periode_rhk_belum_diatur) ? 'disabled' : '' ?>>
-                            <i class="fas fa-plus me-2"></i>Tambah RKB
+                    <?php if ($status_verval_rkb == 'diajukan'): ?>
+                        <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
+                            <i class="fas fa-times me-1"></i>Batal Ajukan
                         </button>
-                    </div>
+                    <?php elseif ($status_verval_rkb == '' || $status_verval_rkb == null || $status_verval_rkb == 'ditolak'): ?>
+                        <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
+                            <?= empty($rkbs) ? 'disabled' : '' ?>>
+                            <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
+                        </button>
+                    <?php endif; ?>
                 </div>
                 
                 <?php if ($periode_rhk_belum_diatur): ?>
                     <div class="alert alert-warning mt-3 mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Perhatian:</strong> Belum ada RHK. 
-                        <a href="rhk.php" class="alert-link">Buat RHK terlebih dahulu</a>.
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-2 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold">Perhatian: Belum ada RHK</div>
+                                <small>Silakan <a href="rhk.php" class="alert-link fw-semibold">buat RHK terlebih dahulu</a> sebelum membuat RKB.</small>
+                            </div>
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -701,56 +1025,57 @@ ob_clean();
 
         <!-- RKB List -->
         <?php if (empty($rkbs)): ?>
-            <div class="card text-center">
-                <div class="card-body py-5">
-                    <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
-                    <h6 class="text-muted">Belum ada RKB bulan ini</h6>
-                    <p class="text-muted">Mulai buat rencana kerja bulanan Anda</p>
+            <div class="card">
+                <div class="card-body empty-state">
+                    <i class="fas fa-calendar-plus"></i>
+                    <h5 class="text-muted mb-3">Belum ada RKB bulan ini</h5>
+                    <p class="text-muted mb-4">Mulai buat rencana kerja bulanan untuk mencapai target kinerja Anda</p>
                     <?php if (!$periode_rhk_belum_diatur): ?>
-                        <button class="btn btn-primary btn-primary-large" onclick="showAddModal()">
-                            <i class="fas fa-plus me-2"></i>Tambah RKB
+                        <button class="btn btn-primary-large" onclick="showAddModal()">
+                            <i class="fas fa-plus me-2"></i>Buat RKB Pertama
                         </button>
                     <?php endif; ?>
                 </div>
             </div>
         <?php else: ?>
             <?php foreach ($rkbs as $index => $rkb): ?>
-                <div class="card">
+                <div class="card rkb-card">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <div class="d-flex align-items-center mb-2">
                                     <span class="badge bg-primary me-2">#<?= $index + 1 ?></span>
                                     <span class="rhk-badge"><?= htmlspecialchars($rkb['nama_rhk']) ?></span>
                                 </div>
-                                <h6 class="card-title mb-2"><?= htmlspecialchars($rkb['uraian_kegiatan']) ?></h6>
+                                <h6 class="rkb-title"><?= htmlspecialchars($rkb['uraian_kegiatan']) ?></h6>
                                 
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-success">
-                                        <?= htmlspecialchars($rkb['kuantitas'] . ' ' . $rkb['satuan']) ?>
+                                <div class="rkb-meta">
+                                    <span class="quantity-badge">
+                                        <i class="fas fa-bullseye me-1"></i>
+                                        <?= htmlspecialchars($rkb['kuantitas']) ?> <?= htmlspecialchars($rkb['satuan']) ?>
                                     </span>
                                     <?php if ($rkb['lampiran']): ?>
-                                        <a href="../uploads/rkb/<?= htmlspecialchars($rkb['lampiran']) ?>" target="_blank" class="btn btn-sm btn-outline-info ms-2">
+                                        <a href="../uploads/rkb/<?= htmlspecialchars($rkb['lampiran']) ?>" target="_blank" class="btn btn-sm btn-outline-info">
                                             <i class="fas fa-paperclip me-1"></i>Lampiran
                                         </a>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" style="width: 35px; height: 35px;">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
                                         <a class="dropdown-item" href="#" onclick="editRkb(<?= $rkb['id_rkb'] ?>, <?= $rkb['id_rhk'] ?>, '<?= htmlspecialchars($rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($rkb['kuantitas']) ?>', '<?= htmlspecialchars($rkb['satuan']) ?>')" 
                                            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui') ? 'style="display:none;"' : '' ?>>
-                                            <i class="fas fa-edit me-2"></i>Edit
+                                            <i class="fas fa-edit me-2 text-warning"></i>Edit RKB
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteRkb(<?= $rkb['id_rkb'] ?>)"
                                            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui') ? 'style="display:none;"' : '' ?>>
-                                            <i class="fas fa-trash me-2"></i>Hapus
+                                            <i class="fas fa-trash me-2"></i>Hapus RKB
                                         </a>
                                     </li>
                                 </ul>
@@ -762,40 +1087,12 @@ ob_clean();
         <?php endif; ?>
     </div>
 
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="d-flex">
-            <div class="nav-item">
-                <a href="rhk.php" class="nav-link">
-                    <i class="fas fa-tasks d-block"></i>
-                    <small>RHK</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="rkb.php" class="nav-link active">
-                    <i class="fas fa-calendar d-block"></i>
-                    <small>RKB</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="dashboard.php" class="nav-link">
-                    <i class="fas fa-home d-block"></i>
-                    <small>Beranda</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="lkh.php" class="nav-link">
-                    <i class="fas fa-list d-block"></i>
-                    <small>LKH</small>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="laporan.php" class="nav-link">
-                    <i class="fas fa-file-alt d-block"></i>
-                    <small>Laporan</small>
-                </a>
-            </div>
-        </div>
+    <!-- Floating Action Button -->
+    <div class="floating-action">
+        <button class="floating-btn" onclick="showAddModal()" title="Tambah RKB"
+            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui' || $periode_rhk_belum_diatur) ? 'style="display:none;"' : '' ?>>
+            <i class="fas fa-plus"></i>
+        </button>
     </div>
 
     <!-- Add/Edit RKB Modal -->
@@ -1224,6 +1521,21 @@ ob_clean();
                 }
             });
         }
+
+        // Add smooth scroll animation for cards
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate cards on load
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
 
         // File input handling for mobile
         document.addEventListener('DOMContentLoaded', function() {
