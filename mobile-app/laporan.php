@@ -324,8 +324,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             </a>
             <div class="text-white text-end">
                 <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">NIP: <?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">Periode: <?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>

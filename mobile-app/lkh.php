@@ -42,6 +42,9 @@ $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $filter_month = $periode_aktif['bulan'];
 $filter_year = $periode_aktif['tahun'];
 
+// Get active period for display
+$activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
+
 // Get LKH verification status
 $status_verval_lkh = '';
 $stmt_status = $conn->prepare("SELECT status_verval FROM lkh WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ? LIMIT 1");
@@ -750,8 +753,8 @@ ob_clean();
             </a>
             <div class="text-white text-end">
                 <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">NIP: <?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">Periode: <?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>
@@ -1196,11 +1199,10 @@ ob_clean();
                                             <div>
                                                 <span class="badge bg-secondary me-1"><?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?></span>
                                                 <span class="badge bg-primary"><?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?></span>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
-                                                <i class="fas fa-check me-1"></i>Gunakan
-                                            </button>
+                                            </div>                            <button type="button" class="btn btn-sm btn-success" 
+                                    onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
+                                <i class="fas fa-check me-1"></i>Gunakan
+                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1357,7 +1359,8 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
+                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
             };
             document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
             
@@ -1366,6 +1369,15 @@ ob_clean();
             if (previousLkhModal) {
                 previousLkhModal.hide();
             }
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'LKH Terpilih!',
+                text: 'Data LKH terdahulu berhasil disalin ke form.',
+                timer: 1500,
+                showConfirmButton: false
+            });
         }
 
         // Search functionality for previous LKH modal
