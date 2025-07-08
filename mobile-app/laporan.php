@@ -325,7 +325,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 </head>
 <body>
     <!-- Header -->
-    <?php renderMobileHeader('Laporan', 'Laporan Kinerja', 'dashboard.php', $userData, $activePeriod); ?>
+    <?php renderMobileHeader('Laporan Kinerja', 'Generate & Unduh', 'dashboard.php', $userData, $activePeriod); ?>
 
     <div class="container-fluid px-3">
         <!-- Info Alert -->
