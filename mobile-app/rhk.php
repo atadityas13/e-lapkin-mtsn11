@@ -218,76 +218,823 @@ ob_clean();
     <title>RHK - E-Lapkin Mobile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/mobile.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-purple: #764ba2;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        .bottom-nav .nav-item {
+            flex: 1;
+            text-align: center;
+        }
+        .bottom-nav .nav-link {
+            padding: 12px 8px;
+            color: #6c757d;
+            text-decoration: none;
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 4px;
+        }
+        .bottom-nav .nav-link.active {
+            color: var(--accent-blue);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            transform: translateY(-2px);
+        }
+        .bottom-nav .nav-link i {
+            font-size: 18px;
+            margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav .nav-link.active i {
+            transform: scale(1.1);
+        }
+
+        body {
+            padding-bottom: 80px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .nav-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 15px;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+        }
+
+        .nav-header .navbar-brand {
+            font-size: 1.3rem;
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-header .brand-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-header .brand-content .fw-bold {
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .brand-content small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .nav-header .user-info {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-header .user-info .user-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .user-info .user-nip {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .nav-header .user-info .user-period {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.1;
+        }
+
+        .card {
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .period-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.02));
+        }
+
+        .rhk-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .rhk-card:hover {
+            border-left-color: var(--accent-purple);
+        }
+
+        .btn {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-large {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 15px;
+            background: var(--primary-gradient);
+            border: none;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-large:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-primary-custom {
+            border: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background: transparent;
+        }
+
+        .btn-outline-primary-custom:hover {
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .badge-custom {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-kuantitas { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .badge-kualitas { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .badge-waktu { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .badge-biaya { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+        .badge-target {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .floating-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-btn:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+            color: white;
+        }
+
+        .period-selector {
+            background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,249,255,0.8));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .form-select-custom {
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .form-select-custom:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .rhk-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .rhk-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--card-shadow);
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .modal-header {
+            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 576px) {
+            .floating-action {
+                bottom: 90px;
+                right: 15px;
+            }
+            
+            .floating-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .rhk-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .nav-header {
+                padding: 15px 10px;
+            }
+            
+            .nav-header .container-fluid {
+                gap: 10px !important;
+                flex-wrap: nowrap;
+            }
+            
+            .nav-header .navbar-brand {
+                font-size: 1.1rem;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.95rem;
+            }
+            
+            .nav-header .brand-content small {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info {
+                min-width: 100px;
+                padding: 6px 8px;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .nav-header .container-fluid {
+                flex-direction: column;
+                gap: 12px !important;
+                align-items: stretch;
+            }
+            
+            .nav-header .navbar-brand {
+                justify-content: flex-start;
+                width: 100%;
+            }
+            
+            .nav-header .user-info {
+                align-self: center;
+                min-width: 200px;
+                text-align: center;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.8rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .nav-header {
+                padding: 12px 8px;
+            }
+            
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.9rem;
+            }
+            
+            .nav-header .brand-content small {
+                font-size: 0.65rem;
+            }
+            
+            .nav-header .user-info {
+                min-width: 180px;
+                padding: 6px;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-        <div class="header-content">
-            <div class="header-left">
-                <button class="back-btn" onclick="window.location.href='dashboard.php'">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div class="page-info">
-                    <h1 class="page-title">Rencana Hasil Kerja</h1>
-                    <p class="page-subtitle">Kelola RHK Harian Anda</p>
+    <!-- Header -->
+    <nav class="navbar nav-header">
+        <div class="container-fluid d-flex align-items-center gap-3">
+            <a class="navbar-brand d-flex align-items-center text-white text-decoration-none" href="dashboard.php">
+                <i class="fas fa-arrow-left me-3"></i>
+                <div class="brand-content">
+                    <div class="fw-bold">Rencana Hasil Kerja</div>
+                    <small class="opacity-75">Manajemen RHK</small>
                 </div>
-            </div>
-            <div class="user-info">
+            </a>
+            <div class="user-info text-white">
                 <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+                <div class="user-nip"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-period"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Replace existing content structure with consistent classes -->
-        <!-- Example: Replace old alert with new structure -->
-        <div class="alert alert-info">
-            <div class="alert-icon">
-                <i class="fas fa-info-circle"></i>
+    <div class="container-fluid px-3">
+        <!-- Stats Overview -->
+        <!-- <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number"><?= count($rhks) ?></div>
+                <div class="stat-label">Total RHK</div>
             </div>
-            <div class="alert-content">
-                <div class="alert-title">Informasi RHK</div>
-                <div class="alert-text">
-                    RHK adalah rencana kegiatan harian yang akan Anda lakukan...
+            <div class="stat-card">
+                <div class="stat-number"><?= $periode_aktif ?></div>
+                <div class="stat-label">Periode Aktif</div>
+            </div>
+        </div> -->
+
+        <!-- Period Selection Card -->
+        <div class="card period-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt text-primary me-2"></i>
+                        Periode: Tahun <?= $periode_aktif ?>
+                    </h6>
+                    <button class="btn btn-outline-primary-custom btn-sm" onclick="showPeriodChangeModal()">
+                        <i class="fas fa-edit me-1"></i>Ubah
+                    </button>
+                </div>
+                
+                <div class="period-selector">
+                    <form id="periodeForm" method="POST" class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 me-2 fw-semibold flex-shrink-0">Pilih Periode:</label>
+                        <select class="form-select form-select-custom flex-grow-1" name="tahun_aktif">
+                            <?php foreach ($years as $year): ?>
+                                <option value="<?= $year ?>" <?= ($periode_aktif == $year) ? 'selected' : '' ?>><?= $year ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="hidden" name="set_periode_aktif" value="1">
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Replace card structures -->
-        <div class="card card-primary">
-            <div class="card-header">
-                <div class="card-info-section">
-                    <div class="card-title">Tanggal RHK</div>
-                    <span class="status-badge approved">Status</span>
-                </div>
-                <div class="card-actions">
-                    <button class="btn btn-primary btn-sm">Action</button>
+        <!-- Period Not Set Modal -->
+        <?php if ($periode_belum_diatur): ?>
+        <div class="modal fade" id="modalPeriodeBelumDiatur" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Periode Tahun Belum Diatur
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Informasi:</strong> Periode tahun untuk RHK belum diatur. Silakan pilih periode tahun yang akan digunakan.
+                        </div>
+                        <form id="setPeriodeForm" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Pilih Tahun Periode:</label>
+                                <select class="form-select" name="tahun_aktif" required>
+                                    <option value="">-- Pilih Tahun --</option>
+                                    <?php 
+                                    for ($i = $current_year - 2; $i <= $current_year + 2; $i++): ?>
+                                        <option value="<?= $i ?>" <?= ($i == $current_year) ? 'selected' : '' ?>><?= $i ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                            <input type="hidden" name="set_periode_aktif" value="1">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" onclick="submitPeriodForm()">
+                            <i class="fas fa-check me-1"></i>Atur Periode
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- ...existing content adapted to new structure... -->
-    </main>
+        <!-- RHK List -->
+        <?php if (empty($rhks)): ?>
+            <div class="card">
+                <div class="card-body empty-state">
+                    <i class="fas fa-tasks"></i>
+                    <h5 class="text-muted mb-3">Belum ada RHK tahun ini</h5>
+                    <p class="text-muted mb-4">Mulai buat rencana hasil kerja untuk mencapai target kinerja Anda</p>
+                    <button class="btn btn-primary-large" onclick="showAddModal()">
+                        <i class="fas fa-plus me-2"></i>Buat RHK Pertama
+                    </button>
+                </div>
+            </div>
+        <?php else: ?>
+            <?php foreach ($rhks as $index => $rhk): ?>
+                <div class="card rhk-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-primary me-2">#<?= $index + 1 ?></span>
+                                    <small class="text-muted">RHK <?= $periode_aktif ?></small>
+                                </div>
+                                <h6 class="rhk-title"><?= htmlspecialchars($rhk['nama_rhk']) ?></h6>
+                                <div class="rhk-meta">
+                                    <span class="badge badge-custom badge-<?= strtolower($rhk['aspek']) ?>">
+                                        <i class="fas fa-<?= $rhk['aspek'] == 'Kuantitas' ? 'chart-bar' : ($rhk['aspek'] == 'Kualitas' ? 'star' : ($rhk['aspek'] == 'Waktu' ? 'clock' : 'dollar-sign')) ?> me-1"></i>
+                                        <?= htmlspecialchars($rhk['aspek']) ?>
+                                    </span>
+                                    <span class="badge badge-custom badge-target">
+                                        <i class="fas fa-bullseye me-1"></i>
+                                        <?= htmlspecialchars($rhk['target']) ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" style="width: 35px; height: 35px;">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="editRhk(<?= $rhk['id_rhk'] ?>, '<?= htmlspecialchars($rhk['nama_rhk']) ?>', '<?= htmlspecialchars($rhk['aspek']) ?>', '<?= htmlspecialchars($rhk['target']) ?>')">
+                                            <i class="fas fa-edit me-2 text-warning"></i>Edit RHK
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteRhk(<?= $rhk['id_rhk'] ?>)">
+                                            <i class="fas fa-trash me-2"></i>Hapus RHK
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- Floating Action Button -->
+    <div class="floating-action">
+        <button class="floating-btn" onclick="showAddModal()" title="Tambah RHK">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- Period Change Confirmation Modal -->
+    <div class="modal fade" id="modalKonfirmasiPeriode" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Ubah Periode
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin mengubah periode aktif?</p>
+                    <p class="text-muted small">Data RHK yang tampil akan mengikuti periode yang dipilih.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning" onclick="submitPeriodChange()">
+                        <i class="fas fa-check me-1"></i>Ya, Ubah Periode
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit RHK Modal -->
+    <div class="modal fade" id="rhkModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form id="rhkForm" method="POST">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="rhkModalTitle">Tambah RHK</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="action" id="rhkAction" value="add">
+                        <input type="hidden" name="id_rhk" id="rhkId">
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">Nama RHK / Uraian Kegiatan</label>
+                                <?php if (!empty($previous_rhk_list)): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="showPreviousRhk()">
+                                        <i class="fas fa-history me-1"></i>RHK Terdahulu
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                            <input type="text" class="form-control" name="nama_rhk" id="namaRhk" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Aspek</label>
+                            <select class="form-select" name="aspek" id="aspek" required>
+                                <option value="">-- Pilih Aspek --</option>
+                                <option value="Kuantitas">Kuantitas</option>
+                                <option value="Kualitas">Kualitas</option>
+                                <option value="Waktu">Waktu</option>
+                                <option value="Biaya">Biaya</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Target</label>
+                            <input type="text" class="form-control" name="target" id="target" placeholder="Contoh: 24 JP, 1 Laporan" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Previous RHK Modal -->
+    <div class="modal fade" id="previousRhkModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-history me-2"></i>RHK Terdahulu
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Pilih salah satu RHK terdahulu untuk mengisi form otomatis. Data akan disalin ke form tambah RHK.
+                    </div>
+                    
+                    <?php if (empty($previous_rhk_list)): ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Belum ada data RHK terdahulu yang dapat dijadikan referensi.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="searchPreviousRhk" placeholder="🔍 Cari RHK terdahulu...">
+                        </div>
+                        
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <?php foreach ($previous_rhk_list as $index => $prev_rhk): ?>
+                                <div class="card mb-2 previous-rhk-item" 
+                                     data-nama="<?= htmlspecialchars($prev_rhk['nama_rhk']) ?>"
+                                     data-aspek="<?= htmlspecialchars($prev_rhk['aspek']) ?>"
+                                     data-target="<?= htmlspecialchars($prev_rhk['target']) ?>">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title mb-2"><?= htmlspecialchars($prev_rhk['nama_rhk']) ?></h6>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span class="badge bg-info me-1"><?= htmlspecialchars($prev_rhk['aspek']) ?></span>
+                                                <span class="badge bg-success"><?= htmlspecialchars($prev_rhk['target']) ?></span>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                    onclick="selectPreviousRhk('<?= htmlspecialchars($prev_rhk['nama_rhk']) ?>', '<?= htmlspecialchars($prev_rhk['aspek']) ?>', '<?= htmlspecialchars($prev_rhk['target']) ?>')">
+                                                <i class="fas fa-check me-1"></i>Gunakan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        
+                        <div id="noDataPrevious" class="text-center py-3 d-none">
+                            <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Tidak ada RHK yang sesuai dengan pencarian.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bottom Navigation -->
     <?php include __DIR__ . '/components/bottom-nav.php'; ?>
 
+    <!-- Hidden Forms for Actions -->
+    <form id="deleteForm" method="POST" style="display: none;">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="id_rhk" id="deleteId">
+    </form>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="assets/js/mobile.js"></script>
     
     <script>
-        // Show notifications using MobileUtils
+        // Show notifications
         <?php if (isset($_SESSION['mobile_notification'])): ?>
-            MobileUtils.showNotification(
-                '<?= $_SESSION['mobile_notification']['type'] ?>',
-                '<?= $_SESSION['mobile_notification']['title'] ?>',
-                '<?= $_SESSION['mobile_notification']['text'] ?>'
-            );
+            Swal.fire({
+                icon: '<?= $_SESSION['mobile_notification']['type'] ?>',
+                title: '<?= $_SESSION['mobile_notification']['title'] ?>',
+                text: '<?= $_SESSION['mobile_notification']['text'] ?>',
+                timer: 3000,
+                showConfirmButton: false
+            });
             <?php unset($_SESSION['mobile_notification']); ?>
         <?php endif; ?>
 

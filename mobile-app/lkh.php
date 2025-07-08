@@ -359,450 +359,450 @@ ob_clean();
     <title>LKH - E-Lapkin Mobile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/mobile.css">
-</head>
-<body>
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-        <div class="header-content">
-            <div class="header-left">
-                <button class="back-btn" onclick="window.location.href='dashboard.php'">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div class="page-info">
-                    <h1 class="page-title">Laporan Kinerja Harian</h1>
-                    <p class="page-subtitle">Kelola LKH Harian Anda</p>
-                </div>
-            </div>
-            <div class="user-info">
-                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Replace existing content structure with consistent classes -->
-        <div class="alert alert-info">
-            <div class="alert-icon">
-                <i class="fas fa-info-circle"></i>
-            </div>
-            <div class="alert-content">
-                <div class="alert-title">Informasi LKH</div>
-                <div class="alert-text">
-                    LKH adalah laporan kinerja harian yang berisi aktivitas dan capaian...
-                </div>
-            </div>
-        </div>
-
-        <!-- Daily sections -->
-        <section class="section">
-            <h2 class="section-title">
-                <i class="fas fa-list"></i>
-                Laporan Kinerja Harian
-            </h2>
-            
-            <!-- Replace card structures -->
-            <div class="card card-info">
-                <div class="card-header">
-                    <div class="card-info-section">
-                        <div class="card-title">Tanggal</div>
-                        <span class="status-badge approved">Status</span>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-primary btn-sm">Action</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ...existing content adapted to new structure... -->
-    </main>
-
-    <!-- Bottom Navigation -->
-    <?php include __DIR__ . '/components/bottom-nav.php'; ?>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="assets/js/mobile.js"></script>
-    
-    <script>
-        // Show notifications using MobileUtils
-        <?php if (isset($_SESSION['mobile_notification'])): ?>
-            MobileUtils.showNotification(
-                '<?= $_SESSION['mobile_notification']['type'] ?>',
-                '<?= $_SESSION['mobile_notification']['title'] ?>',
-                '<?= $_SESSION['mobile_notification']['text'] ?>'
-            );
-            <?php unset($_SESSION['mobile_notification']); ?>
-        <?php endif; ?>
-
-        function showAddModal() {
-            resetForm();
-            document.getElementById('lkhModalTitle').textContent = 'Tambah LKH';
-            document.getElementById('lkhAction').value = 'add';
-            document.getElementById('lkhId').value = '';
-            document.getElementById('tanggalLkh').value = '<?= $current_date ?>';
-            document.getElementById('lampiranDiv').style.display = 'block';
-            document.getElementById('submitBtn').textContent = 'Simpan';
-            new bootstrap.Modal(document.getElementById('lkhModal')).show();
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-purple: #764ba2;
+            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --lkh-gradient: linear-gradient(135deg,rgb(255, 245, 154) 0%,rgb(47, 147, 0) 100%);
         }
 
-        function editLkh(id, tanggal, idRkb, nama, uraian, jumlah, satuan) {
-            document.getElementById('lkhModalTitle').textContent = 'Edit LKH';
-            document.getElementById('lkhAction').value = 'edit';
-            document.getElementById('lkhId').value = id;
-            document.getElementById('tanggalLkh').value = tanggal;
-            document.getElementById('rkbSelect').value = idRkb;
-            document.getElementById('namaKegiatan').value = nama;
-            document.getElementById('uraianKegiatan').value = uraian;
-            document.getElementById('jumlahRealisasi').value = jumlah;
-            
-            // Set satuan dropdown
-            const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
-            };
-            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
-            
-            // Show lampiran div only if editing existing LKH with lampiran
-            const lampiranDiv = document.getElementById('lampiranDiv');
-            if (id && lampiranDiv) {
-                lampiranDiv.style.display = 'block';
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        .bottom-nav .nav-item {
+            flex: 1;
+            text-align: center;
+        }
+        .bottom-nav .nav-link {
+            padding: 12px 8px;
+            color: #6c757d;
+            text-decoration: none;
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 4px;
+        }
+        .bottom-nav .nav-link.active {
+            color: var(--accent-blue);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            transform: translateY(-2px);
+        }
+        .bottom-nav .nav-link i {
+            font-size: 18px;
+            margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav .nav-link.active i {
+            transform: scale(1.1);
+        }
+
+        body {
+            padding-bottom: 80px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .nav-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 15px;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+        }
+
+        .nav-header .navbar-brand {
+            font-size: 1.3rem;
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-header .brand-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-header .brand-content .fw-bold {
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .brand-content small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .nav-header .user-info {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-header .user-info .user-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .user-info .user-nip {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .nav-header .user-info .user-period {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.1;
+        }
+
+        .card {
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .period-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.02));
+        }
+
+        .lkh-card {
+            background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+            border-left: 4px solidrgb(171, 171, 32);
+        }
+
+        .lkh-card:hover {
+            border-left-color:rgb(169, 167, 5);
+        }
+
+        .btn {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-large {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 15px;
+            background: var(--primary-gradient);
+            border: none;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-large:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-primary-custom {
+            border: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background: transparent;
+        }
+
+        .btn-outline-primary-custom:hover {
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .status-badge {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-custom {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .date-badge {
+            background: var(--lkh-gradient);
+            color: white;
+            border-radius: 15px;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .quantity-badge {
+            background: var(--success-gradient);
+            color: white;
+            border-radius: 15px;
+            padding: 6px 12px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .day-badge {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(196, 69, 105, 0.1));
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: #c44569;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            background: var(--lkh-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .floating-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--lkh-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(255, 107, 157, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-btn:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 107, 157, 0.5);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 107, 157, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: var(--lkh-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .lkh-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .lkh-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .verification-status {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(196, 69, 105, 0.05));
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solidrgb(197, 170, 20);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--card-shadow);
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(196, 69, 105, 0.05));
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .modal-header {
+            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid rgba(255, 107, 157, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color:rgb(107, 191, 255);
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+        }
+
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .lkh-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 576px) {
+            .nav-header {
+                padding: 15px 10px;
             }
             
-            document.getElementById('submitBtn').textContent = 'Perbarui';
-            new bootstrap.Modal(document.getElementById('lkhModal')).show();
-        }
-
-        function showPreviewModal() {
-            new bootstrap.Modal(document.getElementById('previewModal')).show();
-        }
-
-        function confirmSubmitVerval() {
-            Swal.fire({
-                title: 'Ajukan Verval LKH',
-                text: "Anda yakin ingin mengajukan verval LKH untuk periode ini?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Ajukan!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('vervalForm').submit();
-                }
-            });
-        }
-
-        function confirmCancelVerval() {
-            Swal.fire({
-                title: 'Batal Ajukan Verval',
-                text: "Anda yakin ingin membatalkan pengajuan verval LKH untuk periode ini?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Batalkan!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('cancelVervalForm').submit();
-                }
-            });
-        }
-
-        function deleteLkh(id) {
-            document.getElementById('deleteId').value = id;
-            Swal.fire({
-                title: 'Hapus LKH',
-                text: "Anda yakin ingin menghapus LKH ini?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('deleteForm').submit();
-                }
-            });
-        }
-
-        function showPreviousLkh() {
-            new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
-        }
-
-        function selectPreviousLkh(nama, uraian, jumlah, satuan) {
-            document.getElementById('namaKegiatan').value = nama;
-            document.getElementById('uraianKegiatan').value = uraian;
-            document.getElementById('jumlahRealisasi').value = jumlah;
-            
-            // Set satuan dropdown
-            const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
-            };
-            document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
-            
-            // Hide previous LKH modal
-            var previousLkhModal = bootstrap.Modal.getInstance(document.getElementById('previousLkhModal'));
-            if (previousLkhModal) {
-                previousLkhModal.hide();
+            .nav-header .container-fluid {
+                gap: 10px !important;
+                flex-wrap: nowrap;
             }
             
-            // Show success message
-            Swal.fire({
-                icon: 'success',
-                title: 'LKH Terpilih!',
-                text: 'Data LKH terdahulu berhasil disalin ke form.',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        }
-
-        // Search functionality for previous LKH modal
-        document.getElementById('searchPreviousLkh').addEventListener('input', function() {
-            var query = this.value.toLowerCase();
-            var items = document.querySelectorAll('.previous-lkh-item');
-            var noDataDiv = document.getElementById('noDataPrevious');
-            var hasVisibleItem = false;
-            
-            items.forEach(function(item) {
-                var nama = item.getAttribute('data-nama').toLowerCase();
-                var uraian = item.getAttribute('data-uraian').toLowerCase();
-                
-                if (nama.includes(query) || uraian.includes(query)) {
-                    item.style.display = 'block';
-                    hasVisibleItem = true;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            // Show/hide no data message
-            if (hasVisibleItem) {
-                noDataDiv.classList.add('d-none');
-            } else {
-                noDataDiv.classList.remove('d-none');
-            }
-        });
-
-        // Enhanced form interactions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add loading state to buttons on form submission
-            const forms = document.querySelectorAll('form');
-            forms.forEach(function(form) {
-                form.addEventListener('submit', function() {
-                    const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        submitBtn.classList.add('loading-state');
-                        submitBtn.disabled = true;
-                    }
-                });
-            });
-
-            // Add ripple effect to cards
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(function(card) {
-                card.addEventListener('click', function(e) {
-                    if (!e.target.closest('.btn') && !e.target.closest('.dropdown')) {
-                        const ripple = document.createElement('span');
-                        const rect = card.getBoundingClientRect();
-                        const size = Math.max(rect.width, rect.height);
-                        const x = e.clientX - rect.left - size / 2;
-                        const y = e.clientY - rect.top - size / 2;
-                        
-                        ripple.style.width = ripple.style.height = size + 'px';
-                        ripple.style.left = x + 'px';
-                        ripple.style.top = y + 'px';
-                        ripple.classList.add('ripple-effect');
-                        
-                        card.appendChild(ripple);
-                        
-                        setTimeout(() => {
-                            ripple.remove();
-                        }, 600);
-                    }
-                });
-            });
-
-            // Smooth scroll for better UX
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
-            });
-
-            // Auto-hide alerts after 5 seconds
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                setTimeout(function() {
-                    alert.style.opacity = '0';
-                    setTimeout(function() {
-                        alert.remove();
-                    }, 300);
-                }, 5000);
-            });
-
-            // Enhanced dropdown behavior for mobile
-            const dropdowns = document.querySelectorAll('.dropdown-toggle');
-            dropdowns.forEach(function(dropdown) {
-                dropdown.addEventListener('click', function() {
-                    const menu = this.nextElementSibling;
-                    if (menu && window.innerWidth <= 480) {
-                        menu.style.position = 'fixed';
-                        menu.style.top = '50%';
-                        menu.style.left = '50%';
-                        menu.style.transform = 'translate(-50%, -50%)';
-                        menu.style.zIndex = '1060';
-                        menu.style.width = '90vw';
-                        menu.style.maxWidth = '300px';
-                    }
-                });
-            });
-        });
-
-        // Add CSS for ripple effect
-        const style = document.createElement('style');
-        style.textContent = `
-            .ripple-effect {
-                position: absolute;
-                border-radius: 50%;
-                background-color: rgba(102, 126, 234, 0.1);
-                transform: scale(0);
-                animation: ripple 0.6s linear;
-                pointer-events: none;
-            }
-
-            @keyframes ripple {
-                to {
-                    transform: scale(2);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-
-        // File preview functionality
-        document.getElementById('lampiranInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-            
-            if (file) {
-                fileName.textContent = file.name;
-                preview.style.display = 'block';
-                
-                // File size check
-                if (file.size > 2 * 1024 * 1024) { // 2MB
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'File Terlalu Besar',
-                        text: 'Ukuran file maksimal 2MB. Silakan pilih file yang lebih kecil.',
-                        confirmButtonText: 'OK'
-                    });
-                    this.value = '';
-                    preview.style.display = 'none';
-                    return;
-                }
-                
-                // File type check
-                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-                if (!allowedTypes.includes(file.type)) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Format File Tidak Didukung',
-                        text: 'Format file yang diperbolehkan: PDF, JPG, JPEG, PNG.',
-                        confirmButtonText: 'OK'
-                    });
-                    this.value = '';
-                    preview.style.display = 'none';
-                    return;
-                }
-                
-                // Show preview with success animation
-                preview.style.animation = 'fadeInScale 0.3s ease-out';
-            } else {
-                preview.style.display = 'none';
-            }
-        });
-
-        // Form validation enhancements
-        function validateForm() {
-            const tanggal = document.getElementById('tanggalLkh').value;
-            const rkb = document.getElementById('rkbSelect').value;
-            const namaKegiatan = document.getElementById('namaKegiatan').value.trim();
-            const uraianKegiatan = document.getElementById('uraianKegiatan').value.trim();
-            const jumlahRealisasi = document.getElementById('jumlahRealisasi').value.trim();
-            const satuanRealisasi = document.getElementById('satuanRealisasi').value;
-            
-            if (!tanggal || !rkb || !namaKegiatan || !uraianKegiatan || !jumlahRealisasi || !satuanRealisasi) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Data Tidak Lengkap',
-                    text: 'Mohon lengkapi semua field yang wajib diisi.',
-                    confirmButtonText: 'OK'
-                });
-                return false;
+            .nav-header .navbar-brand {
+                font-size: 1.1rem;
+                flex: 1;
+                min-width: 0;
             }
             
-            // Check if jumlah_realisasi is a valid number
-            if (isNaN(jumlahRealisasi) || jumlahRealisasi <= 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Jumlah Realisasi Tidak Valid',
-                    text: 'Jumlah realisasi harus berupa angka positif.',
-                    confirmButtonText: 'OK'
-                });
-                return false;
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.95rem;
             }
             
-            return true;
-        }
-
-        // Enhanced form submission with loading state
-        document.getElementById('lkhForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (!validateForm()) {
-                return;
+            .nav-header .brand-content small {
+                font-size: 0.7rem;
             }
             
-            const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.innerHTML;
+            .nav-header .user-info {
+                min-width: 100px;
+                padding: 6px 8px;
+            }
             
-            // Show loading state
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
-            submitBtn.disabled = true;
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
+            }
             
-            // Submit form after short delay for better UX
-            setTimeout(() => {
-                this.submit();
-            }, 500);
-        });
-        
-        // Reset form function
-        function resetForm() {
-            document.getElementById('lkhForm').reset();
-            document.getElementById('filePreview').style.display = 'none';
-            document.getElementById('lampiranDiv').style.display = 'block';
-            document.getElementById('submitBtn').innerHTML = 'Simpan';
-            document.getElementById('submitBtn').disabled = false;
-        }
-    </script>
-</body>
-</html>
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
+            }
+            
+            .container-fluid {
+                padding-left: 10px !important;
                 padding-right: 10px !important;
             }
             
@@ -1263,87 +1263,9 @@ ob_clean();
         .modal-body::-webkit-scrollbar-thumb:hover {
             background: rgba(102, 126, 234, 0.5);
         }
-
-        /* Mobile Header */
-        .mobile-header {
-            display: none;
-            position: relative;
-            z-index: 1000;
-        }
-
-        .mobile-header .header-content {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 15px;
-            border-radius: 0 0 25px 25px;
-            box-shadow: var(--card-shadow);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .mobile-header .header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .mobile-header .back-btn {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-
-        .mobile-header .page-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .mobile-header .page-subtitle {
-            font-size: 0.9rem;
-            margin: 0;
-            opacity: 0.8;
-        }
-
-        .mobile-header .user-info {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .mobile-header {
-                display: block;
-            }
-            
-            .nav-header {
-                display: none;
-            }
-        }
     </style>
 </head>
 <body>
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-        <div class="header-content">
-            <div class="header-left">
-                <button class="back-btn" onclick="window.location.href='dashboard.php'">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div>
-                    <h1 class="page-title">Laporan Kinerja Harian</h1>
-                    <p class="page-subtitle">Kelola LKH Harian Anda</p>
-                </div>
-            </div>
-            <div class="user-info">
-                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
-            </div>
-        </div>
-    </header>
-
     <!-- Header -->
     <nav class="navbar nav-header">
         <div class="container-fluid d-flex align-items-center gap-3">
@@ -2223,5 +2145,7 @@ ob_clean();
             document.getElementById('submitBtn').disabled = false;
         }
     </script>
+</body>
+</html>
 </body>
 </html>
