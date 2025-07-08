@@ -146,7 +146,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             // Handle file upload for edit action
-            $old_lampiran = NULL;
             if ($action == 'edit') {
                 $id_lkh = (int)$_POST['id_lkh'];
                 
@@ -1827,8 +1826,7 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
             };
             document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
             
@@ -2322,5 +2320,7 @@ ob_clean();
             }
         }
     </script>
+</body>
+</html>
 </body>
 </html>
