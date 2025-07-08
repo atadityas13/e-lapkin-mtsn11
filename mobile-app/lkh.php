@@ -1041,25 +1041,59 @@ ob_clean();
             }
             
             .dropdown-menu {
-                position: fixed !important;
-                top: 50% !important;
-                left: 50% !important;
-                transform: translate(-50%, -50%) !important;
+                position: absolute !important;
+                top: 100% !important;
+                left: auto !important;
+                right: 0 !important;
+                transform: none !important;
                 margin: 0 !important;
-                width: 90vw !important;
-                max-width: 300px !important;
-                z-index: 1060 !important;
+                width: auto !important;
+                min-width: 160px !important;
+                max-width: 200px !important;
+                z-index: 1000 !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                border: 1px solid rgba(0,0,0,0.1) !important;
             }
             
-            .dropdown-menu::before {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.3);
-                z-index: -1;
+            .dropdown-item {
+                padding: 10px 12px !important;
+                font-size: 0.85rem !important;
+                white-space: nowrap !important;
+                display: flex !important;
+                align-items: center !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .dropdown-item:hover {
+                background-color: #f8f9fa !important;
+                color: #495057 !important;
+            }
+            
+            .dropdown-item i {
+                width: 16px !important;
+                margin-right: 8px !important;
+                font-size: 0.8rem !important;
+            }
+            
+            .dropdown-toggle::after {
+                display: none !important;
+            }
+            
+            .dropdown {
+                position: relative !important;
+            }
+            
+            .btn-light {
+                background-color: #f8f9fa !important;
+                border: 1px solid #dee2e6 !important;
+                color: #6c757d !important;
+            }
+            
+            .btn-light:hover {
+                background-color: #e9ecef !important;
+                border-color: #dee2e6 !important;
+                color: #495057 !important;
             }
             
             .verification-status {
@@ -1312,20 +1346,23 @@ ob_clean();
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" style="width: 35px; height: 35px;">
-                                    <i class="fas fa-ellipsis-v"></i>
+                                <button class="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center" 
+                                        data-bs-toggle="dropdown" 
+                                        aria-expanded="false"
+                                        style="width: 32px; height: 32px; border: 1px solid #dee2e6;">
+                                    <i class="fas fa-ellipsis-v text-muted"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>, '<?= htmlspecialchars($lkh['tanggal_lkh']) ?>', '<?= $lkh['id_rkb'] ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($lkh['satuan_realisasi']) ?>')" 
-                                           <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
-                                            <i class="fas fa-edit me-2 text-warning"></i>Edit LKH
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                        <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>, '<?= htmlspecialchars($lkh['tanggal_lkh']) ?>', '<?= $lkh['id_rkb'] ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($lkh['satuan_realisasi']) ?>')">
+                                            <i class="fas fa-edit text-warning"></i>
+                                            <span>Edit</span>
                                         </a>
                                     </li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" href="#" onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)"
-                                           <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
-                                            <i class="fas fa-trash me-2"></i>Hapus LKH
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)">
+                                            <i class="fas fa-trash text-danger"></i>
+                                            <span>Hapus</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -1797,6 +1834,7 @@ ob_clean();
                 
                 if (nama.includes(query) || uraian.includes(query)) {
                     item.style.display = 'block';
+
                     hasVisibleItem = true;
                 } else {
                     item.style.display = 'none';
@@ -1875,21 +1913,52 @@ ob_clean();
                 }, 5000);
             });
 
-            // Enhanced dropdown behavior for mobile
-            const dropdowns = document.querySelectorAll('.dropdown-toggle');
+            // Enhanced dropdown behavior for mobile - Fixed positioning
+            const dropdowns = document.querySelectorAll('.dropdown');
             dropdowns.forEach(function(dropdown) {
-                dropdown.addEventListener('click', function() {
-                    const menu = this.nextElementSibling;
-                    if (menu && window.innerWidth <= 480) {
-                        menu.style.position = 'fixed';
-                        menu.style.top = '50%';
-                        menu.style.left = '50%';
-                        menu.style.transform = 'translate(-50%, -50%)';
-                        menu.style.zIndex = '1060';
-                        menu.style.width = '90vw';
-                        menu.style.maxWidth = '300px';
-                    }
-                });
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                if (toggle && menu) {
+                    toggle.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        
+                        // Close other dropdowns
+                        document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                            if (otherMenu !== menu) {
+                                otherMenu.classList.remove('show');
+                            }
+                        });
+                        
+                        // Position menu correctly
+                        if (window.innerWidth <= 480) {
+                            const rect = toggle.getBoundingClientRect();
+                            const menuHeight = menu.offsetHeight;
+                            const windowHeight = window.innerHeight;
+                            
+                            // Check if menu would overflow bottom
+                            if (rect.bottom + menuHeight > windowHeight) {
+                                menu.style.top = 'auto';
+                                menu.style.bottom = '100%';
+                            } else {
+                                menu.style.top = '100%';
+                                menu.style.bottom = 'auto';
+                            }
+                            
+                            menu.style.right = '0';
+                            menu.style.left = 'auto';
+                        }
+                    });
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                        menu.classList.remove('show');
+                    });
+                }
             });
         });
 
