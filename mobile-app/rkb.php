@@ -428,607 +428,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     <title>RKB - E-Lapkin Mobile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
-            --accent-blue: #667eea;
-            --accent-purple: #764ba2;
-            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(0,0,0,0.1);
-            z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-        }
-        .bottom-nav .nav-item {
-            flex: 1;
-            text-align: center;
-        }
-        .bottom-nav .nav-link {
-            padding: 12px 8px;
-            color: #6c757d;
-            text-decoration: none;
-            display: block;
-            font-size: 11px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border-radius: 12px;
-            margin: 4px;
-        }
-        .bottom-nav .nav-link.active {
-            color: var(--accent-blue);
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-            transform: translateY(-2px);
-        }
-        .bottom-nav .nav-link i {
-            font-size: 18px;
-            margin-bottom: 4px;
-            transition: transform 0.2s ease;
-        }
-        .bottom-nav .nav-link.active i {
-            transform: scale(1.1);
-        }
-
-        body {
-            padding-bottom: 80px;
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .nav-header {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 20px 15px;
-            border-radius: 0 0 25px 25px;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 20px;
-        }
-
-        .nav-header .navbar-brand {
-            font-size: 1.3rem;
-            font-weight: 600;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .nav-header .brand-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .nav-header .brand-content .fw-bold {
-            font-size: 1.1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .nav-header .brand-content small {
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-
-        .nav-header .user-info {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 8px 12px;
-            min-width: 120px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .nav-header .user-info .user-name {
-            font-size: 0.85rem;
-            font-weight: 600;
-            line-height: 1.2;
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .nav-header .user-info .user-nip {
-            font-size: 0.75rem;
-            opacity: 0.9;
-            line-height: 1.1;
-            margin-bottom: 2px;
-        }
-
-        .nav-header .user-info .user-period {
-            font-size: 0.7rem;
-            opacity: 0.8;
-            line-height: 1.1;
-        }
-
-        .card {
-            border-radius: 20px;
-            box-shadow: var(--card-shadow);
-            border: none;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--card-hover-shadow);
-        }
-
-        .period-card {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.02));
-        }
-
-        .rkb-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-            border-left: 4px solid var(--accent-blue);
-        }
-
-        .rkb-card:hover {
-            border-left-color: var(--accent-purple);
-        }
-
-        .btn {
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-primary-large {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 15px;
-            background: var(--primary-gradient);
-            border: none;
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary-large:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-outline-primary-custom {
-            border: 2px solid var(--accent-blue);
-            color: var(--accent-blue);
-            background: transparent;
-        }
-
-        .btn-outline-primary-custom:hover {
-            background: var(--primary-gradient);
-            border-color: transparent;
-            color: white;
-        }
-
-        .status-badge {
-            border-radius: 20px;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-custom {
-            border-radius: 20px;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-kegiatan { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .badge-jp { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        .badge-dokumen { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .badge-laporan { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
-        .badge-hari { background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); }
-        .badge-jam { background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%); }
-        .badge-menit { background: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%); }
-        .badge-unit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-
-        .rhk-badge {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1));
-            border-radius: 12px;
-            padding: 8px 12px;
-            font-size: 11px;
-            color: var(--accent-blue);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .quantity-badge {
-            background: var(--success-gradient);
-            color: white;
-            border-radius: 15px;
-            padding: 6px 12px;
-            font-weight: 600;
-            font-size: 13px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 20px;
-        }
-
-        .floating-action {
-            position: fixed;
-            bottom: 100px;
-            right: 20px;
-            z-index: 999;
-        }
-
-        .floating-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            transition: all 0.3s ease;
-        }
-
-        .floating-btn:hover {
-            transform: scale(1.1) translateY(-2px);
-            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
-            color: white;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            border: 1px solid rgba(102, 126, 234, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--card-shadow);
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: bold;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-top: 5px;
-        }
-
-        .period-selector {
-            background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,249,255,0.8));
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
-        }
-
-        .rkb-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 10px;
-        }
-
-        .rkb-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .dropdown-menu {
-            border-radius: 12px;
-            border: none;
-            box-shadow: var(--card-shadow);
-        }
-
-        .dropdown-item {
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 2px;
-            transition: all 0.2s ease;
-        }
-
-        .dropdown-item:hover {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-        }
-
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: var(--card-hover-shadow);
-        }
-
-        .modal-header {
-            border-radius: 20px 20px 0 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-        }
-
-        .form-control, .form-select {
-            border-radius: 10px;
-            border: 2px solid rgba(102, 126, 234, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .alert {
-            border-radius: 15px;
-            border: none;
-        }
-
-        .verification-status {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid var(--accent-blue);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-
-        .action-buttons .btn {
-            flex: 1;
-            min-width: 120px;
-        }
-
-        @media (max-width: 576px) {
-            .floating-action {
-                bottom: 90px;
-                right: 15px;
-            }
-            
-            .floating-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-            
-            .card-body {
-                padding: 15px;
-            }
-            
-            .rkb-meta {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .action-buttons .btn {
-                min-width: 100px;
-                font-size: 0.85rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-                gap: 10px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .nav-header {
-                padding: 15px 10px;
-            }
-            
-            .nav-header .container-fluid {
-                gap: 10px !important;
-                flex-wrap: nowrap;
-            }
-            
-            .nav-header .navbar-brand {
-                font-size: 1.1rem;
-                flex: 1;
-                min-width: 0;
-            }
-            
-            .nav-header .brand-content .fw-bold {
-                font-size: 0.95rem;
-            }
-            
-            .nav-header .brand-content small {
-                font-size: 0.7rem;
-            }
-            
-            .nav-header .user-info {
-                min-width: 100px;
-                padding: 6px 8px;
-            }
-            
-            .nav-header .user-info .user-name {
-                font-size: 0.75rem;
-            }
-            
-            .nav-header .user-info .user-nip {
-                font-size: 0.7rem;
-            }
-            
-            .nav-header .user-info .user-period {
-                font-size: 0.65rem;
-            }
-        }
-
-        @media (max-width: 450px) {
-            .nav-header .container-fluid {
-                flex-direction: column;
-                gap: 12px !important;
-                align-items: stretch;
-            }
-            
-            .nav-header .navbar-brand {
-                justify-content: flex-start;
-                width: 100%;
-            }
-            
-            .nav-header .user-info {
-                align-self: center;
-                min-width: 200px;
-                text-align: center;
-            }
-            
-            .nav-header .user-info .user-name {
-                font-size: 0.8rem;
-            }
-            
-            .nav-header .user-info .user-nip {
-                font-size: 0.75rem;
-            }
-            
-            .nav-header .user-info .user-period {
-                font-size: 0.7rem;
-            }
-        }
-
-        @media (max-width: 390px) {
-            .nav-header {
-                padding: 12px 8px;
-            }
-            
-            .nav-header .brand-content .fw-bold {
-                font-size: 0.9rem;
-            }
-            
-            .nav-header .brand-content small {
-                font-size: 0.65rem;
-            }
-            
-            .nav-header .user-info {
-                min-width: 180px;
-                padding: 6px;
-            }
-            
-            .nav-header .user-info .user-name {
-                font-size: 0.75rem;
-            }
-            
-            .nav-header .user-info .user-nip {
-                font-size: 0.7rem;
-            }
-            
-            .nav-header .user-info .user-period {
-                font-size: 0.65rem;
-            }
-        }
-
-        /* Mobile Header Styles */
-        .mobile-header {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .mobile-header {
-                display: block;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: var(--primary-gradient);
-                color: white;
-                padding: 10px 15px;
-                z-index: 1000;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            }
-
-            .mobile-header .header-content {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .mobile-header .header-left {
-                display: flex;
-                align-items: center;
-            }
-
-            .mobile-header .back-btn {
-                background: rgba(255,255,255,0.2);
-                border: none;
-                border-radius: 50%;
-                width: 36px;
-                height: 36px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-right: 10px;
-                transition: background 0.3s ease;
-            }
-
-            .mobile-header .back-btn:hover {
-                background: rgba(255,255,255,0.3);
-            }
-
-            .mobile-header .page-title {
-                font-size: 1.1rem;
-                font-weight: 500;
-                margin-bottom: 2px;
-            }
-
-            .mobile-header .page-subtitle {
-                font-size: 0.85rem;
-                opacity: 0.9;
-            }
-
-            .mobile-header .user-info {
-                display: none;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/mobile.css">
 </head>
 <body>
     <!-- Mobile Header -->
@@ -1038,7 +438,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 <button class="back-btn" onclick="window.location.href='dashboard.php'">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <div>
+                <div class="page-info">
                     <h1 class="page-title">Rencana Kinerja Bulanan</h1>
                     <p class="page-subtitle">Kelola RKB Bulanan Anda</p>
                 </div>
@@ -1051,40 +451,41 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
     </header>
 
-    <!-- Header -->
-    <nav class="navbar nav-header">
-        <div class="container-fluid d-flex align-items-center gap-3">
-            <a class="navbar-brand d-flex align-items-center text-white text-decoration-none" href="dashboard.php">
-                <i class="fas fa-arrow-left me-3"></i>
-                <div class="brand-content">
-                    <div class="fw-bold">Rencana Kerja Bulanan</div>
-                    <small class="opacity-75">Manajemen RKB</small>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Replace existing content structure with consistent classes -->
+        <div class="alert alert-info">
+            <div class="alert-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="alert-content">
+                <div class="alert-title">Informasi RKB</div>
+                <div class="alert-text">
+                    RKB adalah rencana kinerja bulanan yang berisi target dan sasaran...
                 </div>
-            </a>
-            <div class="user-info text-white">
-                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="user-nip"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="user-period"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
-    </nav>
 
-    <div class="container-fluid px-3">
-        <!-- Stats Overview -->
-        <!-- <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number"><?= count($rkbs) ?></div>
-                <div class="stat-label">Total RKB</div>
+        <!-- Monthly sections -->
+        <section class="section">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-alt"></i>
+                Rencana Kinerja Bulanan
+            </h2>
+            
+            <!-- Replace card structures -->
+            <div class="card card-primary">
+                <div class="card-header">
+                    <div class="card-info-section">
+                        <div class="card-title">Bulan Tahun</div>
+                        <span class="status-badge approved">Status</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm">Action</button>
+                    </div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number"><?= $filter_month ?></div>
-                <div class="stat-label">Bulan Aktif</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number"><?= count($rhk_list) ?></div>
-                <div class="stat-label">RHK Tersedia</div>
-            </div>
-        </div> -->
+        </section>
 
         <!-- Modal for Period Not Set -->
         <?php if ($periode_bulan_belum_diatur): ?>
@@ -1327,15 +728,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
-    </div>
-
-    <!-- Floating Action Button -->
-    <div class="floating-action">
-        <button class="floating-btn" onclick="showAddModal()" title="Tambah RKB"
-            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui' || $periode_rhk_belum_diatur) ? 'style="display:none;"' : '' ?>>
-            <i class="fas fa-plus"></i>
-        </button>
-    </div>
+    </main>
 
     <!-- Bottom Navigation -->
     <?php include __DIR__ . '/components/bottom-nav.php'; ?>
@@ -1591,17 +984,16 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/js/mobile.js"></script>
     
     <script>
-        // Show notifications
+        // Show notifications using MobileUtils
         <?php if (isset($_SESSION['mobile_notification'])): ?>
-            Swal.fire({
-                icon: '<?= $_SESSION['mobile_notification']['type'] ?>',
-                title: '<?= $_SESSION['mobile_notification']['title'] ?>',
-                text: '<?= $_SESSION['mobile_notification']['text'] ?>',
-                timer: 3000,
-                showConfirmButton: false
-            });
+            MobileUtils.showNotification(
+                '<?= $_SESSION['mobile_notification']['type'] ?>',
+                '<?= $_SESSION['mobile_notification']['title'] ?>',
+                '<?= $_SESSION['mobile_notification']['text'] ?>'
+            );
             <?php unset($_SESSION['mobile_notification']); ?>
         <?php endif; ?>
 
