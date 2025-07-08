@@ -11,6 +11,7 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
 checkMobileLogin();
@@ -1157,22 +1158,7 @@ ob_clean();
 </head>
 <body>
     <!-- Header -->
-    <nav class="navbar nav-header">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
-                <i class="fas fa-arrow-left me-3"></i>
-                <div>
-                    <div class="fw-bold">LKH</div>
-                    <small class="opacity-75">Kinerja Harian</small>
-                </div>
-            </a>
-            <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
-            </div>
-        </div>
-    </nav>
+    <?php renderMobileHeader('LKH', 'Laporan Kinerja Harian', 'dashboard.php', $userData, $activePeriod); ?>
 
     <div class="container-fluid px-3">
         <!-- Stats Overview -->
@@ -2023,6 +2009,20 @@ ob_clean();
             // Submit form after short delay for better UX
             setTimeout(() => {
                 this.submit();
+            }, 500);
+        });
+        
+        // Reset form function
+        function resetForm() {
+            document.getElementById('lkhForm').reset();
+            document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('lampiranDiv').style.display = 'block';
+            document.getElementById('submitBtn').innerHTML = 'Simpan';
+            document.getElementById('submitBtn').disabled = false;
+        }
+    </script>
+</body>
+</html>
             }, 500);
         });
         
