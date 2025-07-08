@@ -564,8 +564,8 @@ ob_clean();
             <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
                 <i class="fas fa-arrow-left me-3"></i>
                 <div>
-                    <div class="fw-bold">Rencana Hasil Kerja</div>
-                    <small class="opacity-75">Manajemen RHK</small>
+                    <div class="fw-bold">RHK</div>
+                    <small class="opacity-75">Rencana Hasil Kerja</small>
                 </div>
             </a>
             <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
