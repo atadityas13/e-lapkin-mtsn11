@@ -92,318 +92,466 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
-            --accent-blue: #667eea;
-            --accent-purple: #764ba2;
-            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --info-gradient: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            --primary-color: #4f46e5;
+            --primary-dark: #3730a3;
+            --secondary-color: #6b7280;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --light-gray: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-dark);
+            line-height: 1.5;
             padding-bottom: 80px;
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        .nav-header {
-            background: var(--primary-gradient);
+        /* Header Styles */
+        .mobile-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
             color: white;
-            padding: 20px 15px;
-            border-radius: 0 0 25px 25px;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 20px;
-        }
-
-        .nav-header .navbar-brand {
-            font-size: 1.3rem;
-            font-weight: 600;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .nav-header .brand-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .nav-header .brand-content .fw-bold {
-            font-size: 1.1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .nav-header .brand-content small {
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-
-        .nav-header .user-info {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 8px 12px;
-            min-width: 120px;
-            text-align: center;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .nav-header .user-info .user-name {
-            font-size: 0.85rem;
-            font-weight: 600;
-            line-height: 1.2;
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .mobile-header .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 100%;
         }
 
-        .nav-header .user-info .user-nip {
-            font-size: 0.75rem;
+        .mobile-header .header-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mobile-header .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            margin-right: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .mobile-header .back-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .mobile-header .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mobile-header .page-subtitle {
+            font-size: 0.8rem;
             opacity: 0.9;
-            line-height: 1.1;
-            margin-bottom: 2px;
+            margin-top: 0.1rem;
         }
 
-        .nav-header .user-info .user-period {
-            font-size: 0.7rem;
-            opacity: 0.8;
-            line-height: 1.1;
+        .mobile-header .user-info {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            text-align: right;
+            min-width: 120px;
         }
 
-        .card {
-            border-radius: 20px;
-            box-shadow: var(--card-shadow);
-            border: none;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-            overflow: hidden;
+        .mobile-header .user-info .user-name {
+            font-weight: 600;
+            margin-bottom: 0.1rem;
         }
 
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--card-hover-shadow);
-        }
-
-        .report-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-        }
-
-        .lkb-card {
-            border-left: 4px solid #007bff;
-        }
-
-        .lkh-card {
-            border-left: 4px solid #17a2b8;
-        }
-
-        .btn {
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-sm {
-            padding: 4px 8px;
+        .mobile-header .user-info .user-details {
+            opacity: 0.9;
             font-size: 0.75rem;
         }
 
-        .btn-download {
-            background: var(--success-gradient);
-            border: none;
-            color: white;
+        /* Main Content */
+        .main-content {
+            padding: 1rem;
         }
 
-        .btn-download:hover {
-            color: white;
-            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.3);
+        /* Info Alert */
+        .info-alert {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
         }
 
-        .btn-generate {
-            background: var(--primary-gradient);
-            border: none;
-            color: white;
+        .info-alert .alert-icon {
+            color: var(--info-color);
+            font-size: 1.25rem;
+            margin-top: 0.1rem;
         }
 
-        .btn-generate:hover {
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        .info-alert .alert-content {
+            flex: 1;
         }
 
-        .btn-regenerate {
-            background: var(--warning-gradient);
-            border: none;
-            color: white;
-        }
-
-        .btn-regenerate:hover {
-            color: white;
-            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
-        }
-
-        .badge {
-            border-radius: 15px;
-            padding: 6px 12px;
-            font-size: 11px;
+        .info-alert .alert-title {
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--info-color);
+            margin-bottom: 0.25rem;
         }
 
-        .badge-status {
-            padding: 8px 12px;
+        .info-alert .alert-text {
+            color: var(--text-light);
+            font-size: 0.9rem;
         }
 
-        .report-header {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .report-section {
-            margin-bottom: 30px;
+        /* Section Styles */
+        .section {
+            margin-bottom: 2rem;
         }
 
         .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 15px;
             display: flex;
             align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
         }
 
         .section-title i {
-            margin-right: 10px;
-            width: 20px;
+            color: var(--primary-color);
         }
 
-        .report-item {
+        /* Card Styles */
+        .report-card {
             background: white;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #e9ecef;
-            transition: all 0.3s ease;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
         }
 
-        .report-item:hover {
-            transform: translateX(5px);
-            border-left-color: var(--accent-blue);
+        .report-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        .report-item-header {
+        .report-card.lkb-card {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .report-card.lkh-card {
+            border-left: 4px solid var(--info-color);
+        }
+
+        .report-card-header {
             display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 10px;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .report-card-info {
+            flex: 1;
         }
 
         .report-period {
+            font-size: 1rem;
             font-weight: 600;
-            color: #495057;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
         }
 
         .report-actions {
             display: flex;
-            gap: 8px;
+            gap: 0.5rem;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
 
-        .modal-content {
-            border-radius: 20px;
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-badge.approved {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-badge.pending {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .status-badge.draft {
+            background: linear-gradient(135deg, rgba(107, 114, 128, 0.1), rgba(107, 114, 128, 0.05));
+            color: var(--secondary-color);
+            border: 1px solid rgba(107, 114, 128, 0.2);
+        }
+
+        /* Button Styles */
+        .btn {
+            border-radius: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
             border: none;
-            box-shadow: var(--card-hover-shadow);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
 
         .modal-header {
-            border-radius: 20px 20px 0 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+            background: var(--primary-color);
+            color: white;
+            border-radius: 1rem 1rem 0 0;
+            padding: 1rem 1.5rem;
+            border-bottom: none;
+        }
+
+        .modal-header.bg-info {
+            background: var(--info-color);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Form Styles */
+        .form-label {
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
         }
 
         .form-control {
-            border-radius: 10px;
-            border: 2px solid rgba(102, 126, 234, 0.2);
-            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
 
         .form-control:focus {
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
         }
 
-        .info-alert {
-            background: linear-gradient(135deg, rgba(23, 162, 184, 0.1), rgba(19, 132, 150, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-left: 4px solid #17a2b8;
-        }
-
-        @media (max-width: 576px) {
-            .card-body {
-                padding: 15px;
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .mobile-header {
+                padding: 0.75rem;
             }
-            
+
+            .mobile-header .page-title {
+                font-size: 1rem;
+            }
+
+            .mobile-header .user-info {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+                min-width: 100px;
+            }
+
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .report-card {
+                padding: 0.75rem;
+            }
+
+            .report-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .report-actions {
+                width: 100%;
+            }
+
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .mobile-header .header-content {
+                gap: 0.5rem;
+            }
+
+            .mobile-header .user-info {
+                min-width: 80px;
+                font-size: 0.7rem;
+            }
+
             .report-actions {
                 flex-direction: column;
             }
-            
-            .report-actions .btn {
+
+            .btn {
                 width: 100%;
+                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <nav class="navbar nav-header">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
-                <i class="fas fa-arrow-left me-3"></i>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='dashboard.php'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
                 <div>
-                    <div class="fw-bold">Laporan Kinerja</div>
-                    <small class="opacity-75">Generate & Download LKB/LKH</small>
+                    <h1 class="page-title">Laporan Kinerja</h1>
+                    <p class="page-subtitle">Generate & Download LKB/LKH</p>
                 </div>
-            </a>
-            <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
+            </div>
+            <div class="user-info">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <div class="container-fluid px-3">
+    <!-- Main Content -->
+    <main class="main-content">
         <!-- Info Alert -->
         <div class="info-alert">
-            <div class="d-flex align-items-start">
-                <i class="fas fa-info-circle text-info me-3 mt-1"></i>
-                <div>
-                    <div class="fw-semibold text-info mb-1">Informasi Laporan</div>
-                    <small class="text-muted">
-                        LKB & LKH dapat digenerate jika data sudah disetujui oleh Pejabat Penilai. 
-                        File akan tersimpan dalam format PDF dan dapat diunduh kapan saja.
-                    </small>
+            <div class="alert-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="alert-content">
+                <div class="alert-title">Informasi Laporan</div>
+                <div class="alert-text">
+                    LKB & LKH dapat digenerate jika data sudah disetujui oleh Pejabat Penilai. 
+                    File akan tersimpan dalam format PDF dan dapat diunduh kapan saja.
                 </div>
             </div>
         </div>
 
         <!-- LKB Section -->
-        <div class="report-section">
-            <div class="section-title">
-                <i class="fas fa-file-alt text-primary"></i>
+        <section class="section">
+            <h2 class="section-title">
+                <i class="fas fa-file-alt"></i>
                 Laporan Kinerja Bulanan (LKB)
-            </div>
+            </h2>
             
             <?php foreach ($years as $tahun): ?>
                 <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
@@ -428,42 +576,47 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                         $pdf_exists_lkb = lkb_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
                         $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
                     ?>
-                        <div class="report-item lkb-card">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                        <div class="report-card lkb-card">
+                            <div class="report-card-header">
+                                <div class="report-card-info">
                                     <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-success badge-status">
-                                        <i class="fas fa-check-circle me-1"></i>Disetujui
+                                    <span class="status-badge approved">
+                                        <i class="fas fa-check-circle"></i>
+                                        Disetujui
                                     </span>
                                 </div>
                                 <div class="report-actions">
                                     <?php if ($pdf_exists_lkb): ?>
-                                        <button type="button" class="btn btn-download btn-sm" 
+                                        <button type="button" class="btn btn-success btn-sm" 
                                                 onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
-                                            <i class="fas fa-download me-1"></i>Download
+                                            <i class="fas fa-download"></i>
+                                            Download
                                         </button>
-                                        <button type="button" class="btn btn-regenerate btn-sm" 
+                                        <button type="button" class="btn btn-warning btn-sm" 
                                                 data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
                                                 data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-sync me-1"></i>Generate Ulang
+                                            <i class="fas fa-sync"></i>
+                                            Generate Ulang
                                         </button>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-generate btn-sm" 
+                                        <button type="button" class="btn btn-primary btn-sm" 
                                                 data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
                                                 data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-cogs me-1"></i>Generate LKB
+                                            <i class="fas fa-cogs"></i>
+                                            Generate LKB
                                         </button>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     <?php elseif ($status_verval_rkb === 'diajukan'): ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                        <div class="report-card">
+                            <div class="report-card-header">
+                                <div class="report-card-info">
                                     <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-warning badge-status">
-                                        <i class="fas fa-clock me-1"></i>Menunggu Approval
+                                    <span class="status-badge pending">
+                                        <i class="fas fa-clock"></i>
+                                        Menunggu Approval
                                     </span>
                                 </div>
                                 <div class="report-actions">
@@ -472,12 +625,13 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             </div>
                         </div>
                     <?php else: ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                        <div class="report-card">
+                            <div class="report-card-header">
+                                <div class="report-card-info">
                                     <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-secondary badge-status">
-                                        <i class="fas fa-times-circle me-1"></i>Belum Terkirim
+                                    <span class="status-badge draft">
+                                        <i class="fas fa-times-circle"></i>
+                                        Belum Terkirim
                                     </span>
                                 </div>
                                 <div class="report-actions">
@@ -488,14 +642,14 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <?php endif; ?>
                 <?php endfor; ?>
             <?php endforeach; ?>
-        </div>
+        </section>
 
         <!-- LKH Section -->
-        <div class="report-section">
-            <div class="section-title">
-                <i class="fas fa-list text-info"></i>
+        <section class="section">
+            <h2 class="section-title">
+                <i class="fas fa-list"></i>
                 Laporan Kinerja Harian (LKH)
-            </div>
+            </h2>
             
             <?php foreach ($years as $tahun): ?>
                 <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
@@ -520,42 +674,47 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                         $pdf_exists_lkh = lkh_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
                         $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
                     ?>
-                        <div class="report-item lkh-card">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                        <div class="report-card lkh-card">
+                            <div class="report-card-header">
+                                <div class="report-card-info">
                                     <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-success badge-status">
-                                        <i class="fas fa-check-circle me-1"></i>Disetujui
+                                    <span class="status-badge approved">
+                                        <i class="fas fa-check-circle"></i>
+                                        Disetujui
                                     </span>
                                 </div>
                                 <div class="report-actions">
                                     <?php if ($pdf_exists_lkh): ?>
-                                        <button type="button" class="btn btn-download btn-sm" 
+                                        <button type="button" class="btn btn-success btn-sm" 
                                                 onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
-                                            <i class="fas fa-download me-1"></i>Download
+                                            <i class="fas fa-download"></i>
+                                            Download
                                         </button>
-                                        <button type="button" class="btn btn-regenerate btn-sm" 
+                                        <button type="button" class="btn btn-warning btn-sm" 
                                                 data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
                                                 data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-sync me-1"></i>Generate Ulang
+                                            <i class="fas fa-sync"></i>
+                                            Generate Ulang
                                         </button>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-generate btn-sm" 
+                                        <button type="button" class="btn btn-primary btn-sm" 
                                                 data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
                                                 data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-cogs me-1"></i>Generate LKH
+                                            <i class="fas fa-cogs"></i>
+                                            Generate LKH
                                         </button>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     <?php elseif ($status_verval_lkh === 'diajukan'): ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                        <div class="report-card">
+                            <div class="report-card-header">
+                                <div class="report-card-info">
                                     <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-warning badge-status">
-                                        <i class="fas fa-clock me-1"></i>Menunggu Approval
+                                    <span class="status-badge pending">
+                                        <i class="fas fa-clock"></i>
+                                        Menunggu Approval
                                     </span>
                                 </div>
                                 <div class="report-actions">
@@ -564,12 +723,13 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             </div>
                         </div>
                     <?php else: ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                        <div class="report-card">
+                            <div class="report-card-header">
+                                <div class="report-card-info">
                                     <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-secondary badge-status">
-                                        <i class="fas fa-times-circle me-1"></i>Belum Terkirim
+                                    <span class="status-badge draft">
+                                        <i class="fas fa-times-circle"></i>
+                                        Belum Terkirim
                                     </span>
                                 </div>
                                 <div class="report-actions">
@@ -580,14 +740,14 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <?php endif; ?>
                 <?php endfor; ?>
             <?php endforeach; ?>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <!-- Modal Generate LKB -->
     <div class="modal fade" id="generateLkbModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header">
                     <h5 class="modal-title">
                         <i class="fas fa-file-alt me-2"></i>Generate LKB
                     </h5>
@@ -619,7 +779,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     <div class="modal fade" id="generateLkhModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-info text-white">
+                <div class="modal-header bg-info">
                     <h5 class="modal-title">
                         <i class="fas fa-list me-2"></i>Generate LKH
                     </h5>
@@ -638,7 +798,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-info">
+                        <button type="submit" class="btn btn-primary">
                             <i class="fas fa-cogs me-1"></i>Generate LKH
                         </button>
                     </div>
@@ -940,7 +1100,5 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             });
         });
     </script>
-</body>
-</html>
 </body>
 </html>
