@@ -431,6 +431,16 @@ ob_clean();
             font-weight: 600;
         }
 
+        .nav-header .text-end {
+            text-align: right !important;
+            min-width: 150px;
+        }
+
+        .nav-header .text-end > div {
+            white-space: nowrap;
+            margin-bottom: 2px;
+        }
+
         .card {
             border-radius: 20px;
             box-shadow: var(--card-shadow);
@@ -708,6 +718,28 @@ ob_clean();
         }
 
         @media (max-width: 576px) {
+            .nav-header {
+                padding: 15px 10px;
+            }
+            
+            .nav-header .navbar-brand {
+                font-size: 1.1rem;
+            }
+            
+            .nav-header .text-end {
+                min-width: 120px;
+            }
+            
+            .nav-header .text-end > div {
+                font-size: 0.75rem !important;
+                line-height: 1.1 !important;
+            }
+            
+            .container-fluid {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+            
             .floating-action {
                 bottom: 90px;
                 right: 15px;
@@ -737,6 +769,389 @@ ob_clean();
                 grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
                 gap: 10px;
             }
+            
+            .period-card .card-body {
+                padding: 12px;
+            }
+            
+            .period-card .card-title {
+                font-size: 1rem;
+            }
+            
+            .verification-status {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .action-buttons .btn {
+                width: 100%;
+                margin-bottom: 0;
+            }
+            
+            .lkh-card .card-body {
+                padding: 12px;
+            }
+            
+            .lkh-title {
+                font-size: 1rem;
+            }
+            
+            .date-badge {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+            
+            .day-badge {
+                font-size: 10px;
+                padding: 3px 6px;
+                margin-left: 6px;
+            }
+            
+            .quantity-badge {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+            
+            .dropdown {
+                position: relative;
+            }
+            
+            .dropdown-menu {
+                min-width: 150px;
+                font-size: 0.9rem;
+            }
+            
+            .modal-dialog {
+                margin: 10px;
+            }
+            
+            .modal-content {
+                border-radius: 15px;
+            }
+            
+            .modal-body {
+                padding: 15px;
+            }
+            
+            .form-control, .form-select {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                font-size: 0.85rem;
+                padding: 8px 12px;
+            }
+            
+            .empty-state {
+                padding: 40px 15px;
+            }
+            
+            .empty-state i {
+                font-size: 3rem;
+            }
+            
+            .empty-state h5 {
+                font-size: 1.1rem;
+            }
+            
+            .empty-state p {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .nav-header {
+                padding: 12px 8px;
+            }
+            
+            .nav-header .navbar-brand {
+                font-size: 1rem;
+            }
+            
+            .nav-header .text-end {
+                min-width: 100px;
+            }
+            
+            .nav-header .text-end > div {
+                font-size: 0.7rem !important;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .period-card .card-title {
+                font-size: 0.95rem;
+            }
+            
+            .lkh-title {
+                font-size: 0.95rem;
+            }
+            
+            .lkh-description {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Enhanced animations */
+        .card {
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        .card:nth-child(even) {
+            animation-delay: 0.1s;
+        }
+
+        .card:nth-child(odd) {
+            animation-delay: 0.05s;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .floating-btn {
+            animation: bounceIn 0.6s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .nav-header {
+            animation: slideInDown 0.4s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .badge, .date-badge, .quantity-badge, .day-badge {
+            animation: fadeInScale 0.4s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 200px;
+            height: 200px;
+        }
+
+        .dropdown-menu {
+            animation: slideInDown 0.2s ease-out;
+        }
+
+        .modal {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Improved touch interactions */
+        .card, .btn, .floating-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .card:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .floating-btn:active {
+            transform: scale(0.9) translateY(-1px);
+        }
+
+        /* Additional responsive improvements */
+        @media (max-width: 480px) {
+            .modal-dialog {
+                margin: 5px;
+                width: calc(100% - 10px);
+            }
+            
+            .dropdown-menu {
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                margin: 0 !important;
+                width: 90vw !important;
+                max-width: 300px !important;
+                z-index: 1060 !important;
+            }
+            
+            .dropdown-menu::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: -1;
+            }
+            
+            .verification-status {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .verification-status .d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+            
+            .verification-status i {
+                font-size: 1.2rem !important;
+            }
+        }
+
+        /* Loading state animations */
+        .loading-state {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .loading-state::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Enhanced search and filter animations */
+        .search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-container .form-control {
+            padding-left: 40px;
+        }
+
+        .search-container .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 5;
+        }
+
+        .previous-lkh-item {
+            transition: all 0.3s ease;
+        }
+
+        .previous-lkh-item:hover {
+            transform: translateX(5px);
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Enhanced scrollbar for mobile */
+        .modal-body {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 2px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.5);
         }
     </style>
 </head>
@@ -751,10 +1166,10 @@ ob_clean();
                     <small class="opacity-75">Manajemen LKH</small>
                 </div>
             </a>
-            <div class="text-white text-end">
+            <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
                 <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">NIP: <?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">Periode: <?= htmlspecialchars($activePeriod) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>
@@ -1180,7 +1595,10 @@ ob_clean();
                         </div>
                     <?php else: ?>
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="searchPreviousLkh" placeholder="🔍 Cari LKH terdahulu...">
+                            <div class="search-container">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" class="form-control" id="searchPreviousLkh" placeholder="Cari LKH terdahulu...">
+                            </div>
                         </div>
                         
                         <div style="max-height: 400px; overflow-y: auto;">
@@ -1256,10 +1674,10 @@ ob_clean();
         <?php endif; ?>
 
         function showAddModal() {
+            resetForm();
             document.getElementById('lkhModalTitle').textContent = 'Tambah LKH';
             document.getElementById('lkhAction').value = 'add';
             document.getElementById('lkhId').value = '';
-            document.getElementById('lkhForm').reset();
             document.getElementById('tanggalLkh').value = '<?= $current_date ?>';
             document.getElementById('lampiranDiv').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Simpan';
@@ -1406,6 +1824,216 @@ ob_clean();
                 noDataDiv.classList.remove('d-none');
             }
         });
+
+        // Enhanced form interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add loading state to buttons on form submission
+            const forms = document.querySelectorAll('form');
+            forms.forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.classList.add('loading-state');
+                        submitBtn.disabled = true;
+                    }
+                });
+            });
+
+            // Add ripple effect to cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(function(card) {
+                card.addEventListener('click', function(e) {
+                    if (!e.target.closest('.btn') && !e.target.closest('.dropdown')) {
+                        const ripple = document.createElement('span');
+                        const rect = card.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height);
+                        const x = e.clientX - rect.left - size / 2;
+                        const y = e.clientY - rect.top - size / 2;
+                        
+                        ripple.style.width = ripple.style.height = size + 'px';
+                        ripple.style.left = x + 'px';
+                        ripple.style.top = y + 'px';
+                        ripple.classList.add('ripple-effect');
+                        
+                        card.appendChild(ripple);
+                        
+                        setTimeout(() => {
+                            ripple.remove();
+                        }, 600);
+                    }
+                });
+            });
+
+            // Smooth scroll for better UX
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Auto-hide alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                }, 5000);
+            });
+
+            // Enhanced dropdown behavior for mobile
+            const dropdowns = document.querySelectorAll('.dropdown-toggle');
+            dropdowns.forEach(function(dropdown) {
+                dropdown.addEventListener('click', function() {
+                    const menu = this.nextElementSibling;
+                    if (menu && window.innerWidth <= 480) {
+                        menu.style.position = 'fixed';
+                        menu.style.top = '50%';
+                        menu.style.left = '50%';
+                        menu.style.transform = 'translate(-50%, -50%)';
+                        menu.style.zIndex = '1060';
+                        menu.style.width = '90vw';
+                        menu.style.maxWidth = '300px';
+                    }
+                });
+            });
+        });
+
+        // Add CSS for ripple effect
+        const style = document.createElement('style');
+        style.textContent = `
+            .ripple-effect {
+                position: absolute;
+                border-radius: 50%;
+                background-color: rgba(102, 126, 234, 0.1);
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                pointer-events: none;
+            }
+
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // File preview functionality
+        document.getElementById('lampiranInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+            
+            if (file) {
+                fileName.textContent = file.name;
+                preview.style.display = 'block';
+                
+                // File size check
+                if (file.size > 2 * 1024 * 1024) { // 2MB
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Terlalu Besar',
+                        text: 'Ukuran file maksimal 2MB. Silakan pilih file yang lebih kecil.',
+                        confirmButtonText: 'OK'
+                    });
+                    this.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                
+                // File type check
+                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Format File Tidak Didukung',
+                        text: 'Format file yang diperbolehkan: PDF, JPG, JPEG, PNG.',
+                        confirmButtonText: 'OK'
+                    });
+                    this.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                
+                // Show preview with success animation
+                preview.style.animation = 'fadeInScale 0.3s ease-out';
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // Form validation enhancements
+        function validateForm() {
+            const tanggal = document.getElementById('tanggalLkh').value;
+            const rkb = document.getElementById('rkbSelect').value;
+            const namaKegiatan = document.getElementById('namaKegiatan').value.trim();
+            const uraianKegiatan = document.getElementById('uraianKegiatan').value.trim();
+            const jumlahRealisasi = document.getElementById('jumlahRealisasi').value.trim();
+            const satuanRealisasi = document.getElementById('satuanRealisasi').value;
+            
+            if (!tanggal || !rkb || !namaKegiatan || !uraianKegiatan || !jumlahRealisasi || !satuanRealisasi) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Data Tidak Lengkap',
+                    text: 'Mohon lengkapi semua field yang wajib diisi.',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+            
+            // Check if jumlah_realisasi is a valid number
+            if (isNaN(jumlahRealisasi) || jumlahRealisasi <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Jumlah Realisasi Tidak Valid',
+                    text: 'Jumlah realisasi harus berupa angka positif.',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Enhanced form submission with loading state
+        document.getElementById('lkhForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+            submitBtn.disabled = true;
+            
+            // Submit form after short delay for better UX
+            setTimeout(() => {
+                this.submit();
+            }, 500);
+        });
+        
+        // Reset form function
+        function resetForm() {
+            document.getElementById('lkhForm').reset();
+            document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('lampiranDiv').style.display = 'block';
+            document.getElementById('submitBtn').innerHTML = 'Simpan';
+            document.getElementById('submitBtn').disabled = false;
+        }
     </script>
 </body>
 </html>

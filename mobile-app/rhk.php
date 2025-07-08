@@ -568,10 +568,10 @@ ob_clean();
                     <small class="opacity-75">Manajemen RHK</small>
                 </div>
             </a>
-            <div class="text-white text-end">
+            <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
                 <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">NIP: <?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;">Periode: <?= htmlspecialchars($activePeriod) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>
