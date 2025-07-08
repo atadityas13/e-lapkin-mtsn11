@@ -2115,13 +2115,13 @@ ob_clean();
             // Load content based on file type
             setTimeout(() => {
                 if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-                    // Image file
+                    // Image file - Fixed the onerror syntax
                     contentDiv.innerHTML = `
                         <div class="text-center">
                             <img src="${attachmentPath}" class="img-fluid rounded shadow" 
                                  style="max-height: 500px; max-width: 100%;" 
                                  alt="Lampiran ${title}"
-                                 onerror="this.parentElement.innerHTML='<div class=\\"alert alert-danger\\"><i class=\\"fas fa-exclamation-triangle\\"></i> Gagal memuat gambar</div>'">
+                                 onerror="this.parentElement.innerHTML='<div class=&quot;alert alert-danger&quot;><i class=&quot;fas fa-exclamation-triangle&quot;></i> Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.</div>'">
                         </div>
                     `;
                 } else if (fileExtension === 'pdf') {
@@ -2163,6 +2163,27 @@ ob_clean();
                             </div>
                         </div>
                     `;
+                }
+                
+                // Add error handling for file not found
+                if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                    const img = contentDiv.querySelector('img');
+                    if (img) {
+                        img.addEventListener('load', function() {
+                            console.log('Image loaded successfully');
+                        });
+                        
+                        img.addEventListener('error', function() {
+                            console.log('Image failed to load:', attachmentPath);
+                            this.parentElement.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.
+                                    <br><small class="text-muted">Path: ${fileName}</small>
+                                </div>
+                            `;
+                        });
+                    }
                 }
             }, 500);
         }
