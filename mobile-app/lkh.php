@@ -2023,19 +2023,3 @@ ob_clean();
     </script>
 </body>
 </html>
-            }, 500);
-        });
-        
-        // Reset form function
-        function resetForm() {
-            document.getElementById('lkhForm').reset();
-            document.getElementById('filePreview').style.display = 'none';
-            document.getElementById('lampiranDiv').style.display = 'block';
-            document.getElementById('submitBtn').innerHTML = 'Simpan';
-            document.getElementById('submitBtn').disabled = false;
-        }
-    </script>
-</body>
-</html>
-</body>
-</html>
