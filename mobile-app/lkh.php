@@ -91,10 +91,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ? $satuan_map[$_POST['satuan_realisasi']] : '';
             $nama_kegiatan_harian = isset($_POST['nama_kegiatan_harian']) ? trim($_POST['nama_kegiatan_harian']) : '';
 
-            // Initialize lampiran variable
+            // Handle file upload for add action only
             $lampiran = NULL;
-
-            // Handle file upload for add action
             if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
                 $file_tmp_name = $_FILES['lampiran']['tmp_name'];
                 $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
@@ -147,79 +145,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit();
             }
 
-            // Handle file upload for edit action (same as web version)
-            if ($action == 'edit') {
-                $id_lkh = (int)$_POST['id_lkh'];
-                
-                // Get current lampiran
-                $stmt_get_current = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
-                $stmt_get_current->bind_param("ii", $id_lkh, $id_pegawai_login);
-                $stmt_get_current->execute();
-                $stmt_get_current->bind_result($old_lampiran);
-                $stmt_get_current->fetch();
-                $stmt_get_current->close();
-                
-                // Set lampiran to old value initially
-                $lampiran = $old_lampiran;
-                
-                // Check if new file is uploaded
-                if (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
-                    $file_tmp_name = $_FILES['lampiran']['tmp_name'];
-                    $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
-                    $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
-                    
-                    if (!in_array($file_extension, $allowed_extensions)) {
-                        set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                        header('Location: lkh.php');
-                        exit();
-                    }
-                    
-                    if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
-                        set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                        header('Location: lkh.php');
-                        exit();
-                    }
-                    
-                    $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
-                    $upload_dir = __DIR__ . '/../uploads/lkh/';
-                    $file_path = $upload_dir . $file_name;
-
-                    if (!is_dir($upload_dir)) {
-                        mkdir($upload_dir, 0777, true);
-                    }
-
-                    if (move_uploaded_file($file_tmp_name, $file_path)) {
-                        // Delete old file if exists
-                        if ($old_lampiran && file_exists($upload_dir . $old_lampiran)) {
-                            unlink($upload_dir . $old_lampiran);
-                        }
-                        $lampiran = $file_name;
-                    } else {
-                        set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran baru.');
-                        header('Location: lkh.php');
-                        exit();
-                    }
-                } elseif (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
-                    // Handle other upload errors for edit
-                    $upload_errors = [
-                        UPLOAD_ERR_INI_SIZE => 'File terlalu besar (melebihi upload_max_filesize)',
-                        UPLOAD_ERR_FORM_SIZE => 'File terlalu besar (melebihi MAX_FILE_SIZE)',
-                        UPLOAD_ERR_PARTIAL => 'File hanya terupload sebagian',
-                        UPLOAD_ERR_NO_TMP_DIR => 'Direktori temporary tidak ditemukan',
-                        UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file ke disk',
-                        UPLOAD_ERR_EXTENSION => 'Upload dihentikan oleh ekstensi PHP'
-                    ];
-                    
-                    $error_msg = isset($upload_errors[$_FILES['lampiran']['error']]) 
-                        ? $upload_errors[$_FILES['lampiran']['error']] 
-                        : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
-                        
-                    set_mobile_notification('error', 'Gagal Upload', $error_msg);
-                    header('Location: lkh.php');
-                    exit();
-                }
-            }
-
             // Validation
             if (empty($tanggal_lkh) || empty($id_rkb) || empty($nama_kegiatan_harian) || empty($uraian_kegiatan_lkh) || empty($jumlah_realisasi) || empty($satuan_realisasi)) {
                 set_mobile_notification('error', 'Gagal', 'Semua field harus diisi.');
@@ -228,9 +153,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     if ($action == 'add') {
                         $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
-                    } else {
-                        $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ?, lampiran = ? WHERE id_lkh = ? AND id_pegawai = ?");
-                        $stmt->bind_param("isssssiii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran, $id_lkh, $id_pegawai_login);
+                    } else { // action == 'edit' - NO lampiran field in update, same as web version
+                        $id_lkh = (int)$_POST['id_lkh'];
+                        $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
+                        $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
                     }
 
                     if ($stmt->execute()) {
@@ -2249,6 +2175,80 @@ ob_clean();
                 preview.style.animation = 'fadeInScale 0.3s ease-out';
             } else {
                 preview.style.display = 'none';
+            }
+        });
+
+        // Form validation enhancements
+        function validateForm() {
+            const tanggal = document.getElementById('tanggalLkh').value;
+            const rkb = document.getElementById('rkbSelect').value;
+            const namaKegiatan = document.getElementById('namaKegiatan').value.trim();
+            const uraianKegiatan = document.getElementById('uraianKegiatan').value.trim();
+            const jumlahRealisasi = document.getElementById('jumlahRealisasi').value.trim();
+            const satuanRealisasi = document.getElementById('satuanRealisasi').value;
+            
+            if (!tanggal || !rkb || !namaKegiatan || !uraianKegiatan || !jumlahRealisasi || !satuanRealisasi) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Data Tidak Lengkap',
+                    text: 'Mohon lengkapi semua field yang wajib diisi.',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+            
+            // Check if jumlah_realisasi is a valid number
+            if (isNaN(jumlahRealisasi) || jumlahRealisasi <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Jumlah Realisasi Tidak Valid',
+                    text: 'Jumlah realisasi harus berupa angka positif.',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Enhanced form submission with loading state
+        document.getElementById('lkhForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+            submitBtn.disabled = true;
+            
+            // Submit form after short delay for better UX
+            setTimeout(() => {
+                this.submit();
+            }, 500);
+        });
+        
+        // Reset form function
+        function resetForm() {
+            document.getElementById('lkhForm').reset();
+            document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('lampiranDiv').style.display = 'block';
+            document.getElementById('submitBtn').innerHTML = 'Simpan';
+            document.getElementById('submitBtn').disabled = false;
+            
+            // Clear current file info
+            const currentFileInfo = document.getElementById('currentFileInfo');
+            if (currentFileInfo) {
+                currentFileInfo.textContent = '';
+            }
+        }
+    </script>
+</body>
+</html>
             }
         });
 
