@@ -1339,9 +1339,9 @@ ob_clean();
                                         <?= htmlspecialchars($lkh['jumlah_realisasi']) ?> <?= htmlspecialchars($lkh['satuan_realisasi']) ?>
                                     </span>
                                     <?php if ($lkh['lampiran']): ?>
-                                        <a href="../uploads/lkh/<?= htmlspecialchars($lkh['lampiran']) ?>" target="_blank" class="btn btn-sm btn-outline-info">
-                                            <i class="fas fa-paperclip me-1"></i>Lampiran
-                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewAttachment('<?= htmlspecialchars($lkh['lampiran']) ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>')">
+                                            <i class="fas fa-eye me-1"></i>Lihat Lampiran
+                                        </button>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -1359,6 +1359,14 @@ ob_clean();
                                             <span>Edit</span>
                                         </a>
                                     </li>
+                                    <?php if ($lkh['lampiran']): ?>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="viewAttachment('<?= htmlspecialchars($lkh['lampiran']) ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>')">
+                                            <i class="fas fa-eye text-info"></i>
+                                            <span>Lihat Lampiran</span>
+                                        </a>
+                                    </li>
+                                    <?php endif; ?>
                                     <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-trash text-danger"></i>
@@ -1666,6 +1674,32 @@ ob_clean();
     <!-- Bottom Navigation -->
     <?php include __DIR__ . '/components/bottom-nav.php'; ?>
 
+    <!-- Attachment Viewer Modal -->
+    <div class="modal fade" id="attachmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-paperclip me-2"></i>
+                        <span id="attachmentTitle">Lampiran LKH</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="attachmentContent">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <a href="#" id="downloadAttachment" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-download me-1"></i>Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden Forms for Actions -->
     <form id="deleteForm" method="POST" style="display: none;">
         <input type="hidden" name="action" value="delete">
@@ -1797,6 +1831,7 @@ ob_clean();
             document.getElementById('namaKegiatan').value = nama;
             document.getElementById('uraianKegiatan').value = uraian;
             document.getElementById('jumlahRealisasi').value = jumlah;
+            
             
             // Set satuan dropdown
             const satuanMap = {
@@ -1961,6 +1996,89 @@ ob_clean();
                 }
             });
         });
+
+        // View attachment function
+        function viewAttachment(fileName, title) {
+            const attachmentPath = '../uploads/lkh/' + fileName;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            
+            // Set modal title
+            document.getElementById('attachmentTitle').textContent = 'Lampiran: ' + title;
+            
+            // Set download link
+            document.getElementById('downloadAttachment').href = attachmentPath;
+            
+            // Get attachment content container
+            const contentDiv = document.getElementById('attachmentContent');
+            
+            // Show loading state
+            contentDiv.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Memuat lampiran...</span>
+                </div>
+            `;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('attachmentModal'));
+            modal.show();
+            
+            // Load content based on file type
+            setTimeout(() => {
+                if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                    // Image file
+                    contentDiv.innerHTML = `
+                        <div class="text-center">
+                            <img src="${attachmentPath}" class="img-fluid rounded shadow" 
+                                 style="max-height: 500px; max-width: 100%;" 
+                                 alt="Lampiran ${title}"
+                                 onerror="this.parentElement.innerHTML='<div class=\\"alert alert-danger\\"><i class=\\"fas fa-exclamation-triangle\\"></i> Gagal memuat gambar</div>'">
+                        </div>
+                    `;
+                } else if (fileExtension === 'pdf') {
+                    // PDF file
+                    contentDiv.innerHTML = `
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-file-pdf text-danger" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5>Dokumen PDF</h5>
+                            <p class="text-muted">File: ${fileName}</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <a href="${attachmentPath}" target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i>Buka di Tab Baru
+                                </a>
+                                <a href="${attachmentPath}" download class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Other file types
+                    contentDiv.innerHTML = `
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-file text-secondary" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5>File Lampiran</h5>
+                            <p class="text-muted">File: ${fileName}</p>
+                            <p class="text-muted">Tipe: ${fileExtension.toUpperCase()}</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <a href="${attachmentPath}" target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i>Buka File
+                                </a>
+                                <a href="${attachmentPath}" download class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
 
         // Add CSS for ripple effect
         const style = document.createElement('style');
