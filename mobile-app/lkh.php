@@ -91,9 +91,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ? $satuan_map[$_POST['satuan_realisasi']] : '';
             $nama_kegiatan_harian = isset($_POST['nama_kegiatan_harian']) ? trim($_POST['nama_kegiatan_harian']) : '';
 
-            // Handle file upload for add action
+            // Initialize lampiran variable
             $lampiran = NULL;
-            if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
+            $old_lampiran = NULL;
+
+            // Get current lampiran for edit action
+            if ($action == 'edit') {
+                $id_lkh = (int)$_POST['id_lkh'];
+                
+                $stmt_get_current = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+                $stmt_get_current->bind_param("ii", $id_lkh, $id_pegawai_login);
+                $stmt_get_current->execute();
+                $stmt_get_current->bind_result($old_lampiran);
+                $stmt_get_current->fetch();
+                $stmt_get_current->close();
+                
+                // Set lampiran to old value initially
+                $lampiran = $old_lampiran;
+            }
+
+            // Handle file upload for both add and edit actions
+            if (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
                 $file_tmp_name = $_FILES['lampiran']['tmp_name'];
                 $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
                 $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
@@ -119,13 +137,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
 
                 if (move_uploaded_file($file_tmp_name, $file_path)) {
+                    // Delete old file if exists (for edit action)
+                    if ($action == 'edit' && $old_lampiran && file_exists($upload_dir . $old_lampiran)) {
+                        unlink($upload_dir . $old_lampiran);
+                    }
                     $lampiran = $file_name;
                 } else {
                     set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
                     header('Location: lkh.php');
                     exit();
                 }
-            } elseif ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
+            } elseif (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
                 // Handle other upload errors
                 $upload_errors = [
                     UPLOAD_ERR_INI_SIZE => 'File terlalu besar (melebihi upload_max_filesize)',
@@ -145,79 +167,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit();
             }
 
-            // Handle file upload for edit action
-            if ($action == 'edit') {
-                $id_lkh = (int)$_POST['id_lkh'];
-                
-                // Get current lampiran
-                $stmt_get_current = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
-                $stmt_get_current->bind_param("ii", $id_lkh, $id_pegawai_login);
-                $stmt_get_current->execute();
-                $stmt_get_current->bind_result($old_lampiran);
-                $stmt_get_current->fetch();
-                $stmt_get_current->close();
-                
-                // Check if new file is uploaded
-                if (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
-                    $file_tmp_name = $_FILES['lampiran']['tmp_name'];
-                    $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
-                    $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
-                    
-                    if (!in_array($file_extension, $allowed_extensions)) {
-                        set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                        header('Location: lkh.php');
-                        exit();
-                    }
-                    
-                    if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
-                        set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                        header('Location: lkh.php');
-                        exit();
-                    }
-                    
-                    $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
-                    $upload_dir = __DIR__ . '/../uploads/lkh/';
-                    $file_path = $upload_dir . $file_name;
-
-                    if (!is_dir($upload_dir)) {
-                        mkdir($upload_dir, 0777, true);
-                    }
-
-                    if (move_uploaded_file($file_tmp_name, $file_path)) {
-                        // Delete old file if exists
-                        if ($old_lampiran && file_exists($upload_dir . $old_lampiran)) {
-                            unlink($upload_dir . $old_lampiran);
-                        }
-                        $lampiran = $file_name;
-                    } else {
-                        set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran baru.');
-                        header('Location: lkh.php');
-                        exit();
-                    }
-                } elseif (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
-                    // Handle other upload errors for edit
-                    $upload_errors = [
-                        UPLOAD_ERR_INI_SIZE => 'File terlalu besar (melebihi upload_max_filesize)',
-                        UPLOAD_ERR_FORM_SIZE => 'File terlalu besar (melebihi MAX_FILE_SIZE)',
-                        UPLOAD_ERR_PARTIAL => 'File hanya terupload sebagian',
-                        UPLOAD_ERR_NO_TMP_DIR => 'Direktori temporary tidak ditemukan',
-                        UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file ke disk',
-                        UPLOAD_ERR_EXTENSION => 'Upload dihentikan oleh ekstensi PHP'
-                    ];
-                    
-                    $error_msg = isset($upload_errors[$_FILES['lampiran']['error']]) 
-                        ? $upload_errors[$_FILES['lampiran']['error']] 
-                        : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
-                        
-                    set_mobile_notification('error', 'Gagal Upload', $error_msg);
-                    header('Location: lkh.php');
-                    exit();
-                } else {
-                    // Keep old lampiran if no new file uploaded
-                    $lampiran = $old_lampiran;
-                }
-            }
-
             // Validation
             if (empty($tanggal_lkh) || empty($id_rkb) || empty($nama_kegiatan_harian) || empty($uraian_kegiatan_lkh) || empty($jumlah_realisasi) || empty($satuan_realisasi)) {
                 set_mobile_notification('error', 'Gagal', 'Semua field harus diisi.');
@@ -227,7 +176,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
                     } else {
-                        $id_lkh = (int)$_POST['id_lkh'];
                         $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ?, lampiran = ? WHERE id_lkh = ? AND id_pegawai = ?");
                         $stmt->bind_param("isssssiii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran, $id_lkh, $id_pegawai_login);
                     }
@@ -2320,7 +2268,5 @@ ob_clean();
             }
         }
     </script>
-</body>
-</html>
 </body>
 </html>
