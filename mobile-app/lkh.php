@@ -197,6 +197,86 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->close();
             header('Location: lkh.php');
             exit();
+        } elseif ($action == 'add_attachment') {
+            $id_lkh = (int)$_POST['id_lkh'];
+            
+            // Handle file upload
+            if (isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
+                $file_tmp_name = $_FILES['lampiran']['tmp_name'];
+                $file_extension = strtolower(pathinfo($_FILES['lampiran']['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                
+                if (!in_array($file_extension, $allowed_extensions)) {
+                    set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
+                    header('Location: lkh.php');
+                    exit();
+                }
+                
+                if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
+                    set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
+                    header('Location: lkh.php');
+                    exit();
+                }
+                
+                $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
+                $upload_dir = __DIR__ . '/../uploads/lkh/';
+                $file_path = $upload_dir . $file_name;
+
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0777, true);
+                }
+
+                if (move_uploaded_file($file_tmp_name, $file_path)) {
+                    $stmt = $conn->prepare("UPDATE lkh SET lampiran = ? WHERE id_lkh = ? AND id_pegawai = ?");
+                    $stmt->bind_param("sii", $file_name, $id_lkh, $id_pegawai_login);
+                    
+                    if ($stmt->execute()) {
+                        set_mobile_notification('success', 'Berhasil', 'Lampiran berhasil ditambahkan!');
+                    } else {
+                        set_mobile_notification('error', 'Gagal', 'Gagal menyimpan lampiran ke database.');
+                        // Delete uploaded file if database save fails
+                        if (file_exists($file_path)) {
+                            unlink($file_path);
+                        }
+                    }
+                    $stmt->close();
+                } else {
+                    set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
+                }
+            } else {
+                set_mobile_notification('error', 'Gagal', 'Tidak ada file yang dipilih atau terjadi kesalahan upload.');
+            }
+            
+            header('Location: lkh.php');
+            exit();
+        } elseif ($action == 'remove_attachment') {
+            $id_lkh = (int)$_POST['id_lkh'];
+            
+            // Get file name to delete
+            $stmt_get_file = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt_get_file->bind_param("ii", $id_lkh, $id_pegawai_login);
+            $stmt_get_file->execute();
+            $stmt_get_file->bind_result($file_to_delete);
+            $stmt_get_file->fetch();
+            $stmt_get_file->close();
+            
+            // Remove lampiran from database
+            $stmt = $conn->prepare("UPDATE lkh SET lampiran = NULL WHERE id_lkh = ? AND id_pegawai = ?");
+            $stmt->bind_param("ii", $id_lkh, $id_pegawai_login);
+            
+            if ($stmt->execute()) {
+                // Delete file if exists
+                if ($file_to_delete && file_exists(__DIR__ . '/../uploads/lkh/' . $file_to_delete)) {
+                    unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
+                }
+                set_mobile_notification('success', 'Berhasil', 'Lampiran berhasil dihapus!');
+            } else {
+                set_mobile_notification('error', 'Gagal', 'Gagal menghapus lampiran.');
+            }
+            $stmt->close();
+            
+            header('Location: lkh.php');
+            exit();
         }
     }
     
@@ -1716,6 +1796,7 @@ ob_clean();
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                     <a href="#" id="downloadAttachment" class="btn btn-primary" target="_blank">
                         <i class="fas fa-download me-1"></i>Download
+                   
                     </a>
                 </div>
             </div>
@@ -1775,8 +1856,7 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
-                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
             };
             document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
             
