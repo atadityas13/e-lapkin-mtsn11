@@ -350,7 +350,6 @@ $months = [
 
 // Clear any unwanted output before HTML
 ob_clean();
-$activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -362,168 +361,132 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #4f46e5;
-            --primary-dark: #3730a3;
-            --secondary-color: #6b7280;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --info-color: #3b82f6;
-            --light-gray: #f8fafc;
-            --border-color: #e2e8f0;
-            --text-dark: #1f2937;
-            --text-light: #6b7280;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-purple: #764ba2;
+            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --lkh-gradient: linear-gradient(135deg,rgb(255, 245, 154) 0%,rgb(47, 147, 0) 100%);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        .bottom-nav .nav-item {
+            flex: 1;
+            text-align: center;
+        }
+        .bottom-nav .nav-link {
+            padding: 12px 8px;
+            color: #6c757d;
+            text-decoration: none;
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 4px;
+        }
+        .bottom-nav .nav-link.active {
+            color: var(--accent-blue);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            transform: translateY(-2px);
+        }
+        .bottom-nav .nav-link i {
+            font-size: 18px;
+            margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        .bottom-nav .nav-link.active i {
+            transform: scale(1.1);
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--light-gray);
-            color: var(--text-dark);
-            line-height: 1.5;
             padding-bottom: 80px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Header Styles */
-        .mobile-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        .nav-header {
+            background: var(--primary-gradient);
             color: white;
-            padding: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px 15px;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
         }
 
-        .mobile-header .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 100%;
-            gap: 1rem;
-        }
-
-        .mobile-header .header-left {
-            display: flex;
-            align-items: center;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .mobile-header .back-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            margin-right: 0.75rem;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s;
-            cursor: pointer;
-        }
-
-        .mobile-header .back-btn:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
-
-        .mobile-header .page-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .mobile-header .page-title {
-            font-size: 1.1rem;
+        .nav-header .navbar-brand {
+            font-size: 1.3rem;
             font-weight: 600;
-            margin: 0;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-header .brand-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-header .brand-content .fw-bold {
+            font-size: 1.1rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .mobile-header .page-subtitle {
+        .nav-header .brand-content small {
             font-size: 0.8rem;
-            opacity: 0.9;
-            margin-top: 0.1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            opacity: 0.8;
         }
 
-        .mobile-header .user-info {
+        .nav-header .user-info {
             background: rgba(255,255,255,0.15);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 0.75rem;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8rem;
-            text-align: right;
+            border-radius: 12px;
+            padding: 8px 12px;
             min-width: 120px;
-            flex-shrink: 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .mobile-header .user-info .user-name {
+        .nav-header .user-info .user-name {
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 0.1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .mobile-header .user-info .user-details {
-            opacity: 0.9;
-            font-size: 0.75rem;
             line-height: 1.2;
+            margin-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        /* Main Content */
-        .main-content {
-            padding: 1rem;
+        .nav-header .user-info .user-nip {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            line-height: 1.1;
+            margin-bottom: 2px;
         }
 
-        /* LKH-specific styles */
-        .lkh-card {
-            border-left: 4px solid var(--success-color);
-        }
-        
-        .floating-action {
-            position: fixed;
-            bottom: 100px;
-            right: 20px;
-            z-index: 999;
-        }
-
-        .floating-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--success-color);
-            color: white;
-            border: none;
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            transition: all 0.3s ease;
-        }
-
-        .floating-btn:hover {
-            transform: scale(1.1) translateY(-2px);
-            box-shadow: 0 12px 35px rgba(16, 185, 129, 0.5);
-            color: white;
+        .nav-header .user-info .user-period {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.1;
         }
 
         .card {
             border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: var(--card-shadow);
             border: none;
             margin-bottom: 20px;
             transition: all 0.3s ease;
@@ -532,7 +495,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            box-shadow: var(--card-hover-shadow);
         }
 
         .period-card {
@@ -541,11 +504,11 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
         .lkh-card {
             background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
-            border-left: 4px solid var(--success-color);
+            border-left: 4px solidrgb(171, 171, 32);
         }
 
         .lkh-card:hover {
-            border-left-color: #059669;
+            border-left-color:rgb(169, 167, 5);
         }
 
         .btn {
@@ -558,8 +521,54 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             transform: translateY(-1px);
         }
 
+        .btn-primary-large {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 15px;
+            background: var(--primary-gradient);
+            border: none;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-large:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-primary-custom {
+            border: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background: transparent;
+        }
+
+        .btn-outline-primary-custom:hover {
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .status-badge {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-custom {
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .date-badge {
-            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            background: var(--lkh-gradient);
             color: white;
             border-radius: 15px;
             padding: 8px 12px;
@@ -568,7 +577,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
 
         .quantity-badge {
-            background: linear-gradient(135deg, var(--info-color) 0%, #2563eb 100%);
+            background: var(--success-gradient);
             color: white;
             border-radius: 15px;
             padding: 6px 12px;
@@ -577,101 +586,725 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
 
         .day-badge {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(196, 69, 105, 0.1));
             border-radius: 12px;
             padding: 4px 8px;
             font-size: 11px;
-            color: var(--warning-color);
+            color: #c44569;
             font-weight: 600;
             margin-left: 8px;
         }
 
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            background: var(--lkh-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .floating-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--lkh-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(255, 107, 157, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-btn:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 107, 157, 0.5);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 107, 157, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: var(--lkh-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .lkh-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .lkh-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
         .verification-status {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(196, 69, 105, 0.05));
             border-radius: 15px;
             padding: 15px;
             margin-bottom: 15px;
-            border-left: 4px solid var(--info-color);
+            border-left: 4px solidrgb(197, 170, 20);
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .mobile-header {
-                padding: 0.75rem;
-            }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
 
-            .mobile-header .page-title {
-                font-size: 1rem;
-            }
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
 
-            .mobile-header .user-info {
-                font-size: 0.75rem;
-                padding: 0.5rem;
+        .dropdown-menu {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--card-shadow);
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(196, 69, 105, 0.05));
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .modal-header {
+            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid rgba(255, 107, 157, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color:rgb(107, 191, 255);
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+        }
+
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .lkh-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 576px) {
+            .nav-header {
+                padding: 15px 10px;
+            }
+            
+            .nav-header .container-fluid {
+                gap: 10px !important;
+                flex-wrap: nowrap;
+            }
+            
+            .nav-header .navbar-brand {
+                font-size: 1.1rem;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.95rem;
+            }
+            
+            .nav-header .brand-content small {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info {
                 min-width: 100px;
+                padding: 6px 8px;
             }
-
-            .main-content {
-                padding: 0.75rem;
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
             }
-
-            .card {
-                padding: 0.75rem;
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
             }
-
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
+            }
+            
+            .container-fluid {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+            
             .floating-action {
                 bottom: 90px;
                 right: 15px;
             }
-
+            
             .floating-btn {
                 width: 50px;
                 height: 50px;
                 font-size: 20px;
             }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .lkh-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-buttons .btn {
+                min-width: 100px;
+                font-size: 0.85rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 10px;
+            }
+            
+            .period-card .card-body {
+                padding: 12px;
+            }
+            
+            .period-card .card-title {
+                font-size: 1rem;
+            }
+            
+            .verification-status {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .action-buttons .btn {
+                width: 100%;
+                margin-bottom: 0;
+            }
+            
+            .lkh-card .card-body {
+                padding: 12px;
+            }
+            
+            .lkh-title {
+                font-size: 1rem;
+            }
+            
+            .date-badge {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+            
+            .day-badge {
+                font-size: 10px;
+                padding: 3px 6px;
+                margin-left: 6px;
+            }
+            
+            .quantity-badge {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+            
+            .dropdown {
+                position: relative;
+            }
+            
+            .dropdown-menu {
+                min-width: 150px;
+                font-size: 0.9rem;
+            }
+            
+            .modal-dialog {
+                margin: 10px;
+            }
+            
+            .modal-content {
+                border-radius: 15px;
+            }
+            
+            .modal-body {
+                padding: 15px;
+            }
+            
+            .form-control, .form-select {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                font-size: 0.85rem;
+                padding: 8px 12px;
+            }
+            
+            .empty-state {
+                padding: 40px 15px;
+            }
+            
+            .empty-state i {
+                font-size: 3rem;
+            }
+            
+            .empty-state h5 {
+                font-size: 1.1rem;
+            }
+            
+            .empty-state p {
+                font-size: 0.9rem;
+            }
         }
 
+        @media (max-width: 450px) {
+            .nav-header .container-fluid {
+                flex-direction: column;
+                gap: 12px !important;
+                align-items: stretch;
+            }
+            
+            .nav-header .navbar-brand {
+                justify-content: flex-start;
+                width: 100%;
+            }
+            
+            .nav-header .user-info {
+                align-self: center;
+                min-width: 200px;
+                text-align: center;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.8rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .nav-header {
+                padding: 12px 8px;
+            }
+            
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.9rem;
+            }
+            
+            .nav-header .brand-content small {
+                font-size: 0.65rem;
+            }
+            
+            .nav-header .user-info {
+                min-width: 180px;
+                padding: 6px;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .period-card .card-title {
+                font-size: 0.95rem;
+            }
+            
+            .lkh-title {
+                font-size: 0.95rem;
+            }
+            
+            .lkh-description {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Enhanced animations */
+        .card {
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        .card:nth-child(even) {
+            animation-delay: 0.1s;
+        }
+
+        .card:nth-child(odd) {
+            animation-delay: 0.05s;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .floating-btn {
+            animation: bounceIn 0.6s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .nav-header {
+            animation: slideInDown 0.4s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .badge, .date-badge, .quantity-badge, .day-badge {
+            animation: fadeInScale 0.4s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 200px;
+            height: 200px;
+        }
+
+        .dropdown-menu {
+            animation: slideInDown 0.2s ease-out;
+        }
+
+        .modal {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Improved touch interactions */
+        .card, .btn, .floating-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .card:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .floating-btn:active {
+            transform: scale(0.9) translateY(-1px);
+        }
+
+        /* Additional responsive improvements */
         @media (max-width: 480px) {
-            .mobile-header .header-content {
-                gap: 0.5rem;
+            .modal-dialog {
+                margin: 5px;
+                width: calc(100% - 10px);
             }
-
-            .mobile-header .user-info {
-                min-width: 80px;
-                font-size: 0.7rem;
-                padding: 0.4rem 0.6rem;
+            
+            .dropdown-menu {
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                margin: 0 !important;
+                width: 90vw !important;
+                max-width: 300px !important;
+                z-index: 1060 !important;
             }
-
-            .mobile-header .user-info .user-details {
-                font-size: 0.7rem;
+            
+            .dropdown-menu::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: -1;
+            }
+            
+            .verification-status {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .verification-status .d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+            
+            .verification-status i {
+                font-size: 1.2rem !important;
             }
         }
 
-        /* ...rest of existing styles... */
+        /* Loading state animations */
+        .loading-state {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .loading-state::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Enhanced search and filter animations */
+        .search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-container .form-control {
+            padding-left: 40px;
+        }
+
+        .search-container .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 5;
+        }
+
+        .previous-lkh-item {
+            transition: all 0.3s ease;
+        }
+
+        .previous-lkh-item:hover {
+            transform: translateX(5px);
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Enhanced scrollbar for mobile */
+        .modal-body {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 2px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.5);
+        }
     </style>
 </head>
 <body>
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-        <div class="header-content">
-            <div class="header-left">
-                <button class="back-btn" onclick="window.location.href='dashboard.php'">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div class="page-info">
-                    <h1 class="page-title">Laporan Kinerja Harian</h1>
-                    <p class="page-subtitle">Kelola LKH Harian Anda</p>
+    <!-- Header -->
+    <nav class="navbar nav-header">
+        <div class="container-fluid d-flex align-items-center gap-3">
+            <a class="navbar-brand d-flex align-items-center text-white text-decoration-none" href="dashboard.php">
+                <i class="fas fa-arrow-left me-3"></i>
+                <div class="brand-content">
+                    <div class="fw-bold">Laporan Kinerja Harian</div>
+                    <small class="opacity-75">Manajemen LKH</small>
                 </div>
-            </div>
-            <div class="user-info">
+            </a>
+            <div class="user-info text-white">
                 <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+                <div class="user-nip"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-period"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <!-- Main Content -->
-    <main class="main-content">
+    <div class="container-fluid px-3">
+        <!-- Stats Overview -->
+        <!-- <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number"><?= count($lkhs) ?></div>
+                <div class="stat-label">Total LKH</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?= $filter_month ?></div>
+                <div class="stat-label">Bulan Aktif</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?= count($rkb_list) ?></div>
+                <div class="stat-label">RKB Tersedia</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?= count(array_unique(array_column($lkhs, 'tanggal_lkh'))) ?></div>
+                <div class="stat-label">Hari Kerja</div>
+            </div>
+        </div> -->
+
         <!-- Period Info -->
         <div class="card period-card">
             <div class="card-body">
@@ -826,7 +1459,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
-    </main>
+    </div>
 
     <!-- Floating Action Button -->
     <div class="floating-action">
@@ -1512,5 +2145,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             document.getElementById('submitBtn').disabled = false;
         }
     </script>
+</body>
+</html>
 </body>
 </html>
