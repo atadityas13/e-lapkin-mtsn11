@@ -1340,7 +1340,16 @@ ob_clean();
                                     </span>
                                     <?php if ($lkh['lampiran']): ?>
                                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewAttachment('<?= htmlspecialchars($lkh['lampiran']) ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>')">
-                                            <i class="fas fa-eye me-1"></i>Lihat Lampiran
+                                            <i class="fas fa-eye me-1"></i>Lihat
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAttachment(<?= $lkh['id_lkh'] ?>)"
+                                            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : '' ?>>
+                                            <i class="fas fa-trash me-1"></i>Hapus
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="addAttachment(<?= $lkh['id_lkh'] ?>)"
+                                            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : '' ?>>
+                                            <i class="fas fa-plus me-1"></i>Tambah
                                         </button>
                                     <?php endif; ?>
                                 </div>
@@ -1364,6 +1373,19 @@ ob_clean();
                                         <a class="dropdown-item" href="#" onclick="viewAttachment('<?= htmlspecialchars($lkh['lampiran']) ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>')">
                                             <i class="fas fa-eye text-info"></i>
                                             <span>Lihat Lampiran</span>
+                                        </a>
+                                    </li>
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                        <a class="dropdown-item" href="#" onclick="removeAttachment(<?= $lkh['id_lkh'] ?>)">
+                                            <i class="fas fa-trash text-danger"></i>
+                                            <span>Hapus Lampiran</span>
+                                        </a>
+                                    </li>
+                                    <?php else: ?>
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                        <a class="dropdown-item" href="#" onclick="addAttachment(<?= $lkh['id_lkh'] ?>)">
+                                            <i class="fas fa-plus text-success"></i>
+                                            <span>Tambah Lampiran</span>
                                         </a>
                                     </li>
                                     <?php endif; ?>
@@ -1753,27 +1775,16 @@ ob_clean();
             
             // Set satuan dropdown
             const satuanMap = {
-                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4'
+                'Kegiatan': '1', 'JP': '2', 'Dokumen': '3', 'Laporan': '4',
+                'Hari': '5', 'Jam': '6', 'Menit': '7', 'Unit': '8'
             };
             document.getElementById('satuanRealisasi').value = satuanMap[satuan] || '';
             
-            // Show lampiran div for editing
+            // Hide lampiran div for editing (same as web version)
             const lampiranDiv = document.getElementById('lampiranDiv');
             if (lampiranDiv) {
-                lampiranDiv.style.display = 'block';
-                
-                // Show current file info if exists
-                const currentFileInfo = document.getElementById('currentFileInfo');
-                if (currentFileInfo) {
-                    // Check if this LKH has attachment by making a quick check
-                    // We'll show a generic message since we don't have the filename in this function
-                    currentFileInfo.textContent = 'Biarkan kosong jika tidak ingin mengubah lampiran yang ada.';
-                }
+                lampiranDiv.style.display = 'none';
             }
-            
-            // Reset file preview
-            document.getElementById('filePreview').style.display = 'none';
-            document.getElementById('lampiranInput').value = '';
             
             document.getElementById('submitBtn').textContent = 'Perbarui';
             new bootstrap.Modal(document.getElementById('lkhModal')).show();
