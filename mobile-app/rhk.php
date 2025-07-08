@@ -712,9 +712,90 @@ ob_clean();
                 font-size: 0.65rem;
             }
         }
+
+        .mobile-header {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-header {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: var(--primary-gradient);
+                color: white;
+                z-index: 1000;
+                padding: 10px 15px;
+                border-radius: 0 0 20px 20px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            }
+
+            .mobile-header .header-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .mobile-header .header-left {
+                display: flex;
+                align-items: center;
+            }
+
+            .mobile-header .back-btn {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 18px;
+                margin-right: 10px;
+                cursor: pointer;
+            }
+
+            .mobile-header .page-info {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .mobile-header .page-title {
+                font-size: 1.2rem;
+                font-weight: 500;
+                margin: 0;
+            }
+
+            .mobile-header .page-subtitle {
+                font-size: 0.9rem;
+                margin: 0;
+                opacity: 0.8;
+            }
+
+            .mobile-header .user-info {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='dashboard.php'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="page-info">
+                    <h1 class="page-title">Rencana Hasil Kerja</h1>
+                    <p class="page-subtitle">Kelola RHK Harian Anda</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+            </div>
+        </div>
+    </header>
+
     <!-- Header -->
     <nav class="navbar nav-header">
         <div class="container-fluid d-flex align-items-center gap-3">

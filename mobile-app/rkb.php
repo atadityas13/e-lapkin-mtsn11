@@ -965,10 +965,91 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 font-size: 0.65rem;
             }
         }
+
+        /* Mobile Header Styles */
+        .mobile-header {
+            display: none;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .mobile-header .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .mobile-header .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-header .back-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .mobile-header .page-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mobile-header .page-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .mobile-header .page-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .mobile-header .user-info {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-header {
+                display: block;
+            }
+            
+            .nav-header {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Header -->
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='dashboard.php'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="page-info">
+                    <h1 class="page-title">Rencana Kinerja Bulanan</h1>
+                    <p class="page-subtitle">Kelola RKB Bulanan Anda</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+            </div>
+        </div>
+    </header>
+
     <nav class="navbar nav-header">
         <div class="container-fluid d-flex align-items-center gap-3">
             <a class="navbar-brand d-flex align-items-center text-white text-decoration-none" href="dashboard.php">
