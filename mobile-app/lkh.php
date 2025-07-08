@@ -1163,7 +1163,7 @@ ob_clean();
                 <i class="fas fa-arrow-left me-3"></i>
                 <div>
                     <div class="fw-bold">LKH</div>
-                    <small class="opacity-75">Laporan Kinerja Harian</small>
+                    <small class="opacity-75">Kinerja Harian</small>
                 </div>
             </a>
             <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">

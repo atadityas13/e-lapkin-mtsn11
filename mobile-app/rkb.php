@@ -818,7 +818,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 <i class="fas fa-arrow-left me-3"></i>
                 <div>
                     <div class="fw-bold">RKB</div>
-                    <small class="opacity-75">Rencana Kinerja Bulanan</small>
+                    <small class="opacity-75">Kinerja Bulanan</small>
                 </div>
             </a>
             <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
