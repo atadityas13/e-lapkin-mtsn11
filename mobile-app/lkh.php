@@ -429,16 +429,59 @@ ob_clean();
         .nav-header .navbar-brand {
             font-size: 1.3rem;
             font-weight: 600;
+            flex: 1;
+            min-width: 0;
         }
 
-        .nav-header .text-end {
-            text-align: right !important;
-            min-width: 150px;
+        .nav-header .brand-content {
+            flex: 1;
+            min-width: 0;
         }
 
-        .nav-header .text-end > div {
+        .nav-header .brand-content .fw-bold {
+            font-size: 1.1rem;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .brand-content small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .nav-header .user-info {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-header .user-info .user-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.2;
             margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .user-info .user-nip {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .nav-header .user-info .user-period {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.1;
         }
 
         .card {
@@ -722,17 +765,40 @@ ob_clean();
                 padding: 15px 10px;
             }
             
+            .nav-header .container-fluid {
+                gap: 10px !important;
+                flex-wrap: nowrap;
+            }
+            
             .nav-header .navbar-brand {
                 font-size: 1.1rem;
+                flex: 1;
+                min-width: 0;
             }
             
-            .nav-header .text-end {
-                min-width: 120px;
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.95rem;
             }
             
-            .nav-header .text-end > div {
-                font-size: 0.75rem !important;
-                line-height: 1.1 !important;
+            .nav-header .brand-content small {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info {
+                min-width: 100px;
+                padding: 6px 8px;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
             }
             
             .container-fluid {
@@ -864,21 +930,65 @@ ob_clean();
             }
         }
 
+        @media (max-width: 450px) {
+            .nav-header .container-fluid {
+                flex-direction: column;
+                gap: 12px !important;
+                align-items: stretch;
+            }
+            
+            .nav-header .navbar-brand {
+                justify-content: flex-start;
+                width: 100%;
+            }
+            
+            .nav-header .user-info {
+                align-self: center;
+                min-width: 200px;
+                text-align: center;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.8rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.7rem;
+            }
+        }
+
         @media (max-width: 390px) {
             .nav-header {
                 padding: 12px 8px;
             }
             
-            .nav-header .navbar-brand {
-                font-size: 1rem;
+            .nav-header .brand-content .fw-bold {
+                font-size: 0.9rem;
             }
             
-            .nav-header .text-end {
-                min-width: 100px;
+            .nav-header .brand-content small {
+                font-size: 0.65rem;
             }
             
-            .nav-header .text-end > div {
-                font-size: 0.7rem !important;
+            .nav-header .user-info {
+                min-width: 180px;
+                padding: 6px;
+            }
+            
+            .nav-header .user-info .user-name {
+                font-size: 0.75rem;
+            }
+            
+            .nav-header .user-info .user-nip {
+                font-size: 0.7rem;
+            }
+            
+            .nav-header .user-info .user-period {
+                font-size: 0.65rem;
             }
             
             .card {
@@ -1158,18 +1268,18 @@ ob_clean();
 <body>
     <!-- Header -->
     <nav class="navbar nav-header">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <a class="navbar-brand d-flex align-items-center text-white" href="dashboard.php">
+        <div class="container-fluid d-flex align-items-center gap-3">
+            <a class="navbar-brand d-flex align-items-center text-white text-decoration-none" href="dashboard.php">
                 <i class="fas fa-arrow-left me-3"></i>
-                <div>
+                <div class="brand-content">
                     <div class="fw-bold">Laporan Kinerja Harian</div>
                     <small class="opacity-75">Manajemen LKH</small>
                 </div>
             </a>
-            <div class="text-white text-end" style="background-color: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                <div class="fw-semibold" style="font-size: 0.85rem; line-height: 1.2;"><?= htmlspecialchars($userData['nama']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($userData['nip']) ?></div>
-                <div class="small opacity-75" style="font-size: 0.75rem; line-height: 1.2;"><?= htmlspecialchars($activePeriod) ?></div>
+            <div class="user-info text-white">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-nip"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-period"><?= htmlspecialchars($activePeriod) ?></div>
             </div>
         </div>
     </nav>

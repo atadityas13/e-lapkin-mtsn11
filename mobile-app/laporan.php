@@ -120,16 +120,59 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         .nav-header .navbar-brand {
             font-size: 1.3rem;
             font-weight: 600;
+            flex: 1;
+            min-width: 0;
         }
 
-        .nav-header .text-end {
-            text-align: right !important;
-            min-width: 150px;
+        .nav-header .brand-content {
+            flex: 1;
+            min-width: 0;
         }
 
-        .nav-header .text-end > div {
+        .nav-header .brand-content .fw-bold {
+            font-size: 1.1rem;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .brand-content small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .nav-header .user-info {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-header .user-info .user-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.2;
             margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-header .user-info .user-nip {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .nav-header .user-info .user-period {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.1;
         }
 
         .card {
