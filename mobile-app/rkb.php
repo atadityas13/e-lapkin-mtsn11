@@ -965,9 +965,92 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 font-size: 0.65rem;
             }
         }
+
+        /* Mobile Header Styles */
+        .mobile-header {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-header {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: var(--primary-gradient);
+                color: white;
+                padding: 10px 15px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            }
+
+            .mobile-header .header-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .mobile-header .header-left {
+                display: flex;
+                align-items: center;
+            }
+
+            .mobile-header .back-btn {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                border-radius: 50%;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 10px;
+                transition: background 0.3s ease;
+            }
+
+            .mobile-header .back-btn:hover {
+                background: rgba(255,255,255,0.3);
+            }
+
+            .mobile-header .page-title {
+                font-size: 1.1rem;
+                font-weight: 500;
+                margin-bottom: 2px;
+            }
+
+            .mobile-header .page-subtitle {
+                font-size: 0.85rem;
+                opacity: 0.9;
+            }
+
+            .mobile-header .user-info {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='dashboard.php'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="page-title">Rencana Kinerja Bulanan</h1>
+                    <p class="page-subtitle">Kelola RKB Bulanan Anda</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+            </div>
+        </div>
+    </header>
+
     <!-- Header -->
     <nav class="navbar nav-header">
         <div class="container-fluid d-flex align-items-center gap-3">

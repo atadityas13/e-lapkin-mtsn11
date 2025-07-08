@@ -712,9 +712,99 @@ ob_clean();
                 font-size: 0.65rem;
             }
         }
+
+        /* Mobile Header */
+        .mobile-header {
+            display: none;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 15px;
+            position: relative;
+        }
+
+        .mobile-header .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-header .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-header .back-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .mobile-header .page-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .mobile-header .page-subtitle {
+            font-size: 0.9rem;
+            margin: 0;
+            opacity: 0.8;
+        }
+
+        .mobile-header .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .mobile-header .user-info .user-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .mobile-header .user-info .user-details {
+            font-size: 0.8rem;
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-header {
+                display: block;
+            }
+            
+            .nav-header {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='dashboard.php'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="page-title">Rencana Hasil Kerja</h1>
+                    <p class="page-subtitle">Kelola RHK Harian Anda</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+            </div>
+        </div>
+    </header>
+
     <!-- Header -->
     <nav class="navbar nav-header">
         <div class="container-fluid d-flex align-items-center gap-3">

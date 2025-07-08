@@ -1263,9 +1263,87 @@ ob_clean();
         .modal-body::-webkit-scrollbar-thumb:hover {
             background: rgba(102, 126, 234, 0.5);
         }
+
+        /* Mobile Header */
+        .mobile-header {
+            display: none;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .mobile-header .header-content {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 15px;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-header .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-header .back-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .mobile-header .page-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .mobile-header .page-subtitle {
+            font-size: 0.9rem;
+            margin: 0;
+            opacity: 0.8;
+        }
+
+        .mobile-header .user-info {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-header {
+                display: block;
+            }
+            
+            .nav-header {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='dashboard.php'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="page-title">Laporan Kinerja Harian</h1>
+                    <p class="page-subtitle">Kelola LKH Harian Anda</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-name"><?= htmlspecialchars($userData['nama']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($userData['nip']) ?></div>
+                <div class="user-details"><?= htmlspecialchars($activePeriod) ?></div>
+            </div>
+        </div>
+    </header>
+
     <!-- Header -->
     <nav class="navbar nav-header">
         <div class="container-fluid d-flex align-items-center gap-3">
@@ -2145,7 +2223,5 @@ ob_clean();
             document.getElementById('submitBtn').disabled = false;
         }
     </script>
-</body>
-</html>
 </body>
 </html>
