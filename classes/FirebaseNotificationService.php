@@ -23,7 +23,7 @@ class FirebaseNotificationService
         $this->conn = $database_connection;
         
         // Path ke file JSON akun layanan Anda
-        $serviceAccountPath = __DIR__ . '/../config/cbtapp-mtsn-11-majalengka-firebase-adminsdk-fbsvc-da2685b508.json'; 
+        $serviceAccountPath = __DIR__ . '/../config/service-account.json'; 
 
         // Log path file service account yang digunakan
         error_log("Firebase Service Account path: " . $serviceAccountPath);
