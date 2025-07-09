@@ -320,6 +320,86 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 width: 100%;
             }
         }
+
+        /* Tab Styles */
+        .nav-tabs {
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs .nav-item {
+            margin-bottom: 0;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 15px;
+            margin-right: 10px;
+            background: white;
+            color: #6c757d;
+            font-weight: 600;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--accent-blue);
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-tabs .nav-link i {
+            margin-right: 8px;
+        }
+
+        .tab-content {
+            background: transparent;
+        }
+
+        .tab-pane {
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tab-header {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .tab-header h5 {
+            margin: 0;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .tab-header p {
+            margin: 5px 0 0 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
     </style>
     <?= getMobileHeaderCSS() ?>
 </head>
@@ -342,188 +422,211 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             </div>
         </div>
 
-        <!-- LKB Section -->
-        <div class="report-section">
-            <div class="section-title">
-                <i class="fas fa-file-alt text-primary"></i>
-                Laporan Kinerja Bulanan (LKB)
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="lkb-tab" data-bs-toggle="tab" data-bs-target="#lkb-pane" 
+                        type="button" role="tab" aria-controls="lkb-pane" aria-selected="true">
+                    <i class="fas fa-file-alt"></i>LKB
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="lkh-tab" data-bs-toggle="tab" data-bs-target="#lkh-pane" 
+                        type="button" role="tab" aria-controls="lkh-pane" aria-selected="false">
+                    <i class="fas fa-list"></i>LKH
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="reportTabContent">
+            <!-- LKB Tab Pane -->
+            <div class="tab-pane fade show active" id="lkb-pane" role="tabpanel" aria-labelledby="lkb-tab">
+                <div class="tab-header">
+                    <h5><i class="fas fa-file-alt text-primary me-2"></i>Laporan Kinerja Bulanan (LKB)</h5>
+                    <p>Laporan kinerja yang disusun berdasarkan rencana kerja bulanan</p>
+                </div>
+                
+                <div class="report-section">
+                    <?php foreach ($years as $tahun): ?>
+                        <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
+                            <?php
+                            // Check RKB existence and status
+                            $stmt = $conn->prepare("SELECT id_rkb, status_verval FROM rkb WHERE id_pegawai=? AND bulan=? AND tahun=?");
+                            $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
+                            $stmt->execute();
+                            $stmt->store_result();
+                            $count_rkb = $stmt->num_rows;
+                            $id_rkb = null;
+                            $status_verval_rkb = null;
+                            if ($count_rkb > 0) {
+                                $stmt->bind_result($id_rkb, $status_verval_rkb);
+                                $stmt->fetch();
+                            }
+                            $stmt->close();
+
+                            if ($count_rkb == 0) continue; // Skip months without RKB
+                            
+                            if ($status_verval_rkb === 'disetujui'):
+                                $pdf_exists_lkb = lkb_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
+                                $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
+                            ?>
+                                <div class="report-item lkb-card">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
+                                            <span class="badge bg-success badge-status">
+                                                <i class="fas fa-check-circle me-1"></i>Disetujui
+                                            </span>
+                                        </div>
+                                        <div class="report-actions">
+                                            <?php if ($pdf_exists_lkb): ?>
+                                                <button type="button" class="btn btn-download btn-sm" 
+                                                        onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
+                                                    <i class="fas fa-download me-1"></i>Download
+                                                </button>
+                                                <button type="button" class="btn btn-regenerate btn-sm" 
+                                                        data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
+                                                        data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
+                                                    <i class="fas fa-sync me-1"></i>Generate Ulang
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" class="btn btn-generate btn-sm" 
+                                                        data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
+                                                        data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
+                                                    <i class="fas fa-cogs me-1"></i>Generate LKB
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php elseif ($status_verval_rkb === 'diajukan'): ?>
+                                <div class="report-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
+                                            <span class="badge bg-warning badge-status">
+                                                <i class="fas fa-clock me-1"></i>Menunggu Approval
+                                            </span>
+                                        </div>
+                                        <div class="report-actions">
+                                            <span class="text-muted small">Belum dapat digenerate</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="report-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
+                                            <span class="badge bg-secondary badge-status">
+                                                <i class="fas fa-times-circle me-1"></i>Belum Terkirim
+                                            </span>
+                                        </div>
+                                        <div class="report-actions">
+                                            <span class="text-muted small">Belum dapat digenerate</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        <?php endfor; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
-            
-            <?php foreach ($years as $tahun): ?>
-                <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
-                    <?php
-                    // Check RKB existence and status
-                    $stmt = $conn->prepare("SELECT id_rkb, status_verval FROM rkb WHERE id_pegawai=? AND bulan=? AND tahun=?");
-                    $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
-                    $stmt->execute();
-                    $stmt->store_result();
-                    $count_rkb = $stmt->num_rows;
-                    $id_rkb = null;
-                    $status_verval_rkb = null;
-                    if ($count_rkb > 0) {
-                        $stmt->bind_result($id_rkb, $status_verval_rkb);
-                        $stmt->fetch();
-                    }
-                    $stmt->close();
 
-                    if ($count_rkb == 0) continue; // Skip months without RKB
-                    
-                    if ($status_verval_rkb === 'disetujui'):
-                        $pdf_exists_lkb = lkb_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
-                        $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
-                    ?>
-                        <div class="report-item lkb-card">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-success badge-status">
-                                        <i class="fas fa-check-circle me-1"></i>Disetujui
-                                    </span>
-                                </div>
-                                <div class="report-actions">
-                                    <?php if ($pdf_exists_lkb): ?>
-                                        <button type="button" class="btn btn-download btn-sm" 
-                                                onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
-                                            <i class="fas fa-download me-1"></i>Download
-                                        </button>
-                                        <button type="button" class="btn btn-regenerate btn-sm" 
-                                                data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
-                                                data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-sync me-1"></i>Generate Ulang
-                                        </button>
-                                    <?php else: ?>
-                                        <button type="button" class="btn btn-generate btn-sm" 
-                                                data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
-                                                data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-cogs me-1"></i>Generate LKB
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php elseif ($status_verval_rkb === 'diajukan'): ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-warning badge-status">
-                                        <i class="fas fa-clock me-1"></i>Menunggu Approval
-                                    </span>
-                                </div>
-                                <div class="report-actions">
-                                    <span class="text-muted small">Belum dapat digenerate</span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-secondary badge-status">
-                                        <i class="fas fa-times-circle me-1"></i>Belum Terkirim
-                                    </span>
-                                </div>
-                                <div class="report-actions">
-                                    <span class="text-muted small">Belum dapat digenerate</span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                <?php endfor; ?>
-            <?php endforeach; ?>
-        </div>
+            <!-- LKH Tab Pane -->
+            <div class="tab-pane fade" id="lkh-pane" role="tabpanel" aria-labelledby="lkh-tab">
+                <div class="tab-header">
+                    <h5><i class="fas fa-list text-info me-2"></i>Laporan Kinerja Harian (LKH)</h5>
+                    <p>Laporan kinerja harian berdasarkan aktivitas setiap hari kerja</p>
+                </div>
+                
+                <div class="report-section">
+                    <?php foreach ($years as $tahun): ?>
+                        <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
+                            <?php
+                            // Check LKH existence and status
+                            $stmt = $conn->prepare("SELECT id_lkh, status_verval FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=?");
+                            $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
+                            $stmt->execute();
+                            $stmt->store_result();
+                            $count_lkh = $stmt->num_rows;
+                            $id_lkh = null;
+                            $status_verval_lkh = null;
+                            if ($count_lkh > 0) {
+                                $stmt->bind_result($id_lkh, $status_verval_lkh);
+                                $stmt->fetch();
+                            }
+                            $stmt->close();
 
-        <!-- LKH Section -->
-        <div class="report-section">
-            <div class="section-title">
-                <i class="fas fa-list text-info"></i>
-                Laporan Kinerja Harian (LKH)
+                            if ($count_lkh == 0) continue; // Skip months without LKH
+                            
+                            if ($status_verval_lkh === 'disetujui'):
+                                $pdf_exists_lkh = lkh_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
+                                $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
+                            ?>
+                                <div class="report-item lkh-card">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
+                                            <span class="badge bg-success badge-status">
+                                                <i class="fas fa-check-circle me-1"></i>Disetujui
+                                            </span>
+                                        </div>
+                                        <div class="report-actions">
+                                            <?php if ($pdf_exists_lkh): ?>
+                                                <button type="button" class="btn btn-download btn-sm" 
+                                                        onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
+                                                    <i class="fas fa-download me-1"></i>Download
+                                                </button>
+                                                <button type="button" class="btn btn-regenerate btn-sm" 
+                                                        data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
+                                                        data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
+                                                    <i class="fas fa-sync me-1"></i>Generate Ulang
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" class="btn btn-generate btn-sm" 
+                                                        data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
+                                                        data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
+                                                    <i class="fas fa-cogs me-1"></i>Generate LKH
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php elseif ($status_verval_lkh === 'diajukan'): ?>
+                                <div class="report-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
+                                            <span class="badge bg-warning badge-status">
+                                                <i class="fas fa-clock me-1"></i>Menunggu Approval
+                                            </span>
+                                        </div>
+                                        <div class="report-actions">
+                                            <span class="text-muted small">Belum dapat digenerate</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="report-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
+                                            <span class="badge bg-secondary badge-status">
+                                                <i class="fas fa-times-circle me-1"></i>Belum Terkirim
+                                            </span>
+                                        </div>
+                                        <div class="report-actions">
+                                            <span class="text-muted small">Belum dapat digenerate</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        <?php endfor; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
-            
-            <?php foreach ($years as $tahun): ?>
-                <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
-                    <?php
-                    // Check LKH existence and status
-                    $stmt = $conn->prepare("SELECT id_lkh, status_verval FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=?");
-                    $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
-                    $stmt->execute();
-                    $stmt->store_result();
-                    $count_lkh = $stmt->num_rows;
-                    $id_lkh = null;
-                    $status_verval_lkh = null;
-                    if ($count_lkh > 0) {
-                        $stmt->bind_result($id_lkh, $status_verval_lkh);
-                        $stmt->fetch();
-                    }
-                    $stmt->close();
-
-                    if ($count_lkh == 0) continue; // Skip months without LKH
-                    
-                    if ($status_verval_lkh === 'disetujui'):
-                        $pdf_exists_lkh = lkh_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
-                        $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
-                    ?>
-                        <div class="report-item lkh-card">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-success badge-status">
-                                        <i class="fas fa-check-circle me-1"></i>Disetujui
-                                    </span>
-                                </div>
-                                <div class="report-actions">
-                                    <?php if ($pdf_exists_lkh): ?>
-                                        <button type="button" class="btn btn-download btn-sm" 
-                                                onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
-                                            <i class="fas fa-download me-1"></i>Download
-                                        </button>
-                                        <button type="button" class="btn btn-regenerate btn-sm" 
-                                                data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
-                                                data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-sync me-1"></i>Generate Ulang
-                                        </button>
-                                    <?php else: ?>
-                                        <button type="button" class="btn btn-generate btn-sm" 
-                                                data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
-                                                data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
-                                            <i class="fas fa-cogs me-1"></i>Generate LKH
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php elseif ($status_verval_lkh === 'diajukan'): ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-warning badge-status">
-                                        <i class="fas fa-clock me-1"></i>Menunggu Approval
-                                    </span>
-                                </div>
-                                <div class="report-actions">
-                                    <span class="text-muted small">Belum dapat digenerate</span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="report-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
-                                    <span class="badge bg-secondary badge-status">
-                                        <i class="fas fa-times-circle me-1"></i>Belum Terkirim
-                                    </span>
-                                </div>
-                                <div class="report-actions">
-                                    <span class="text-muted small">Belum dapat digenerate</span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                <?php endfor; ?>
-            <?php endforeach; ?>
         </div>
     </div>
 
@@ -873,6 +976,46 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         // Add smooth scroll animation for report items
         document.addEventListener('DOMContentLoaded', function() {
             const items = document.querySelectorAll('.report-item');
+            items.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    item.style.transition = 'all 0.5s ease';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // Add smooth animation when switching tabs
+        document.addEventListener('DOMContentLoaded', function() {
+            const triggerTabList = document.querySelectorAll('#reportTabs button')
+            triggerTabList.forEach(triggerEl => {
+                const tabTrigger = new bootstrap.Tab(triggerEl)
+
+                triggerEl.addEventListener('click', event => {
+                    event.preventDefault()
+                    tabTrigger.show()
+                    
+                    // Re-animate items when tab is shown
+                    setTimeout(() => {
+                        const activePane = document.querySelector('.tab-pane.active');
+                        const items = activePane.querySelectorAll('.report-item');
+                        items.forEach((item, index) => {
+                            item.style.opacity = '0';
+                            item.style.transform = 'translateY(10px)';
+                            setTimeout(() => {
+                                item.style.transition = 'all 0.3s ease';
+                                item.style.opacity = '1';
+                                item.style.transform = 'translateY(0)';
+                            }, index * 50);
+                        });
+                    }, 100);
+                })
+            })
+
+            // Initial animation for LKB tab (active by default)
+            const items = document.querySelectorAll('#lkb-pane .report-item');
             items.forEach((item, index) => {
                 item.style.opacity = '0';
                 item.style.transform = 'translateY(20px)';
