@@ -329,22 +329,18 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
         .nav-tabs .nav-item {
             margin-bottom: 0;
-            flex: 1;
         }
 
         .nav-tabs .nav-link {
             border: none;
             border-radius: 15px;
-            margin-right: 5px;
+            margin-right: 10px;
             background: white;
             color: #6c757d;
             font-weight: 600;
-            padding: 15px 10px;
+            padding: 12px 20px;
             transition: all 0.3s ease;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-            font-size: 0.9rem;
-            width: 100%;
         }
 
         .nav-tabs .nav-link:hover {
@@ -364,33 +360,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
         .nav-tabs .nav-link i {
             margin-right: 8px;
-            font-size: 1.1rem;
-        }
-
-        @media (max-width: 576px) {
-            .nav-tabs .nav-link {
-                padding: 12px 8px;
-                font-size: 0.8rem;
-                margin-right: 3px;
-            }
-            
-            .nav-tabs .nav-link i {
-                margin-right: 5px;
-                font-size: 1rem;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .nav-tabs .nav-link {
-                padding: 10px 5px;
-                font-size: 0.75rem;
-            }
-            
-            .nav-tabs .nav-link i {
-                display: block;
-                margin-right: 0;
-                margin-bottom: 3px;
-            }
         }
 
         .tab-content {
@@ -430,20 +399,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             margin: 5px 0 0 0;
             color: #6c757d;
             font-size: 0.9rem;
-        }
-
-        /* Yearly Report Styles */
-        .yearly-report-actions {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .yearly-report-actions .btn {
-            margin: 5px;
-            min-width: 120px;
         }
 
         .mobile-container {
@@ -499,8 +454,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
 
         <!-- Tab Navigation -->
-        <div class="bg-white px-3 pt-3">
-            <ul class="nav nav-tabs d-flex" id="reportTabs" role="tablist">
+        <div class="bg-white">
+            <ul class="nav nav-tabs" id="reportTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="lkb-tab" data-bs-toggle="tab" data-bs-target="#lkb-pane" 
                             type="button" role="tab" aria-controls="lkb-pane" aria-selected="true">
@@ -720,11 +675,11 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 </div>
                 
                 <div class="p-3">
-                    <!-- Year Selection and Actions -->
-                    <div class="yearly-report-actions">
-                        <form method="GET" class="d-flex align-items-center justify-content-center gap-2 mb-3">
+                    <!-- Year Selection -->
+                    <div class="mb-3">
+                        <form method="GET" class="d-flex align-items-center gap-2">
                             <input type="hidden" name="tab" value="tahunan">
-                            <label for="year" class="form-label mb-0 text-nowrap fw-semibold">Pilih Tahun:</label>
+                            <label for="year" class="form-label mb-0 text-nowrap">Pilih Tahun:</label>
                             <select name="year" id="year" class="form-select form-select-sm" style="max-width: 120px;">
                                 <?php
                                 $current_year = (int)date('Y');
@@ -736,32 +691,17 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                 ?>
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-search me-1"></i>Tampilkan
+                                <i class="fas fa-search"></i>
                             </button>
                         </form>
-                        
-                        <!-- Download Actions -->
-                        <div class="d-flex justify-content-center gap-2 flex-wrap">
-                            <button type="button" class="btn btn-success btn-sm" onclick="downloadYearlyReport(<?= $selected_year ?>)">
-                                <i class="fas fa-download me-1"></i>Download PDF
-                            </button>
-                            <button type="button" class="btn btn-info btn-sm" onclick="printYearlyReport()">
-                                <i class="fas fa-print me-1"></i>Cetak
-                            </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="exportYearlyExcel(<?= $selected_year ?>)">
-                                <i class="fas fa-file-excel me-1"></i>Export Excel
-                            </button>
-                        </div>
                     </div>
                     
                     <!-- Yearly Report Content -->
-                    <div id="yearly-report-content">
-                        <?php 
-                        // Set year for yearly report
-                        $_GET['year'] = $selected_year;
-                        include 'generate_yearly_report.php'; 
-                        ?>
-                    </div>
+                    <?php 
+                    // Set year for yearly report
+                    $_GET['year'] = $selected_year;
+                    include 'generate_yearly_report.php'; 
+                    ?>
                 </div>
             </div>
         </div>
@@ -868,94 +808,14 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
         });
 
-        // Yearly Report Functions
-        function downloadYearlyReport(year) {
-            console.log('Downloading yearly report for year:', year);
+        // Fixed download function for Android WebView compatibility
+        function downloadFile(url, filename) {
+            console.log('Download initiated:', url, filename);
             
-            Swal.fire({
-                title: 'Generate Laporan Tahunan',
-                text: 'Sedang memproses laporan tahunan untuk tahun ' + year,
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Send request to generate yearly PDF with better error handling
-            fetch('generate_yearly_pdf.php?year=' + year, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/pdf',
-                    'Cache-Control': 'no-cache'
-                }
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                if (!response.ok) {
-                    // Try to get error message from response
-                    return response.text().then(text => {
-                        throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
-                    });
-                }
-                
-                // Check if response is actually PDF
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('pdf')) {
-                    console.warn('Response is not PDF, content-type:', contentType);
-                }
-                
-                return response.blob();
-            })
-            .then(blob => {
-                console.log('Blob received, size:', blob.size);
-                
-                if (blob.size === 0) {
-                    throw new Error('File kosong atau tidak dapat digenerate');
-                }
-                
-                const url = window.URL.createObjectURL(blob);
-                const filename = 'Laporan_Tahunan_' + year + '_<?= $nama_file_nip ?>.pdf';
-                
-                Swal.close();
-                
-                // Try multiple download methods
-                downloadFileMultiMethod(url, filename);
-                
-                // Clean up
-                setTimeout(() => {
-                    window.URL.revokeObjectURL(url);
-                }, 10000);
-            })
-            .catch(error => {
-                console.error('Error details:', error);
-                Swal.close();
-                
-                // Show detailed error with fallback option
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Download Gagal',
-                    html: `
-                        <p>Terjadi kesalahan saat generate laporan:</p>
-                        <small style="color: #666;">${error.message}</small>
-                        <br><br>
-                        <button onclick="openYearlyReportDirectly(${year})" class="btn btn-secondary btn-sm">
-                            Buka di Tab Baru
-                        </button>
-                    `,
-                    confirmButtonText: 'OK'
-                });
-            });
-        }
-
-        // Enhanced download function with multiple methods
-        function downloadFileMultiMethod(url, filename) {
-            console.log('Attempting download with multiple methods:', filename);
-            
-            // Method 1: Android native interface
-            if (typeof Android !== 'undefined' && Android.downloadFile) {
-                try {
+            try {
+                // Method 1: Try Android interface first
+                if (typeof Android !== 'undefined' && Android.downloadFile) {
+                    console.log('Using Android interface');
                     Android.downloadFile(url, filename);
                     Swal.fire({
                         icon: 'success',
@@ -965,112 +825,213 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                         showConfirmButton: false
                     });
                     return;
-                } catch (e) {
-                    console.error('Android download failed:', e);
                 }
-            }
-            
-            // Method 2: Standard download link
-            try {
+                
+                // Method 2: Try window.location for WebView
+                if (navigator.userAgent.includes('wv')) {
+                    console.log('Using WebView window.location method');
+                    window.location.href = url;
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Membuka File',
+                        text: 'File akan dibuka/diunduh...',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    return;
+                }
+                
+                // Method 3: Traditional download link
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = filename;
-                link.style.display = 'none';
+                link.target = '_blank';
                 
+                // Add to DOM temporarily
                 document.body.appendChild(link);
+                
+                // Trigger click
                 link.click();
-                document.body.removeChild(link);
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                }, 100);
+                
+                console.log('Download link clicked');
+                
+                // Show appropriate message
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Download Diproses',
+                    text: 'Silakan periksa folder Download Anda.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                
+                // Fallback: Try direct navigation
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Metode Download Alternatif',
+                    text: 'Klik "Buka File" untuk mengunduh atau melihat file.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Buka File',
+                    cancelButtonText: 'Tutup'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.open(url, '_blank');
+                    }
+                });
+            }
+        }
+
+        // Alternative fetch-based download with proper headers
+        async function downloadFileWithFetch(url, filename) {
+            try {
+                console.log('Fetch download started:', url);
+                
+                Swal.fire({
+                    title: 'Mengunduh...',
+                    text: 'Sedang memproses unduhan file',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Add timestamp to prevent caching issues
+                const downloadUrl = url + '?t=' + new Date().getTime();
+                
+                const response = await fetch(downloadUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                console.log('Blob created, size:', blob.size);
+                
+                // Check if we're in WebView
+                if (navigator.userAgent.includes('wv')) {
+                    // For WebView, try to trigger native download
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64data = reader.result.split(',')[1];
+                        
+                        // Try Android interface for base64 download
+                        if (typeof Android !== 'undefined' && Android.downloadBase64) {
+                            Android.downloadBase64(base64data, filename, blob.type);
+                        } else {
+                            // Fallback to blob URL
+                            const downloadUrl = window.URL.createObjectURL(blob);
+                            window.location.href = downloadUrl;
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                } else {
+                    // Normal browser download
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = filename;
+                    link.style.display = 'none';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(downloadUrl);
+                    }, 1000);
+                }
                 
                 Swal.fire({
                     icon: 'success',
-                    title: 'Download Dimulai',
-                    text: 'File sedang diunduh. Periksa folder Download Anda.',
+                    title: 'Download Selesai',
+                    text: 'File berhasil diunduh! Periksa folder Download.',
                     timer: 3000,
                     showConfirmButton: false
                 });
-                return;
-            } catch (e) {
-                console.error('Standard download failed:', e);
-            }
-            
-            // Method 3: Open in new window/tab
-            try {
-                window.open(url, '_blank');
-                Swal.fire({
-                    icon: 'info',
-                    title: 'File Dibuka',
-                    text: 'File dibuka di tab baru. Gunakan menu browser untuk menyimpan.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            } catch (e) {
-                console.error('All download methods failed:', e);
+                
+            } catch (error) {
+                console.error('Fetch download error:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Download Tidak Berhasil',
-                    text: 'Silakan coba lagi atau hubungi administrator.',
+                    title: 'Download Gagal',
+                    text: 'Terjadi kesalahan: ' + error.message,
                     confirmButtonText: 'OK'
                 });
             }
         }
 
-        // Direct link fallback
-        function openYearlyReportDirectly(year) {
-            const url = 'generate_yearly_pdf.php?year=' + year;
-            window.open(url, '_blank');
-        }
-
-        function exportYearlyExcel(year) {
-            // For now, show coming soon message
-            Swal.fire({
-                icon: 'info',
-                title: 'Fitur Segera Hadir',
-                text: 'Export Excel untuk laporan tahunan sedang dalam pengembangan.',
-                confirmButtonText: 'OK'
-            });
-        }
-
-        // Handle tab switching with URL update
-        document.querySelectorAll('#reportTabs button[data-bs-toggle="tab"]').forEach(function(tab) {
-            tab.addEventListener('shown.bs.tab', function(e) {
-                const tabId = e.target.getAttribute('aria-controls');
-                const url = new URL(window.location);
-                url.searchParams.set('tab', tabId);
-                window.history.replaceState({}, '', url);
-                
-                // Re-animate items when tab is shown
-                setTimeout(() => {
-                    const activePane = document.querySelector('.tab-pane.active');
-                    const items = activePane.querySelectorAll('.report-item, .mobile-yearly-report');
-                    items.forEach((item, index) => {
-                        item.style.opacity = '0';
-                        item.style.transform = 'translateY(10px)';
-                        setTimeout(() => {
-                            item.style.transition = 'all 0.3s ease';
-                            item.style.opacity = '1';
-                            item.style.transform = 'translateY(0)';
-                        }, index * 50);
-                    });
-                }, 100);
-            });
-        });
-
-        // Check if we should show a specific tab based on URL params
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const activeTab = urlParams.get('tab');
+        // Main download function with multiple fallbacks - FIXED VERSION
+        function enhancedDownload(url, filename) {
+            console.log('Enhanced download called:', url, filename);
             
-            if (activeTab && ['lkb-pane', 'lkh-pane', 'tahunan-pane'].includes(activeTab)) {
-                const tabButton = document.querySelector(`#${activeTab.replace('-pane', '-tab')}`);
-                if (tabButton) {
-                    const tab = new bootstrap.Tab(tabButton);
-                    tab.show();
+            // Detect environment
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isWebView = navigator.userAgent.includes('wv');
+            
+            console.log('Environment:', { isAndroid, isWebView });
+            
+            // Strategy 1: Android WebView with native interface
+            if (isAndroid && isWebView && typeof Android !== 'undefined') {
+                if (Android.downloadFile) {
+                    console.log('Using Android.downloadFile');
+                    try {
+                        Android.downloadFile(url, filename);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Download Dimulai',
+                            text: 'File sedang diunduh ke perangkat Anda...',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                        return;
+                    } catch (e) {
+                        console.error('Android download failed:', e);
+                    }
                 }
             }
-        });
-    </script>
-</body>
-</html>
+            
+            // Strategy 2: Fetch API for WebView
+            if (isWebView && window.fetch) {
+                console.log('Using fetch download for WebView');
+                downloadFileWithFetch(url, filename);
+                return;
+            }
+            
+            // Strategy 3: Direct URL navigation for WebView
+            if (isWebView) {
+                console.log('Using direct navigation for WebView');
+                window.location.href = url;
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Membuka File',
+                    text: 'File akan dibuka atau diunduh...',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            // Strategy 4: Traditional download for regular browsers
+            console.log('Using traditional download');
+            // Call the original downloadFile function, NOT recursively calling enhancedDownload
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
             link.target = '_blank';
             
             document.body.appendChild(link);
