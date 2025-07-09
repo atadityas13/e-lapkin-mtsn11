@@ -82,7 +82,21 @@ function validateLoginAccess() {
 validateLoginAccess();
 
 // Check if user is already logged in
+$isLoggedIn = false;
+$userInfo = [
+    'id_pegawai' => null,
+    'nama' => null,
+    'nip' => null,
+    'jabatan' => null
+];
 if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true) {
+    $isLoggedIn = true;
+    $userInfo = [
+        'id_pegawai' => $_SESSION['mobile_id_pegawai'] ?? null,
+        'nama' => $_SESSION['mobile_nama'] ?? null,
+        'nip' => $_SESSION['mobile_nip'] ?? null,
+        'jabatan' => $_SESSION['mobile_jabatan'] ?? null
+    ];
     header("Location: dashboard.php");
     exit();
 }

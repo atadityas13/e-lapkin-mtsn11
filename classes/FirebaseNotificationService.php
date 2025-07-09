@@ -12,6 +12,14 @@ class FirebaseNotificationService
         $this->conn = $database_connection;
         // Get FCM server key from config or environment
         $this->serverKey = $this->getFcmServerKey();
+        if (empty($this->serverKey)) {
+            error_log("FCM server key is not set. Please check config/firebase.php");
+        }
+        // Optional: check if config file exists
+        $configFile = __DIR__ . '/../config/firebase.php';
+        if (!file_exists($configFile)) {
+            error_log("FCM config file not found at: " . $configFile);
+        }
     }
 
     private function getFcmServerKey()
@@ -277,10 +285,6 @@ class FirebaseNotificationService
             $stmt->close();
             return $result;
         }
-        
-        return false;
-    }
-}
         return false;
     }
 }
