@@ -17,15 +17,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
             
-            if (password_verify($password, $user['password']) || $password === $user['password']) {
-                $_SESSION['user_id'] = $user['id_pegawai'];
-                $_SESSION['user_name'] = $user['nama'];
-                $_SESSION['user_nip'] = $user['nip'];
-                $_SESSION['user_jabatan'] = $user['jabatan'];
-                $_SESSION['user_unit'] = $user['unit_kerja'];
+            // Check password (assuming plain text for now, use password_verify for hashed passwords)
+            if ($password === $user['password'] || password_verify($password, $user['password'])) {
+                $_SESSION['id_pegawai'] = $user['id_pegawai'];
+                $_SESSION['nama'] = $user['nama'];
+                $_SESSION['nip'] = $user['nip'];
+                $_SESSION['jabatan'] = $user['jabatan'];
+                $_SESSION['unit_kerja'] = $user['unit_kerja'];
                 
-                // Redirect to dashboard
-                header('Location: dashboard.php');
+                // Redirect to dashboard or main page
+                header('Location: index.php');
                 exit;
             } else {
                 $error = 'Password salah';
@@ -37,6 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $error = 'NIP dan password harus diisi';
     }
+}
+
+// If there's an error, redirect back to index with error
+if ($error) {
+    $_SESSION['login_error'] = $error;
+    header('Location: index.php?error=' . urlencode($error));
+    exit;
 }
 ?>
 <!DOCTYPE html>

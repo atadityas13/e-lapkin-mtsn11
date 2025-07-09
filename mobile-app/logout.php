@@ -1,5 +1,6 @@
 <?php
 session_start();
+session_destroy();
 
 // Clear mobile session data directly without validation
 unset($_SESSION['mobile_loggedin']);

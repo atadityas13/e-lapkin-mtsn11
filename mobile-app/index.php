@@ -910,6 +910,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         document.querySelector('.login-btn').addEventListener('mouseleave', function() {
             this.classList.remove('animate__animated', 'animate__pulse');
         });
+
+        // Function to get user ID (called by Android app)
+        window.getUserId = function() {
+            <?php if (isset($_SESSION['mobile_id_pegawai'])): ?>
+                return '<?= $_SESSION['mobile_id_pegawai'] ?>';
+            <?php else: ?>
+                return null;
+            <?php endif; ?>
+        };
+
+        // Function to receive FCM token from Android app
+        window.setFCMToken = function(token) {
+            console.log('FCM Token received:', token);
+            // You can store this token in localStorage or send to server
+            localStorage.setItem('fcm_token', token);
+        };
+
+        // Notify Android about user login when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (isset($_SESSION['mobile_id_pegawai'])): ?>
+                // Notify Android app about logged in user
+                if (typeof Android !== 'undefined' && Android.onUserLogin) {
+                    Android.onUserLogin('<?= $_SESSION['mobile_id_pegawai'] ?>', '<?= addslashes($_SESSION['mobile_nama']) ?>');
+                }
+                
+                // Also call setUserId directly
+                if (typeof Android !== 'undefined' && Android.setUserId) {
+                    Android.setUserId('<?= $_SESSION['mobile_id_pegawai'] ?>');
+                }
+            <?php endif; ?>
+        });
     </script>
 </body>
 </html>
