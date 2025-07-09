@@ -100,6 +100,12 @@ try {
     ";
     $conn->query($createTableQuery);
 
+    // Tambahkan pengecekan struktur tabel, jika kolom device_id belum ada, alter table
+    $checkColumn = $conn->query("SHOW COLUMNS FROM user_fcm_tokens LIKE 'device_id'");
+    if ($checkColumn->num_rows == 0) {
+        $conn->query("ALTER TABLE user_fcm_tokens ADD COLUMN device_id VARCHAR(100) NOT NULL DEFAULT '' AFTER fcm_token");
+    }
+
     // Nonaktifkan token lama user di device ini (gunakan prepared statement untuk keamanan)
     $updateStmt = $conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ? AND device_id = ?");
     if ($updateStmt === false) {
