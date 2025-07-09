@@ -441,32 +441,89 @@ function generateAndDownload() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Show file info
+                const fileInfo = `File berhasil dibuat!\nNama: ${data.filename}\nUkuran: ${formatFileSize(data.file_size)}\n\nFile akan otomatis terdownload...`;
+                
                 // File created successfully, now download it
                 const link = document.createElement('a');
                 link.href = data.download_url;
                 link.download = data.filename;
+                link.style.display = 'none';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                // Show success message
+                // Show success message with file info
                 downloadBtn.innerHTML = '✅ Berhasil!';
+                
+                // Show notification
+                showNotification('success', fileInfo);
+                
                 setTimeout(() => {
                     downloadBtn.innerHTML = originalText;
                     downloadBtn.disabled = false;
-                }, 2000);
+                }, 3000);
             } else {
-                alert('Gagal membuat file: ' + (data.error || 'Unknown error'));
+                const errorMsg = 'Gagal membuat file: ' + (data.error || 'Unknown error');
+                alert(errorMsg);
+                showNotification('error', errorMsg);
                 downloadBtn.innerHTML = originalText;
                 downloadBtn.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat membuat file');
+            const errorMsg = 'Terjadi kesalahan saat membuat file';
+            alert(errorMsg);
+            showNotification('error', errorMsg);
             downloadBtn.innerHTML = originalText;
             downloadBtn.disabled = false;
         });
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showNotification(type, message) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#28a745' : '#dc3545'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        max-width: 350px;
+        font-size: 14px;
+        line-height: 1.4;
+        white-space: pre-line;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+    
+    // Click to close
+    notification.addEventListener('click', () => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    });
 }
 </script>
 <?php endif; ?>
@@ -677,10 +734,31 @@ if ($is_generate_file) {
             throw new Exception('Direktori temp tidak dapat ditulis');
         }
         
-        // Generate safe filename
-        $safe_name = preg_replace('/[^A-Za-z0-9]/', '_', $nama_pegawai_login);
-        $filename = 'Laporan_Tahunan_' . $year . '_' . $safe_name . '_' . date('YmdHis') . '.html';
+        // Clean up old files before creating new one
+        cleanupOldFiles($temp_dir);
+        
+        // Generate safe filename with better naming
+        $safe_name = preg_replace('/[^A-Za-z0-9_]/', '_', $nama_pegawai_login);
+        $safe_name = substr($safe_name, 0, 30); // Limit length
+        $timestamp = date('Ymd_His');
+        $filename = "Laporan_Tahunan_{$year}_{$safe_name}_{$timestamp}.html";
         $filepath = $temp_dir . '/' . $filename;
+        
+        // Check if similar file already exists (prevent duplicates within same minute)
+        $existing_pattern = $temp_dir . "/Laporan_Tahunan_{$year}_{$safe_name}_" . date('Ymd_Hi') . "*.html";
+        $existing_files = glob($existing_pattern);
+        if (!empty($existing_files)) {
+            // Use existing file instead of creating duplicate
+            $existing_file = $existing_files[0];
+            echo json_encode([
+                'success' => true,
+                'filename' => basename($existing_file),
+                'download_url' => '../generated/temp/' . basename($existing_file),
+                'file_size' => filesize($existing_file),
+                'message' => 'Menggunakan file yang sudah ada (dibuat dalam 1 menit terakhir)'
+            ]);
+            exit;
+        }
         
         // Generate HTML content
         ob_start();
@@ -697,6 +775,7 @@ if ($is_generate_file) {
                     margin: 20px; 
                     font-size: 12px; 
                     line-height: 1.4;
+                    background: white;
                 }
                 .header { 
                     text-align: center; 
@@ -714,6 +793,17 @@ if ($is_generate_file) {
                     font-size: 16px; 
                     margin: 5px 0; 
                     font-weight: bold;
+                }
+                .download-info {
+                    background: #e3f2fd;
+                    border: 1px solid #2196f3;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                }
+                .download-info strong {
+                    color: #1976d2;
                 }
                 .employee-info { 
                     margin-bottom: 20px; 
@@ -767,6 +857,7 @@ if ($is_generate_file) {
                     width: 200px; 
                 }
                 @media print {
+                    .download-info { display: none; }
                     body { margin: 10px; }
                     .report-table { font-size: 8px; }
                     .report-table th, .report-table td { padding: 4px; }
@@ -774,6 +865,13 @@ if ($is_generate_file) {
             </style>
         </head>
         <body>
+            <div class="download-info">
+                <strong>📄 Laporan Kinerja Pegawai Tahunan</strong><br>
+                File ini dibuat otomatis pada: <?= date('d F Y, H:i:s') ?><br>
+                Untuk mencetak: Tekan Ctrl+P (Windows) atau Cmd+P (Mac)<br>
+                Untuk menyimpan sebagai PDF: Pilih "Save as PDF" saat print
+            </div>
+            
             <div class="header">
                 <h1>MTsN 11 MAJALENGKA</h1>
                 <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
@@ -871,15 +969,37 @@ if ($is_generate_file) {
             </div>
             
             <script>
-                // Auto print functionality
-                function autoPrint() {
+                // Enhanced print functionality
+                function smartPrint() {
                     if (confirm('Apakah Anda ingin mencetak laporan ini sekarang?')) {
+                        // Hide download info
+                        const downloadInfo = document.querySelector('.download-info');
+                        if (downloadInfo) downloadInfo.style.display = 'none';
+                        
+                        // Print
                         window.print();
+                        
+                        // Restore download info
+                        setTimeout(() => {
+                            if (downloadInfo) downloadInfo.style.display = 'block';
+                        }, 1000);
                     }
                 }
                 
-                // Optional: Auto print when file is opened
-                // setTimeout(autoPrint, 1000);
+                // Add print button at top
+                window.addEventListener('load', function() {
+                    const downloadInfo = document.querySelector('.download-info');
+                    if (downloadInfo) {
+                        const printBtn = document.createElement('button');
+                        printBtn.innerHTML = '🖨️ Cetak Sekarang';
+                        printBtn.style.cssText = `
+                            background: #4caf50; color: white; border: none; padding: 8px 16px;
+                            border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 14px;
+                        `;
+                        printBtn.onclick = smartPrint;
+                        downloadInfo.appendChild(printBtn);
+                    }
+                });
             </script>
         </body>
         </html>
@@ -897,26 +1017,33 @@ if ($is_generate_file) {
             throw new Exception('File tidak ditemukan setelah penulisan');
         }
         
-        // Schedule file deletion after 2 hours (more time for mobile users)
-        $cleanup_time = time() + 7200; // 2 hours from now
+        // Schedule file deletion after 3 hours (longer for better UX)
+        $cleanup_time = time() + 10800; // 3 hours from now
         $cleanup_file = $temp_dir . '/.cleanup_' . basename($filename, '.html') . '.txt';
         file_put_contents($cleanup_file, $cleanup_time);
         
-        // Clean up old files
-        cleanupOldFiles($temp_dir);
-        
-        // Return success with relative path from mobile-app directory
+        // Return success with enhanced info
         echo json_encode([
             'success' => true,
             'filename' => $filename,
             'download_url' => '../generated/temp/' . $filename,
             'file_size' => filesize($filepath),
-            'message' => 'File berhasil dibuat'
+            'created_time' => date('d F Y, H:i:s'),
+            'expires_time' => date('d F Y, H:i:s', $cleanup_time),
+            'message' => 'File berhasil dibuat dan siap didownload'
         ]);
         
     } catch (Exception $e) {
-        // Log error for debugging
-        error_log('Generate file error: ' . $e->getMessage());
+        // Enhanced error logging
+        $error_details = [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'user' => $nama_pegawai_login,
+            'year' => $year,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+        error_log('Generate file error: ' . json_encode($error_details));
         
         echo json_encode([
             'success' => false,
@@ -926,18 +1053,20 @@ if ($is_generate_file) {
                 'base_dir' => isset($base_dir) ? $base_dir : 'undefined',
                 'temp_dir' => isset($temp_dir) ? $temp_dir : 'undefined',
                 'temp_dir_exists' => isset($temp_dir) ? file_exists($temp_dir) : false,
-                'temp_dir_writable' => isset($temp_dir) ? is_writable($temp_dir) : false
+                'temp_dir_writable' => isset($temp_dir) ? is_writable($temp_dir) : false,
+                'disk_free_space' => isset($temp_dir) ? disk_free_space($temp_dir) : 'unknown'
             ]
         ]);
     }
     exit;
 }
 
-// Function to clean up old files
+// Enhanced cleanup function
 function cleanupOldFiles($temp_dir) {
     try {
         $current_time = time();
         $files = glob($temp_dir . '/*');
+        $cleaned_count = 0;
         
         if ($files === false) {
             return; // Unable to read directory
@@ -958,16 +1087,24 @@ function cleanupOldFiles($temp_dir) {
                         // Delete the target file and cleanup marker
                         if (file_exists($target_path)) {
                             @unlink($target_path);
+                            $cleaned_count++;
                         }
                         @unlink($file);
                     }
                 }
-                // Also clean up files older than 4 hours as fallback
-                else if (filemtime($file) < ($current_time - 14400)) {
+                // Also clean up files older than 6 hours as fallback
+                else if (filemtime($file) < ($current_time - 21600)) {
                     @unlink($file);
+                    $cleaned_count++;
                 }
             }
         }
+        
+        // Log cleanup activity if files were cleaned
+        if ($cleaned_count > 0) {
+            error_log("Cleaned up {$cleaned_count} old generated files");
+        }
+        
     } catch (Exception $e) {
         // Log cleanup errors but don't fail the main operation
         error_log('Cleanup error: ' . $e->getMessage());
@@ -1180,7 +1317,7 @@ if ($is_pdf_download) {
                         <strong>Pegawai Yang Dinilai</strong></p>
                         <div class="signature-line"></div>
                         <p><strong><?= htmlspecialchars($nama_pegawai_login) ?></strong><br>
-                        NIP. <?= htmlspecialchars($emp_data['nip']) ?></p>
+                        NIP. <?= htmlspecialchars($emp_data['nip'] ?? '') ?></p>
                     </div>
                 </div>
             </div>
