@@ -81,8 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $errorMsg = $result['error'] ?? 'Unknown error';
                         // Tambahkan debug response jika ada
-                        if (isset($result['response'])) {
-                            $errorMsg .= ' | Response: ' . json_encode($result['response']);
+                        if (isset($result['responses']) && is_array($result['responses'])) {
+                            foreach ($result['responses'] as $resp) {
+                                if (isset($resp['http_code']) && $resp['http_code'] != 200) {
+                                    $errorMsg .= " | HTTP {$resp['http_code']}";
+                                }
+                                if (isset($resp['raw_response'])) {
+                                    $errorMsg .= " | Raw: " . strip_tags($resp['raw_response']);
+                                }
+                            }
                         }
                         $message = "Gagal mengirim notifikasi: " . $errorMsg;
                         $message_type = "danger";
