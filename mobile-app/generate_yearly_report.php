@@ -55,7 +55,18 @@ $stmt_emp->execute();
 $emp_data = $stmt_emp->get_result()->fetch_assoc();
 $stmt_emp->close();
 
-// Build yearly data similar to desktop version but optimized for mobile
+// Function to get day name in Indonesian
+function get_day_name($date_string) {
+    $timestamp = strtotime($date_string);
+    $day_of_week = date('N', $timestamp);
+    $day_names = [
+        1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis',
+        5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'
+    ];
+    return $day_names[$day_of_week];
+}
+
+// Build yearly data following the main web logic exactly
 $data_for_display = [];
 $no_global = 1;
 
@@ -71,7 +82,22 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
     $stmt_rhk_month->execute();
     $result_rhk_month = $stmt_rhk_month->get_result();
 
-    if ($result_rhk_month->num_rows == 0) {
+    $rhk_count_in_month = $result_rhk_month->num_rows;
+
+    if ($rhk_count_in_month == 0) {
+        // No RHK/RKB for this month
+        $data_for_display[] = [
+            'no' => $no_global++,
+            'bulan' => $months[$bulan_num],
+            'rhk_terkait' => 'Belum ada RHK.',
+            'uraian_kegiatan_rkb' => '',
+            'target_kuantitas' => '',
+            'target_satuan' => '',
+            'tanggal_lkh' => 'Belum ada realisasi.',
+            'nama_kegiatan_harian' => '',
+            'uraian_kegiatan_lkh' => '',
+            'lampiran' => 'Nihil',
+        ];
         $stmt_rhk_month->close();
         continue;
     }
@@ -87,46 +113,50 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
         $stmt_rkb->execute();
         $result_rkb = $stmt_rkb->get_result();
 
-        while ($rkb_item = $result_rkb->fetch_assoc()) {
+        while ($rkb_item_detail = $result_rkb->fetch_assoc()) {
             $stmt_lkh = $conn->prepare("
                 SELECT id_lkh, tanggal_lkh, nama_kegiatan_harian, uraian_kegiatan_lkh, lampiran
                 FROM lkh
                 WHERE id_rkb = ?
                 ORDER BY tanggal_lkh ASC
             ");
-            $stmt_lkh->bind_param("i", $rkb_item['id_rkb']);
+            $stmt_lkh->bind_param("i", $rkb_item_detail['id_rkb']);
             $stmt_lkh->execute();
             $result_lkh = $stmt_lkh->get_result();
             
-            if ($result_lkh->num_rows == 0) {
+            $lkh_count_in_rkb = $result_lkh->num_rows;
+
+            if ($lkh_count_in_rkb == 0) {
                 $data_for_display[] = [
                     'no' => $no_global++,
                     'bulan' => $months[$bulan_num],
                     'rhk_terkait' => htmlspecialchars($rhk_item['nama_rhk']),
-                    'uraian_kegiatan_rkb' => htmlspecialchars($rkb_item['uraian_kegiatan']),
-                    'target_kuantitas' => htmlspecialchars($rkb_item['target_kuantitas']),
-                    'target_satuan' => htmlspecialchars($rkb_item['target_satuan']),
-                    'tanggal_lkh' => 'Belum ada realisasi',
+                    'uraian_kegiatan_rkb' => htmlspecialchars($rkb_item_detail['uraian_kegiatan']),
+                    'target_kuantitas' => htmlspecialchars($rkb_item_detail['target_kuantitas']),
+                    'target_satuan' => htmlspecialchars($rkb_item_detail['target_satuan']),
+                    'tanggal_lkh' => 'Belum ada realisasi.',
                     'nama_kegiatan_harian' => '',
                     'uraian_kegiatan_lkh' => '',
                     'lampiran' => 'Nihil',
                 ];
             } else {
                 while ($lkh_row = $result_lkh->fetch_assoc()) {
-                    $tanggal_lkh_formatted = date('d-m-Y', strtotime($lkh_row['tanggal_lkh']));
+                    $tanggal_lkh_formatted = get_day_name($lkh_row['tanggal_lkh']) . ', ' . date('d-m-Y', strtotime($lkh_row['tanggal_lkh']));
                     $lampiran_status = !empty($lkh_row['lampiran']) ? '1 Dokumen' : 'Nihil';
 
                     $data_for_display[] = [
                         'no' => $no_global++,
                         'bulan' => $months[$bulan_num],
                         'rhk_terkait' => htmlspecialchars($rhk_item['nama_rhk']),
-                        'uraian_kegiatan_rkb' => htmlspecialchars($rkb_item['uraian_kegiatan']),
-                        'target_kuantitas' => htmlspecialchars($rkb_item['target_kuantitas']),
-                        'target_satuan' => htmlspecialchars($rkb_item['target_satuan']),
-                        'tanggal_lkh' => $tanggal_lkh_formatted,
+                        'uraian_kegiatan_rkb' => htmlspecialchars($rkb_item_detail['uraian_kegiatan']),
+                        'target_kuantitas' => htmlspecialchars($rkb_item_detail['target_kuantitas']),
+                        'target_satuan' => htmlspecialchars($rkb_item_detail['target_satuan']),
+                        'tanggal_lkh' => htmlspecialchars($tanggal_lkh_formatted),
                         'nama_kegiatan_harian' => htmlspecialchars($lkh_row['nama_kegiatan_harian'] ?? ''),
                         'uraian_kegiatan_lkh' => htmlspecialchars($lkh_row['uraian_kegiatan_lkh']),
                         'lampiran' => $lampiran_status,
+                        'lampiran_file' => $lkh_row['lampiran'],
+                        'id_lkh' => $lkh_row['id_lkh'],
                     ];
                 }
             }
@@ -137,7 +167,7 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
     $stmt_rhk_month->close();
 }
 
-// Format date for signature
+// Format date for signature - matching main web logic
 function format_date_indonesia($date_string) {
     $months_indo = [
         1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -154,7 +184,6 @@ function format_date_indonesia($date_string) {
 
 // If PDF download is requested, generate PDF
 if ($is_pdf_download) {
-    // Start output buffering to capture HTML
     ob_start();
 }
 ?>
@@ -256,7 +285,7 @@ if ($is_pdf_download) {
     border-color: #28a745;
 }
 
-/* Print-specific styles matching main web application */
+/* Print styles matching main web application */
 @media print {
     .year-controls, .no-print {
         display: none !important;
@@ -265,49 +294,78 @@ if ($is_pdf_download) {
     body {
         font-family: Arial, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: 15mm;
         color: #000;
+        background: white;
     }
     
     .mobile-yearly-report {
-        font-size: 9px;
+        font-size: 10px;
         line-height: 1.2;
     }
     
     .mobile-yearly-report .table {
-        font-size: 8px;
+        font-size: 9px;
         border-collapse: collapse;
         width: 100%;
     }
     
     .mobile-yearly-report .table th,
     .mobile-yearly-report .table td {
-        padding: 2px;
+        padding: 4px;
         border: 1px solid #000 !important;
         vertical-align: middle;
+        word-wrap: break-word;
     }
     
     .mobile-yearly-report .table th {
-        background-color: #f0f0f0 !important;
+        background-color: #e0e0e0 !important;
         font-weight: bold;
         text-align: center;
     }
     
     .mobile-yearly-report .employee-info td {
-        padding: 4px;
+        padding: 6px 8px;
         border: 1px solid #000 !important;
     }
     
     .mobile-yearly-report .signature-area {
         page-break-inside: avoid;
-        margin-top: 20px;
+        margin-top: 30px;
         display: flex;
         justify-content: space-between;
     }
     
     .mobile-yearly-report .signature-box {
         width: 45%;
-        font-size: 9px;
+        font-size: 10px;
+    }
+    
+    .print-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 20px;
+    }
+    
+    .print-header h1 {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .print-header h2 {
+        font-size: 16px;
+        margin: 8px 0;
+        font-weight: bold;
+    }
+    
+    .print-header h3 {
+        font-size: 14px;
+        margin: 5px 0;
+        font-weight: normal;
     }
 }
 
@@ -362,10 +420,7 @@ if ($is_pdf_download) {
     <?php if (!empty($available_years) && !empty($data_for_display)): ?>
     <div class="btn-group-mobile">
         <button onclick="printReport()" class="btn-mobile">
-            📄 Cetak
-        </button>
-        <button onclick="openPrintWindow()" class="btn-mobile btn-success">
-            📥 Download PDF
+            📄 Preview Cetak
         </button>
     </div>
     <?php endif; ?>
@@ -381,45 +436,113 @@ function changeYear() {
 }
 
 function printReport() {
-    // Hide controls temporarily
-    const controls = document.querySelector('.year-controls');
-    if (controls) {
-        controls.style.display = 'none';
+    // Get the print area content
+    const printArea = document.querySelector('.mobile-yearly-report');
+    if (!printArea) {
+        alert('Area cetak tidak ditemukan');
+        return;
     }
     
-    // Add print class to body for additional styling
-    document.body.classList.add('printing');
+    // Clone the content to avoid modifying original
+    const printContent = printArea.cloneNode(true);
     
-    // Trigger print
-    window.print();
+    // Remove elements that shouldn't be printed
+    const elementsToRemove = printContent.querySelectorAll('.no-print');
+    elementsToRemove.forEach(element => element.remove());
     
-    // Restore controls after print dialog closes
-    setTimeout(() => {
-        if (controls) {
-            controls.style.display = 'flex';
-        }
-        document.body.classList.remove('printing');
-    }, 500);
-}
-
-function openPrintWindow() {
-    // Create a new window with the current report for PDF generation
-    const printUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'download=pdf';
-    const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+    // Convert attachment buttons to text for print
+    const attachmentCells = printContent.querySelectorAll('a.view-attachment');
+    attachmentCells.forEach(function(attachmentLink) {
+        const cell = attachmentLink.parentElement;
+        cell.innerHTML = '1 Dokumen';
+    });
+    
+    // Create the print window
+    const printWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
     
     if (!printWindow) {
-        alert('Pop-up diblokir! Silakan aktifkan pop-up untuk browser ini.');
+        alert('Pop-up diblokir. Silakan izinkan pop-up untuk preview cetak.');
+        return;
     }
+    
+    const printHtml = `
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>E-Lapkin MTsN 11 Majalengka | Laporan Kinerja Tahunan - <?= $year ?></title>
+            <style>
+                * { box-sizing: border-box; }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 0; padding: 20px; font-size: 12px; line-height: 1.4; 
+                    background-color: #f5f5f5; 
+                }
+                .container { 
+                    max-width: 1200px; margin: 0 auto; background: white; 
+                    padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+                }
+                .print-header { 
+                    text-align: center; margin-bottom: 30px; 
+                    border-bottom: 2px solid #000; padding-bottom: 20px; 
+                }
+                .print-header h1 { 
+                    font-size: 18px; font-weight: bold; margin: 0; 
+                    text-transform: uppercase; letter-spacing: 1px; 
+                }
+                .print-header h2 { 
+                    font-size: 16px; margin: 8px 0; font-weight: bold; 
+                }
+                .print-header h3 { 
+                    font-size: 14px; margin: 5px 0; font-weight: normal; 
+                }
+                .print-controls { 
+                    position: fixed; top: 10px; right: 10px; background: white; 
+                    padding: 15px; border: 1px solid #ccc; border-radius: 8px; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; 
+                }
+                .print-controls button { 
+                    background: #007bff; color: white; border: none; 
+                    padding: 10px 16px; border-radius: 4px; cursor: pointer; 
+                    margin-left: 8px; font-size: 14px; 
+                }
+                .print-controls button:hover { background: #0056b3; }
+                .print-controls button.btn-secondary { background: #6c757d; }
+                .print-controls button.btn-secondary:hover { background: #545b62; }
+                @media print {
+                    .print-controls { display: none !important; }
+                    body { margin: 0; padding: 0; background: white; }
+                    .container { box-shadow: none; padding: 0; margin: 0; max-width: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-controls">
+                <button onclick="window.print()">
+                    🖨️ Cetak Dokumen
+                </button>
+                <button class="btn-secondary" onclick="window.close()">
+                    ✖️ Tutup Preview
+                </button>
+            </div>
+            
+            <div class="container">
+                <div class="print-header">
+                    <h1>MTsN 11 MAJALENGKA</h1>
+                    <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
+                    <h3>TAHUN <?= $year ?></h3>
+                </div>
+                ${printContent.innerHTML}
+            </div>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.focus();
 }
-
-// Handle print event cleanup
-window.addEventListener('afterprint', function() {
-    const controls = document.querySelector('.year-controls');
-    if (controls) {
-        controls.style.display = 'flex';
-    }
-    document.body.classList.remove('printing');
-});
 </script>
 <?php endif; ?>
 
@@ -478,9 +601,9 @@ window.addEventListener('afterprint', function() {
                 if (empty($available_years)) {
                     echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data tersedia</td></tr>';
                 } elseif (empty($data_for_display)) {
-                    echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data untuk tahun ' . $year . '</td></tr>';
+                    echo '<tr><td colspan="10" class="text-center text-muted">Belum ada Rencana Kegiatan Bulanan (RKB) atau Laporan Kinerja Harian (LKH) untuk tahun ' . $year . '</td></tr>';
                 } else {
-                    // Calculate rowspans
+                    // Calculate rowspan exactly like main web application
                     $rowspan_map = [];
                     $total_rows = count($data_for_display);
                     
@@ -500,7 +623,7 @@ window.addEventListener('afterprint', function() {
                             }
                         }
                         
-                        // Calculate RHK rowspan
+                        // Calculate RHK rowspan within month
                         $rhk_key = $bulan . '||' . $rhk;
                         if (!isset($rowspan_map['rhk'][$rhk_key])) {
                             $rowspan_map['rhk'][$rhk_key] = 0;
@@ -511,7 +634,7 @@ window.addEventListener('afterprint', function() {
                             }
                         }
                         
-                        // Calculate RKB rowspan
+                        // Calculate RKB rowspan within RHK and month
                         $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
                         if (!isset($rowspan_map['rkb'][$rkb_key])) {
                             $rowspan_map['rkb'][$rkb_key] = 0;
@@ -527,47 +650,54 @@ window.addEventListener('afterprint', function() {
                         }
                     }
 
-                    // Print table rows
+                    // Print table rows with consistent cell merging like main web
+                    $no_rkb_global_html = 1;
                     $printed_bulan = [];
                     $printed_rhk = [];
                     $printed_rkb = [];
                     
                     for ($i = 0; $i < $total_rows; $i++) {
-                        $row = $data_for_display[$i];
-                        $bulan = $row['bulan'];
-                        $rhk = $row['rhk_terkait'];
-                        $rkb = $row['uraian_kegiatan_rkb'];
+                        $row_html = $data_for_display[$i];
+                        $bulan = $row_html['bulan'];
+                        $rhk = $row_html['rhk_terkait'];
+                        $rkb = $row_html['uraian_kegiatan_rkb'];
                         $rhk_key = $bulan . '||' . $rhk;
                         $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
                         
                         echo '<tr>';
-                        echo '<td class="text-center">' . $row['no'] . '</td>';
+                        echo '<td class="text-center">' . $no_rkb_global_html++ . '</td>';
 
                         // Month column
                         if (!isset($printed_bulan[$bulan])) {
-                            echo '<td rowspan="' . $rowspan_map['bulan'][$bulan] . '" class="text-center align-middle"><small>' . $bulan . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['bulan'][$bulan] . '" class="text-center align-middle"><small>' . htmlspecialchars($bulan) . '</small></td>';
                             $printed_bulan[$bulan] = true;
                         }
 
                         // RHK column
                         if (!isset($printed_rhk[$rhk_key])) {
-                            echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '" class="align-middle"><small>' . $rhk . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '" class="align-middle" style="text-align: center; vertical-align: middle;"><small>' . htmlspecialchars($rhk) . '</small></td>';
                             $printed_rhk[$rhk_key] = true;
                         }
 
                         // RKB columns
                         if (!isset($printed_rkb[$rkb_key])) {
-                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="align-middle"><small>' . $rkb . '</small></td>';
-                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . $row['target_kuantitas'] . '</small></td>';
-                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . $row['target_satuan'] . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="align-middle" style="text-align: center; vertical-align: middle;"><small>' . htmlspecialchars($rkb) . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . htmlspecialchars($row_html['target_kuantitas']) . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . htmlspecialchars($row_html['target_satuan']) . '</small></td>';
                             $printed_rkb[$rkb_key] = true;
                         }
 
                         // LKH columns
-                        echo '<td class="text-center"><small>' . $row['tanggal_lkh'] . '</small></td>';
-                        echo '<td><small>' . $row['nama_kegiatan_harian'] . '</small></td>';
-                        echo '<td><small>' . $row['uraian_kegiatan_lkh'] . '</small></td>';
-                        echo '<td class="text-center"><small>' . $row['lampiran'] . '</small></td>';
+                        echo '<td class="text-center" style="text-align: center;"><small>' . htmlspecialchars($row_html['tanggal_lkh']) . '</small></td>';
+                        echo '<td class="text-center align-middle" style="text-align: center; vertical-align: middle;"><small>' . htmlspecialchars($row_html['nama_kegiatan_harian'] ?? '') . '</small></td>';
+                        echo '<td class="text-center align-middle" style="text-align: center; vertical-align: middle;"><small>' . htmlspecialchars($row_html['uraian_kegiatan_lkh']) . '</small></td>';
+                        
+                        // Lampiran with link for viewing (like main web)
+                        if (!empty($row_html['lampiran_file']) && $row_html['lampiran'] === '1 Dokumen') {
+                            echo '<td class="text-center"><small><a href="#" class="btn btn-sm btn-info view-attachment" data-file="' . htmlspecialchars($row_html['lampiran_file']) . '" data-lkh-id="' . htmlspecialchars($row_html['id_lkh'] ?? '') . '">👁️ Lihat</a></small></td>';
+                        } else {
+                            echo '<td class="text-center"><small>' . htmlspecialchars($row_html['lampiran']) . '</small></td>';
+                        }
                         echo '</tr>';
                     }
                 }
@@ -576,7 +706,7 @@ window.addEventListener('afterprint', function() {
         </table>
     </div>
     
-    <!-- Signature Area -->
+    <!-- Signature Area matching main web -->
     <div class="signature-area">
         <div class="signature-box">
             <p><strong>Pejabat Penilai</strong></p>
@@ -595,11 +725,10 @@ window.addEventListener('afterprint', function() {
 </div>
 
 <?php
-// If PDF download is requested, process the output
+// If PDF download is requested, process the output (removed complex PDF logic, using simple print approach like main web)
 if ($is_pdf_download) {
     $html_content = ob_get_clean();
     
-    // Generate clean HTML for PDF/Print
     echo '<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -607,125 +736,30 @@ if ($is_pdf_download) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Tahunan ' . $year . ' - ' . htmlspecialchars($nama_pegawai_login) . '</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px;
-            background: white;
-            color: #000;
-        }
-        
-        .print-header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
-        }
-        
-        .print-header h1 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        
-        .print-header h2 {
-            margin: 5px 0 0 0;
-            font-size: 16px;
-            font-weight: normal;
-        }
-        
-        .control-buttons {
-            text-align: center;
-            margin-bottom: 30px;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-        }
-        
-        .control-buttons button {
-            padding: 12px 24px;
-            font-size: 14px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 0 5px;
-        }
-        
-        .btn-print {
-            background: #007bff;
-            color: white;
-        }
-        
-        .btn-close {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-print:hover {
-            background: #0056b3;
-        }
-        
-        .btn-close:hover {
-            background: #545b62;
-        }
-        
+        body { font-family: Arial, sans-serif; margin: 20px; }
         @media print {
-            .control-buttons, .no-print {
-                display: none !important;
-            }
-            
-            body {
-                margin: 0;
-                padding: 15px;
-            }
-            
-            .print-header {
-                margin-bottom: 20px;
-                padding-bottom: 10px;
-            }
+            body { margin: 10px; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body>
-    <div class="print-header">
-        <h1>LAPORAN TAHUNAN KEGIATAN PEGAWAI</h1>
-        <h2>TAHUN ' . $year . '</h2>
-    </div>
-    
-    <div class="control-buttons no-print">
-        <button onclick="window.print()" class="btn-print">
-            🖨️ Cetak / Simpan sebagai PDF
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            📄 Print / Save as PDF
         </button>
-        <button onclick="window.close()" class="btn-close">
-            ✖️ Tutup
+        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+            ✖ Tutup
         </button>
     </div>
-    
     ' . $html_content . '
-    
     <script>
-        // Auto-open print dialog on mobile devices
-        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-            // Delay for mobile devices to ensure page is fully loaded
+        // Auto-trigger print dialog on mobile
+        if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
             setTimeout(() => {
                 window.print();
-            }, 1500);
+            }, 1000);
         }
-        
-        // Handle browser back button
-        window.addEventListener("beforeunload", function() {
-            if (window.opener) {
-                window.opener.focus();
-            }
-        });
-        
-        // Handle print completion
-        window.addEventListener("afterprint", function() {
-            // Optional: Auto-close after printing (uncomment if desired)
-            // setTimeout(() => window.close(), 2000);
-        });
     </script>
 </body>
 </html>';
