@@ -16,7 +16,6 @@ use Kreait\Firebase\Exception\FirebaseException; // Tambahkan untuk penanganan e
 class FirebaseNotificationService
 {
     private $conn;
-    // Hapus $serverKey dan $fcmUrl karena akan digantikan oleh Messaging instance
     private $messaging; // Instance Firebase Messaging
 
     public function __construct($database_connection)
@@ -24,9 +23,22 @@ class FirebaseNotificationService
         $this->conn = $database_connection;
         
         // Path ke file JSON akun layanan Anda
-        // Sesuaikan path ini dengan lokasi service-account.json Anda
         $serviceAccountPath = __DIR__ . '/../config/service-account.json'; 
-        
+
+        // Log path file service account yang digunakan
+        error_log("Firebase Service Account path: " . $serviceAccountPath);
+
+        // Cek environment variable GOOGLE_APPLICATION_CREDENTIALS
+        $envCred = getenv('GOOGLE_APPLICATION_CREDENTIALS');
+        if ($envCred) {
+            error_log("GOOGLE_APPLICATION_CREDENTIALS env: " . $envCred);
+        } else {
+            error_log("GOOGLE_APPLICATION_CREDENTIALS env not set.");
+        }
+
+        // Saran cek waktu server
+        error_log("PENTING: Pastikan waktu server sinkron (gunakan NTP). Error 'invalid_grant' sering terjadi jika waktu server tidak akurat.");
+
         if (!file_exists($serviceAccountPath)) {
             $errorMsg = "Firebase Service Account JSON file not found at: " . $serviceAccountPath;
             error_log($errorMsg);
@@ -142,8 +154,6 @@ class FirebaseNotificationService
         }
 
         $notification = Notification::create($title, $message);
-        
-        // Data kustom yang akan dikirim ke aplikasi Android
         $customData = array_merge($data, [
             'title' => $title,
             'message' => $message,
@@ -190,11 +200,16 @@ class FirebaseNotificationService
 
         } catch (MessagingException $e) {
             error_log("FCM Multicast Error: " . $e->getMessage());
+            // Tambahkan log detail jika error invalid_grant
+            if (strpos($e->getMessage(), 'invalid_grant') !== false) {
+                error_log("=== PENTING: Error 'invalid_grant' biasanya disebabkan oleh waktu server yang tidak sinkron, kredensial service account salah/expired, atau environment variable GOOGLE_APPLICATION_CREDENTIALS tidak sesuai. ===");
+                error_log("=== Saran: Cek waktu server (date -u), cek file service-account.json, dan pastikan environment variable sudah benar. ===");
+            }
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
                 'total_success' => 0,
-                'total_failure' => count($tokens), // Asumsikan semua gagal jika ada exception
+                'total_failure' => count($tokens),
                 'response' => null
             ];
         }
