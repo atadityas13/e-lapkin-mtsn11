@@ -11,8 +11,36 @@ if (!isset($userData)) {
     $nama_pegawai_login = $userData['nama'];
 }
 
-// Get year parameter
-$year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
+// Function to get available years with data
+function getAvailableYears($conn, $id_pegawai) {
+    $stmt = $conn->prepare("
+        SELECT DISTINCT rkb.tahun 
+        FROM rkb 
+        JOIN rhk ON rkb.id_rhk = rhk.id_rhk 
+        WHERE rhk.id_pegawai = ? 
+        ORDER BY rkb.tahun DESC
+    ");
+    $stmt->bind_param("i", $id_pegawai);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $years = [];
+    while ($row = $result->fetch_assoc()) {
+        $years[] = $row['tahun'];
+    }
+    $stmt->close();
+    
+    return $years;
+}
+
+// Get available years
+$available_years = getAvailableYears($conn, $id_pegawai_login);
+
+// Get year parameter - default to latest available year
+$year = isset($_GET['year']) ? (int)$_GET['year'] : (count($available_years) > 0 ? $available_years[0] : (int)date('Y'));
+
+// Check if this is a PDF download request
+$is_pdf_download = isset($_GET['download']) && $_GET['download'] === 'pdf';
 
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -123,6 +151,12 @@ function format_date_indonesia($date_string) {
     
     return $day . ' ' . $months_indo[$month] . ' ' . $year;
 }
+
+// If PDF download is requested, generate PDF
+if ($is_pdf_download) {
+    // Start output buffering to capture HTML
+    ob_start();
+}
 ?>
 
 <style>
@@ -181,6 +215,61 @@ function format_date_indonesia($date_string) {
     width: 150px;
 }
 
+.year-controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-group-mobile {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.btn-mobile {
+    padding: 8px 12px;
+    font-size: 12px;
+    border: 1px solid #007bff;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.btn-mobile:hover {
+    background: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-mobile.btn-secondary {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-mobile.btn-success {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+@media print {
+    .year-controls, .no-print {
+        display: none !important;
+    }
+    
+    .mobile-yearly-report {
+        font-size: 8px;
+    }
+    
+    .mobile-yearly-report .table {
+        font-size: 7px;
+    }
+}
+
 @media (max-width: 576px) {
     .mobile-yearly-report .table {
         font-size: 8px;
@@ -199,8 +288,72 @@ function format_date_indonesia($date_string) {
     .mobile-yearly-report .signature-box {
         width: 100%;
     }
+    
+    .year-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn-group-mobile {
+        justify-content: center;
+    }
 }
 </style>
+
+<?php if (!$is_pdf_download): ?>
+<!-- Year Selection and Controls -->
+<div class="year-controls no-print">
+    <div style="flex: 1;">
+        <label for="year-select" style="font-weight: bold; margin-right: 10px;">Pilih Tahun:</label>
+        <select id="year-select" class="form-control" style="display: inline-block; width: auto; min-width: 100px;" onchange="changeYear()">
+            <?php if (empty($available_years)): ?>
+                <option value="">Tidak ada data</option>
+            <?php else: ?>
+                <?php foreach ($available_years as $available_year): ?>
+                    <option value="<?= $available_year ?>" <?= $available_year == $year ? 'selected' : '' ?>>
+                        <?= $available_year ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+    </div>
+    
+    <?php if (!empty($available_years) && !empty($data_for_display)): ?>
+    <div class="btn-group-mobile">
+        <button onclick="printReport()" class="btn-mobile">
+            📄 Print
+        </button>
+        <a href="?year=<?= $year ?>&download=pdf" class="btn-mobile btn-success" target="_blank">
+            📥 Download PDF
+        </a>
+    </div>
+    <?php endif; ?>
+</div>
+
+<script>
+function changeYear() {
+    const yearSelect = document.getElementById('year-select');
+    const selectedYear = yearSelect.value;
+    if (selectedYear) {
+        window.location.href = '?year=' + selectedYear;
+    }
+}
+
+function printReport() {
+    // Hide controls and optimize for printing
+    const controls = document.querySelector('.year-controls');
+    if (controls) controls.style.display = 'none';
+    
+    // Trigger print
+    window.print();
+    
+    // Restore controls after print dialog
+    setTimeout(() => {
+        if (controls) controls.style.display = 'flex';
+    }, 100);
+}
+</script>
+<?php endif; ?>
 
 <div class="mobile-yearly-report">
     <!-- Employee Information -->
@@ -254,7 +407,9 @@ function format_date_indonesia($date_string) {
             </thead>
             <tbody>
                 <?php
-                if (empty($data_for_display)) {
+                if (empty($available_years)) {
+                    echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data tersedia</td></tr>';
+                } elseif (empty($data_for_display)) {
                     echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data untuk tahun ' . $year . '</td></tr>';
                 } else {
                     // Calculate rowspans
@@ -370,5 +525,49 @@ function format_date_indonesia($date_string) {
         </div>
     </div>
 </div>
-    </div>
-</div>
+
+<?php
+// If PDF download is requested, process the output
+if ($is_pdf_download) {
+    $html_content = ob_get_clean();
+    
+    // Simple PDF generation using browser's print-to-PDF capability
+    // For mobile compatibility, we'll use a JavaScript approach
+    echo '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Laporan Tahunan ' . $year . ' - ' . htmlspecialchars($nama_pegawai_login) . '</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            @media print {
+                body { margin: 10px; }
+                .no-print { display: none !important; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                📄 Print / Save as PDF
+            </button>
+            <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                ✖ Tutup
+            </button>
+        </div>
+        ' . $html_content . '
+        <script>
+            // Auto-trigger print dialog on mobile
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                setTimeout(() => {
+                    window.print();
+                }, 1000);
+            }
+        </script>
+    </body>
+    </html>';
+    exit;
+}
+?>
