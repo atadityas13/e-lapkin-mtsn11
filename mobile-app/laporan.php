@@ -760,10 +760,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 <div class="p-3">
                     <!-- Year Selection -->
                     <div class="mb-3">
-                        <form method="GET" class="d-flex align-items-center gap-2">
+                        <form method="GET" class="d-flex align-items-center gap-2" id="yearSelectionForm">
                             <input type="hidden" name="tab" value="tahunan">
                             <label for="year" class="form-label mb-0 text-nowrap">Pilih Tahun:</label>
-                            <select name="year" id="year" class="form-select form-select-sm" style="max-width: 120px;">
+                            <select name="year" id="year" class="form-select form-select-sm" style="max-width: 120px;" onchange="updateAnnualData()">
                                 <?php
                                 $current_year = (int)date('Y');
                                 $selected_year = isset($_GET['year']) ? (int)$_GET['year'] : $current_year;
@@ -778,13 +778,134 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             </button>
                         </form>
                     </div>
-                    
-                    <!-- Yearly Report Content -->
-                    <?php 
-                    // Set year for yearly report
-                    $_GET['year'] = $selected_year;
-                    include 'generate_yearly_report.php'; 
+
+                    <!-- Annual Report Stats -->
+                    <?php
+                    // Get annual data count for selected year
+                    $stmt_annual_check = $conn->prepare("SELECT COUNT(*) as total FROM rhk r 
+                        JOIN rkb ON r.id_rhk = rkb.id_rhk 
+                        WHERE r.id_pegawai = ? AND rkb.tahun = ?");
+                    $stmt_annual_check->bind_param("ii", $id_pegawai_login, $selected_year);
+                    $stmt_annual_check->execute();
+                    $annual_data_selected = $stmt_annual_check->get_result()->fetch_assoc()['total'];
+                    $stmt_annual_check->close();
+
+                    $stmt_annual_lkh_check = $conn->prepare("SELECT COUNT(*) as total FROM lkh l 
+                        JOIN rkb ON l.id_rkb = rkb.id_rkb 
+                        JOIN rhk ON rkb.id_rhk = rhk.id_rhk 
+                        WHERE rhk.id_pegawai = ? AND rkb.tahun = ?");
+                    $stmt_annual_lkh_check->bind_param("ii", $id_pegawai_login, $selected_year);
+                    $stmt_annual_lkh_check->execute();
+                    $annual_lkh_selected = $stmt_annual_lkh_check->get_result()->fetch_assoc()['total'];
+                    $stmt_annual_lkh_check->close();
                     ?>
+
+                    <!-- Annual Statistics Card -->
+                    <div class="report-item" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">📈 Statistik Tahun <?php echo $selected_year; ?></h6>
+                            <i class="fas fa-chart-bar fa-2x opacity-75"></i>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h3 mb-1"><?php echo $annual_data_selected; ?></div>
+                                <small>Total RKB</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h3 mb-1"><?php echo $annual_lkh_selected; ?></div>
+                                <small>Total LKH</small>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <small class="opacity-75">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Periode: Januari - Desember <?php echo $selected_year; ?>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Feature Highlights -->
+                    <div class="report-item" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e); border: none;">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <i class="fas fa-file-pdf text-danger fa-2x mb-2"></i>
+                                <h6>Format PDF</h6>
+                                <small>Siap cetak & bagikan</small>
+                            </div>
+                            <div class="col-6">
+                                <i class="fas fa-table text-primary fa-2x mb-2"></i>
+                                <h6>Komprehensif</h6>
+                                <small>Semua data tahun ini</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Section -->
+                    <div class="report-item">
+                        <div class="text-center mb-3">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 60px; height: 60px;">
+                                <i class="fas fa-download fa-2x text-primary"></i>
+                            </div>
+                            <h6>Download Laporan Tahunan PDF</h6>
+                            <p class="text-muted small mb-0">Unduh laporan lengkap dalam format PDF yang dapat dicetak</p>
+                        </div>
+
+                        <!-- Progress Container -->
+                        <div class="progress-container" id="annualProgressContainer" style="display: none; background: #f8f9fa; border-radius: 15px; padding: 15px; margin: 15px 0;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-primary small">
+                                    <i class="fas fa-cog fa-spin me-2"></i>
+                                    Generating PDF...
+                                </span>
+                                <span class="badge bg-primary" id="annualProgressText">0%</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" id="annualProgressBar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted mt-1 d-block">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Mohon tunggu, sedang menyiapkan laporan PDF...
+                            </small>
+                        </div>
+
+                        <!-- Loading Spinner -->
+                        <div class="loading-spinner text-center py-3" id="annualLoadingSpinner" style="display: none;">
+                            <div class="spinner-border text-primary mb-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h6 class="text-primary">Menyiapkan Laporan PDF</h6>
+                            <p class="text-muted small mb-0">Mohon tunggu beberapa saat...</p>
+                        </div>
+
+                        <?php if ($annual_data_selected > 0): ?>
+                            <button class="btn btn-generate w-100" id="downloadAnnualBtn" onclick="downloadAnnualPDF(<?php echo $selected_year; ?>)">
+                                <i class="fas fa-download me-2"></i>
+                                Download Laporan Tahunan <?php echo $selected_year; ?>
+                            </button>
+                        <?php else: ?>
+                            <div class="alert alert-warning text-center">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Belum ada data untuk tahun <?php echo $selected_year; ?>
+                            </div>
+                            <button class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-ban me-2"></i>
+                                Tidak Ada Data untuk Diunduh
+                            </button>
+                        <?php endif; ?>
+
+                        <div class="mt-3 p-3 bg-light rounded-3">
+                            <small class="text-muted d-block">
+                                <i class="fas fa-shield-alt text-success me-1"></i>
+                                <strong>Keamanan:</strong> File PDF akan dihapus otomatis setelah 3 menit.
+                            </small>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-mobile-alt text-primary me-1"></i>
+                                <strong>Mobile App:</strong> Optimized untuk pengalaman mobile yang lebih baik.
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1185,6 +1306,180 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     item.style.transform = 'translateY(0)';
                 }, index * 100);
             });
+        });
+
+        // Annual report download function
+        function downloadAnnualPDF(year) {
+            const downloadBtn = document.getElementById('downloadAnnualBtn');
+            const loadingSpinner = document.getElementById('annualLoadingSpinner');
+            const progressContainer = document.getElementById('annualProgressContainer');
+            const progressBar = document.getElementById('annualProgressBar');
+            const progressText = document.getElementById('annualProgressText');
+            
+            // Disable button and show loading
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyiapkan PDF...';
+            loadingSpinner.style.display = 'block';
+            progressContainer.style.display = 'block';
+            
+            // Enhanced progress simulation
+            let progress = 0;
+            const progressSteps = [
+                { value: 15, message: 'Mengumpulkan data...' },
+                { value: 35, message: 'Memproses RKB...' },
+                { value: 55, message: 'Memproses LKH...' },
+                { value: 75, message: 'Generating PDF...' },
+                { value: 90, message: 'Finalizing...' }
+            ];
+            
+            let stepIndex = 0;
+            const progressInterval = setInterval(() => {
+                if (stepIndex < progressSteps.length) {
+                    const step = progressSteps[stepIndex];
+                    progress = step.value;
+                    progressBar.style.width = progress + '%';
+                    progressText.textContent = Math.round(progress) + '%';
+                    
+                    // Update loading message
+                    const loadingElement = document.querySelector('#annualLoadingSpinner p');
+                    if (loadingElement) {
+                        loadingElement.textContent = step.message;
+                    }
+                    
+                    stepIndex++;
+                } else {
+                    clearInterval(progressInterval);
+                }
+            }, 500);
+            
+            // Create form for download
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'generate_pdf_tahunan.php';
+            form.style.display = 'none';
+            
+            // Add year parameter
+            const yearInput = document.createElement('input');
+            yearInput.type = 'hidden';
+            yearInput.name = 'year';
+            yearInput.value = year;
+            form.appendChild(yearInput);
+            
+            // Add mobile app identifier
+            const mobileInput = document.createElement('input');
+            mobileInput.type = 'hidden';
+            mobileInput.name = 'mobile_app';
+            mobileInput.value = '1';
+            form.appendChild(mobileInput);
+            
+            // Add CSRF token if available
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (csrfToken) {
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = 'csrf_token';
+                tokenInput.value = csrfToken.getAttribute('content');
+                form.appendChild(tokenInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+            
+            // Complete progress and cleanup
+            setTimeout(() => {
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+                
+                // Update final message
+                const loadingElement = document.querySelector('#annualLoadingSpinner p');
+                if (loadingElement) {
+                    loadingElement.textContent = 'Download dimulai...';
+                }
+                
+                setTimeout(() => {
+                    // Reset UI
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = '<i class="fas fa-download me-2"></i>Download Laporan Tahunan ' + year;
+                    loadingSpinner.style.display = 'none';
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressText.textContent = '0%';
+                    
+                    // Remove form
+                    if (document.body.contains(form)) {
+                        document.body.removeChild(form);
+                    }
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Berhasil',
+                        text: 'Laporan tahunan berhasil diunduh!',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }, 1500);
+            }, 3000);
+        }
+
+        // Update annual data when year changes
+        function updateAnnualData() {
+            const year = document.getElementById('year').value;
+            
+            // Show loading for year change
+            Swal.fire({
+                title: 'Memuat Data...',
+                text: 'Sedang memuat data tahun ' + year,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Update URL and reload
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('year', year);
+            currentUrl.searchParams.set('tab', 'tahunan');
+            window.location.href = currentUrl.toString();
+        }
+
+        // Handle direct tab access via URL hash
+        document.addEventListener('DOMContentLoaded', function() {
+            // ...existing code...
+
+            // Check for URL parameters to switch to annual tab
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeTab = urlParams.get('tab');
+            
+            if (activeTab === 'tahunan') {
+                const annualTab = document.getElementById('tahunan-tab');
+                const lkbTab = document.getElementById('lkb-tab');
+                const annualPane = document.getElementById('tahunan-pane');
+                const lkbPane = document.getElementById('lkb-pane');
+                
+                if (annualTab && annualPane) {
+                    // Remove active from LKB
+                    lkbTab.classList.remove('active');
+                    lkbPane.classList.remove('show', 'active');
+                    
+                    // Add active to Annual
+                    annualTab.classList.add('active');
+                    annualPane.classList.add('show', 'active');
+                }
+            }
+
+            // Add touch feedback for annual download button
+            const annualBtn = document.getElementById('downloadAnnualBtn');
+            if (annualBtn) {
+                annualBtn.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                annualBtn.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            }
         });
     </script>
 </body>
