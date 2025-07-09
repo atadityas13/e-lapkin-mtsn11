@@ -66,7 +66,7 @@ function get_day_name($date_string) {
     return $day_names[$day_of_week];
 }
 
-// Build yearly data following the main web logic exactly
+// Build yearly data - only months with actual data
 $data_for_display = [];
 $no_global = 1;
 
@@ -82,22 +82,8 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
     $stmt_rhk_month->execute();
     $result_rhk_month = $stmt_rhk_month->get_result();
 
-    $rhk_count_in_month = $result_rhk_month->num_rows;
-
-    if ($rhk_count_in_month == 0) {
-        // No RHK/RKB for this month
-        $data_for_display[] = [
-            'no' => $no_global++,
-            'bulan' => $months[$bulan_num],
-            'rhk_terkait' => 'Belum ada RHK.',
-            'uraian_kegiatan_rkb' => '',
-            'target_kuantitas' => '',
-            'target_satuan' => '',
-            'tanggal_lkh' => 'Belum ada realisasi.',
-            'nama_kegiatan_harian' => '',
-            'uraian_kegiatan_lkh' => '',
-            'lampiran' => 'Nihil',
-        ];
+    // Skip months with no data
+    if ($result_rhk_month->num_rows == 0) {
         $stmt_rhk_month->close();
         continue;
     }
@@ -124,9 +110,7 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
             $stmt_lkh->execute();
             $result_lkh = $stmt_lkh->get_result();
             
-            $lkh_count_in_rkb = $result_lkh->num_rows;
-
-            if ($lkh_count_in_rkb == 0) {
+            if ($result_lkh->num_rows == 0) {
                 $data_for_display[] = [
                     'no' => $no_global++,
                     'bulan' => $months[$bulan_num],
@@ -134,7 +118,7 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
                     'uraian_kegiatan_rkb' => htmlspecialchars($rkb_item_detail['uraian_kegiatan']),
                     'target_kuantitas' => htmlspecialchars($rkb_item_detail['target_kuantitas']),
                     'target_satuan' => htmlspecialchars($rkb_item_detail['target_satuan']),
-                    'tanggal_lkh' => 'Belum ada realisasi.',
+                    'tanggal_lkh' => 'Belum ada realisasi',
                     'nama_kegiatan_harian' => '',
                     'uraian_kegiatan_lkh' => '',
                     'lampiran' => 'Nihil',
@@ -436,112 +420,8 @@ function changeYear() {
 }
 
 function printReport() {
-    // Get the print area content
-    const printArea = document.querySelector('.mobile-yearly-report');
-    if (!printArea) {
-        alert('Area cetak tidak ditemukan');
-        return;
-    }
-    
-    // Clone the content to avoid modifying original
-    const printContent = printArea.cloneNode(true);
-    
-    // Remove elements that shouldn't be printed
-    const elementsToRemove = printContent.querySelectorAll('.no-print');
-    elementsToRemove.forEach(element => element.remove());
-    
-    // Convert attachment buttons to text for print
-    const attachmentCells = printContent.querySelectorAll('a.view-attachment');
-    attachmentCells.forEach(function(attachmentLink) {
-        const cell = attachmentLink.parentElement;
-        cell.innerHTML = '1 Dokumen';
-    });
-    
-    // Create the print window
-    const printWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    
-    if (!printWindow) {
-        alert('Pop-up diblokir. Silakan izinkan pop-up untuk preview cetak.');
-        return;
-    }
-    
-    const printHtml = `
-        <!DOCTYPE html>
-        <html lang="id">
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>E-Lapkin MTsN 11 Majalengka | Laporan Kinerja Tahunan - <?= $year ?></title>
-            <style>
-                * { box-sizing: border-box; }
-                body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 0; padding: 20px; font-size: 12px; line-height: 1.4; 
-                    background-color: #f5f5f5; 
-                }
-                .container { 
-                    max-width: 1200px; margin: 0 auto; background: white; 
-                    padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); 
-                }
-                .print-header { 
-                    text-align: center; margin-bottom: 30px; 
-                    border-bottom: 2px solid #000; padding-bottom: 20px; 
-                }
-                .print-header h1 { 
-                    font-size: 18px; font-weight: bold; margin: 0; 
-                    text-transform: uppercase; letter-spacing: 1px; 
-                }
-                .print-header h2 { 
-                    font-size: 16px; margin: 8px 0; font-weight: bold; 
-                }
-                .print-header h3 { 
-                    font-size: 14px; margin: 5px 0; font-weight: normal; 
-                }
-                .print-controls { 
-                    position: fixed; top: 10px; right: 10px; background: white; 
-                    padding: 15px; border: 1px solid #ccc; border-radius: 8px; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; 
-                }
-                .print-controls button { 
-                    background: #007bff; color: white; border: none; 
-                    padding: 10px 16px; border-radius: 4px; cursor: pointer; 
-                    margin-left: 8px; font-size: 14px; 
-                }
-                .print-controls button:hover { background: #0056b3; }
-                .print-controls button.btn-secondary { background: #6c757d; }
-                .print-controls button.btn-secondary:hover { background: #545b62; }
-                @media print {
-                    .print-controls { display: none !important; }
-                    body { margin: 0; padding: 0; background: white; }
-                    .container { box-shadow: none; padding: 0; margin: 0; max-width: none; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="print-controls">
-                <button onclick="window.print()">
-                    🖨️ Cetak Dokumen
-                </button>
-                <button class="btn-secondary" onclick="window.close()">
-                    ✖️ Tutup Preview
-                </button>
-            </div>
-            
-            <div class="container">
-                <div class="print-header">
-                    <h1>MTsN 11 MAJALENGKA</h1>
-                    <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
-                    <h3>TAHUN <?= $year ?></h3>
-                </div>
-                ${printContent.innerHTML}
-            </div>
-        </body>
-        </html>
-    `;
-    
-    printWindow.document.write(printHtml);
-    printWindow.document.close();
-    printWindow.focus();
+    // Simple mobile print function
+    window.print();
 }
 </script>
 <?php endif; ?>
@@ -601,9 +481,9 @@ function printReport() {
                 if (empty($available_years)) {
                     echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data tersedia</td></tr>';
                 } elseif (empty($data_for_display)) {
-                    echo '<tr><td colspan="10" class="text-center text-muted">Belum ada Rencana Kegiatan Bulanan (RKB) atau Laporan Kinerja Harian (LKH) untuk tahun ' . $year . '</td></tr>';
+                    echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data untuk tahun ' . $year . '</td></tr>';
                 } else {
-                    // Calculate rowspan exactly like main web application
+                    // Calculate rowspan for grouping
                     $rowspan_map = [];
                     $total_rows = count($data_for_display);
                     
@@ -623,7 +503,7 @@ function printReport() {
                             }
                         }
                         
-                        // Calculate RHK rowspan within month
+                        // Calculate RHK rowspan
                         $rhk_key = $bulan . '||' . $rhk;
                         if (!isset($rowspan_map['rhk'][$rhk_key])) {
                             $rowspan_map['rhk'][$rhk_key] = 0;
@@ -634,7 +514,7 @@ function printReport() {
                             }
                         }
                         
-                        // Calculate RKB rowspan within RHK and month
+                        // Calculate RKB rowspan
                         $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
                         if (!isset($rowspan_map['rkb'][$rkb_key])) {
                             $rowspan_map['rkb'][$rkb_key] = 0;
@@ -648,6 +528,126 @@ function printReport() {
                                 }
                             }
                         }
+                    }
+
+                    // Display table rows with simple rowspan logic
+                    $no_counter = 1;
+                    $printed_bulan = [];
+                    $printed_rhk = [];
+                    $printed_rkb = [];
+                    
+                    for ($i = 0; $i < $total_rows; $i++) {
+                        $row_html = $data_for_display[$i];
+                        $bulan = $row_html['bulan'];
+                        $rhk = $row_html['rhk_terkait'];
+                        $rkb = $row_html['uraian_kegiatan_rkb'];
+                        $rhk_key = $bulan . '||' . $rhk;
+                        $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
+                        
+                        echo '<tr>';
+                        echo '<td class="text-center">' . $no_counter++ . '</td>';
+
+                        // Month column with rowspan
+                        if (!isset($printed_bulan[$bulan])) {
+                            echo '<td rowspan="' . $rowspan_map['bulan'][$bulan] . '" class="text-center align-middle"><small>' . $bulan . '</small></td>';
+                            $printed_bulan[$bulan] = true;
+                        }
+
+                        // RHK column with rowspan
+                        if (!isset($printed_rhk[$rhk_key])) {
+                            echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '" class="align-middle"><small>' . $rhk . '</small></td>';
+                            $printed_rhk[$rhk_key] = true;
+                        }
+
+                        // RKB columns with rowspan
+                        if (!isset($printed_rkb[$rkb_key])) {
+                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="align-middle"><small>' . $rkb . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . $row_html['target_kuantitas'] . '</small></td>';
+                            echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . $row_html['target_satuan'] . '</small></td>';
+                            $printed_rkb[$rkb_key] = true;
+                        }
+
+                        // LKH columns (no rowspan)
+                        echo '<td class="text-center"><small>' . $row_html['tanggal_lkh'] . '</small></td>';
+                        echo '<td class="text-center"><small>' . $row_html['nama_kegiatan_harian'] . '</small></td>';
+                        echo '<td class="text-center"><small>' . $row_html['uraian_kegiatan_lkh'] . '</small></td>';
+                        
+                        // Lampiran
+                        if (!empty($row_html['lampiran_file']) && $row_html['lampiran'] === '1 Dokumen') {
+                            echo '<td class="text-center"><small><a href="../uploads/lkh/' . $row_html['lampiran_file'] . '" target="_blank" class="btn btn-sm btn-info">👁️ Lihat</a></small></td>';
+                        } else {
+                            echo '<td class="text-center"><small>' . $row_html['lampiran'] . '</small></td>';
+                        }
+                        echo '</tr>';
+                    }
+                }
+                ?>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Signature Area -->
+    <div class="signature-area">
+        <div class="signature-box">
+            <p><strong>Pejabat Penilai</strong></p>
+            <div class="signature-line"></div>
+            <p><strong><?= htmlspecialchars($emp_data['nama_penilai'] ?: '(..................................)') ?></strong><br>
+            NIP. <?= htmlspecialchars($emp_data['nip_penilai'] ?: '.................................') ?></p>
+        </div>
+        <div class="signature-box">
+            <p>Cingambul, <?= format_date_indonesia(date('Y-m-d')) ?><br>
+            <strong>Pegawai Yang Dinilai</strong></p>
+            <div class="signature-line"></div>
+            <p><strong><?= htmlspecialchars($nama_pegawai_login) ?></strong><br>
+            NIP. <?= htmlspecialchars($emp_data['nip']) ?></p>
+        </div>
+    </div>
+</div>
+
+<?php
+// Simplified PDF handling
+if ($is_pdf_download) {
+    $html_content = ob_get_clean();
+    
+    echo '<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Tahunan ' . $year . ' - ' . htmlspecialchars($nama_pegawai_login) . '</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .no-print { display: none !important; }
+        .mobile-yearly-report { font-size: 10px; }
+        .table { border-collapse: collapse; width: 100%; }
+        .table th, .table td { border: 1px solid #000; padding: 4px; text-align: center; }
+        @media print {
+            body { margin: 10px; }
+            .mobile-yearly-report { font-size: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
+            📄 Cetak
+        </button>
+        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; margin-left: 10px;">
+            ✖ Tutup
+        </button>
+    </div>
+    ' . $html_content . '
+    <script>
+        // Auto print on mobile
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+            setTimeout(() => window.print(), 1000);
+        }
+    </script>
+</body>
+</html>';
+    exit;
+}
+?>
                     }
 
                     // Print table rows with consistent cell merging like main web
