@@ -436,6 +436,12 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <i class="fas fa-list"></i>LKH
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tahunan-tab" data-bs-toggle="tab" data-bs-target="#tahunan-pane" 
+                        type="button" role="tab" aria-controls="tahunan-pane" aria-selected="false">
+                    <i class="fas fa-calendar-alt"></i>Tahunan
+                </button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -627,6 +633,181 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <?php endforeach; ?>
                 </div>
             </div>
+
+            <!-- Tahunan Tab Pane -->
+            <div class="tab-pane fade" id="tahunan-pane" role="tabpanel" aria-labelledby="tahunan-tab">
+                <div class="tab-header">
+                    <h5><i class="fas fa-calendar-alt text-warning me-2"></i>Laporan Kinerja Tahunan</h5>
+                    <p>Laporan kinerja komprehensif selama satu tahun periode aktif</p>
+                </div>
+                
+                <!-- Yearly Report Controls -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-8">
+                                <h6 class="card-title mb-1">
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    Laporan Tahun <?= $activePeriod['tahun'] ?>
+                                </h6>
+                                <small class="text-muted">
+                                    Rekapitulasi RKB dan LKH selama tahun <?= $activePeriod['tahun'] ?>
+                                </small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <button type="button" class="btn btn-primary btn-sm" id="generateYearlyReport">
+                                    <i class="fas fa-eye me-1"></i>
+                                    <span class="d-none d-sm-inline">Preview</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Yearly Summary Cards -->
+                <div class="row mb-3">
+                    <?php
+                    // Get yearly statistics
+                    $yearly_stats = [];
+                    
+                    // Count RKB entries
+                    $stmt_rkb_count = $conn->prepare("SELECT COUNT(*) as total_rkb FROM rkb WHERE id_pegawai = ? AND tahun = ?");
+                    $stmt_rkb_count->bind_param("ii", $id_pegawai_login, $activePeriod['tahun']);
+                    $stmt_rkb_count->execute();
+                    $result_rkb = $stmt_rkb_count->get_result()->fetch_assoc();
+                    $yearly_stats['total_rkb'] = $result_rkb['total_rkb'];
+                    $stmt_rkb_count->close();
+                    
+                    // Count LKH entries
+                    $stmt_lkh_count = $conn->prepare("SELECT COUNT(*) as total_lkh FROM lkh WHERE id_pegawai = ? AND YEAR(tanggal_lkh) = ?");
+                    $stmt_lkh_count->bind_param("ii", $id_pegawai_login, $activePeriod['tahun']);
+                    $stmt_lkh_count->execute();
+                    $result_lkh = $stmt_lkh_count->get_result()->fetch_assoc();
+                    $yearly_stats['total_lkh'] = $result_lkh['total_lkh'];
+                    $stmt_lkh_count->close();
+                    
+                    // Count approved months
+                    $stmt_approved = $conn->prepare("
+                        SELECT COUNT(DISTINCT rkb.bulan) as approved_months 
+                        FROM rkb 
+                        WHERE rkb.id_pegawai = ? AND rkb.tahun = ? AND rkb.status_verval = 'disetujui'
+                    ");
+                    $stmt_approved->bind_param("ii", $id_pegawai_login, $activePeriod['tahun']);
+                    $stmt_approved->execute();
+                    $result_approved = $stmt_approved->get_result()->fetch_assoc();
+                    $yearly_stats['approved_months'] = $result_approved['approved_months'];
+                    $stmt_approved->close();
+                    ?>
+                    
+                    <div class="col-4">
+                        <div class="card text-center border-primary">
+                            <div class="card-body p-2">
+                                <div class="text-primary">
+                                    <i class="fas fa-file-alt fa-2x mb-1"></i>
+                                </div>
+                                <h6 class="card-title mb-0 text-primary"><?= $yearly_stats['total_rkb'] ?></h6>
+                                <small class="text-muted">Total RKB</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-4">
+                        <div class="card text-center border-info">
+                            <div class="card-body p-2">
+                                <div class="text-info">
+                                    <i class="fas fa-list fa-2x mb-1"></i>
+                                </div>
+                                <h6 class="card-title mb-0 text-info"><?= $yearly_stats['total_lkh'] ?></h6>
+                                <small class="text-muted">Total LKH</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-4">
+                        <div class="card text-center border-success">
+                            <div class="card-body p-2">
+                                <div class="text-success">
+                                    <i class="fas fa-check-circle fa-2x mb-1"></i>
+                                </div>
+                                <h6 class="card-title mb-0 text-success"><?= $yearly_stats['approved_months'] ?></h6>
+                                <small class="text-muted">Bulan Disetujui</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Summary -->
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="fas fa-calendar me-2"></i>
+                            Ringkasan Bulanan Tahun <?= $activePeriod['tahun'] ?>
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <?php
+                        for ($bulan_mobile = 1; $bulan_mobile <= 12; $bulan_mobile++):
+                            // Check month status
+                            $stmt_month_status = $conn->prepare("
+                                SELECT 
+                                    COUNT(DISTINCT rkb.id_rkb) as rkb_count,
+                                    COUNT(DISTINCT lkh.id_lkh) as lkh_count,
+                                    MAX(rkb.status_verval) as status_verval
+                                FROM rkb 
+                                LEFT JOIN lkh ON rkb.id_rkb = lkh.id_rkb
+                                WHERE rkb.id_pegawai = ? AND rkb.bulan = ? AND rkb.tahun = ?
+                            ");
+                            $stmt_month_status->bind_param("iii", $id_pegawai_login, $bulan_mobile, $activePeriod['tahun']);
+                            $stmt_month_status->execute();
+                            $month_data = $stmt_month_status->get_result()->fetch_assoc();
+                            $stmt_month_status->close();
+                            
+                            if ($month_data['rkb_count'] == 0) continue; // Skip months without data
+                            
+                            $status_badge = '';
+                            $status_icon = '';
+                            if ($month_data['status_verval'] === 'disetujui') {
+                                $status_badge = 'bg-success';
+                                $status_icon = 'fas fa-check-circle';
+                            } elseif ($month_data['status_verval'] === 'diajukan') {
+                                $status_badge = 'bg-warning';
+                                $status_icon = 'fas fa-clock';
+                            } else {
+                                $status_badge = 'bg-secondary';
+                                $status_icon = 'fas fa-times-circle';
+                            }
+                        ?>
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <h6 class="mb-1"><?= $months[$bulan_mobile] ?> <?= $activePeriod['tahun'] ?></h6>
+                                <div class="d-flex gap-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-file-alt me-1"></i><?= $month_data['rkb_count'] ?> RKB
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="fas fa-list me-1"></i><?= $month_data['lkh_count'] ?> LKH
+                                    </small>
+                                </div>
+                            </div>
+                            <span class="badge <?= $status_badge ?> rounded-pill">
+                                <i class="<?= $status_icon ?> me-1"></i>
+                                <?= ucfirst($month_data['status_verval'] ?: 'Belum') ?>
+                            </span>
+                        </div>
+                        <?php endfor; ?>
+                        
+                        <?php if ($yearly_stats['total_rkb'] == 0): ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Belum Ada Data</h6>
+                            <p class="text-muted small mb-0">
+                                Belum ada RKB yang dibuat untuk tahun <?= $activePeriod['tahun'] ?>
+                            </p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -694,6 +875,36 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
     </div>
 
+    <!-- Modal Generate Yearly Report -->
+    <div class="modal fade" id="yearlyReportModal" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-alt me-2"></i>Preview Laporan Tahunan
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0" style="max-height: 70vh; overflow-y: auto;">
+                    <div id="yearlyReportContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Memuat laporan tahunan...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" id="printYearlyReport">
+                        <i class="fas fa-print me-1"></i>Cetak Laporan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation -->
     <?php include __DIR__ . '/components/bottom-nav.php'; ?>
 
@@ -729,6 +940,147 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             var tahun = button.getAttribute('data-tahun');
             var form = document.getElementById('generateLkhForm');
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+        });
+
+        // Yearly Report Functionality
+        document.getElementById('generateYearlyReport').addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('yearlyReportModal'));
+            const contentDiv = document.getElementById('yearlyReportContent');
+            
+            // Reset content
+            contentDiv.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memuat laporan tahunan...</p>
+                </div>
+            `;
+            
+            modal.show();
+            
+            // Fetch yearly report data
+            fetch('generate_yearly_report.php?year=<?= $activePeriod["tahun"] ?>')
+                .then(response => response.text())
+                .then(html => {
+                    contentDiv.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    contentDiv.innerHTML = `
+                        <div class="alert alert-danger m-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Gagal memuat laporan tahunan. Silakan coba lagi.
+                        </div>
+                    `;
+                });
+        });
+
+        // Print Yearly Report
+        document.getElementById('printYearlyReport').addEventListener('click', function() {
+            const reportContent = document.getElementById('yearlyReportContent').innerHTML;
+            
+            if (reportContent.includes('spinner-border') || reportContent.includes('alert-danger')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Laporan Belum Siap',
+                    text: 'Harap tunggu hingga laporan selesai dimuat.'
+                });
+                return;
+            }
+            
+            // Create print window
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            
+            if (!printWindow) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Pop-up Diblokir',
+                    text: 'Silakan izinkan pop-up untuk mencetak laporan.'
+                });
+                return;
+            }
+            
+            const printHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Laporan Kinerja Tahunan - <?= $activePeriod["tahun"] ?></title>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 0; 
+                            padding: 20px; 
+                            font-size: 12px; 
+                            line-height: 1.4; 
+                        }
+                        .print-header { 
+                            text-align: center; 
+                            margin-bottom: 30px; 
+                            border-bottom: 2px solid #000; 
+                            padding-bottom: 20px; 
+                        }
+                        .print-header h1 { 
+                            font-size: 18px; 
+                            margin: 0; 
+                            text-transform: uppercase; 
+                        }
+                        .print-header h2 { 
+                            font-size: 16px; 
+                            margin: 8px 0; 
+                        }
+                        table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            font-size: 10px; 
+                        }
+                        th, td { 
+                            border: 1px solid #000; 
+                            padding: 6px; 
+                            text-align: center; 
+                            vertical-align: middle; 
+                        }
+                        th { 
+                            background-color: #e0e0e0; 
+                            font-weight: bold; 
+                        }
+                        .employee-info td { 
+                            text-align: left; 
+                        }
+                        .employee-info td:first-child { 
+                            background-color: #f0f0f0; 
+                            font-weight: bold; 
+                            width: 150px; 
+                        }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1>MTsN 11 MAJALENGKA</h1>
+                        <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
+                        <h3>TAHUN <?= $activePeriod["tahun"] ?></h3>
+                    </div>
+                    ${reportContent}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() {
+                                window.close();
+                            }, 1000);
+                        };
+                    </script>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
         });
 
         // Fixed download function for Android WebView compatibility
@@ -1024,6 +1376,28 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     item.style.opacity = '1';
                     item.style.transform = 'translateY(0)';
                 }, index * 100);
+            });
+        });
+
+        // Enhanced tab switching with animation
+        document.addEventListener('DOMContentLoaded', function() {
+            // ...existing code...
+
+            // Add smooth animation when switching to yearly tab
+            document.getElementById('tahunan-tab').addEventListener('click', function() {
+                setTimeout(() => {
+                    const yearlyPane = document.getElementById('tahunan-pane');
+                    const cards = yearlyPane.querySelectorAll('.card');
+                    cards.forEach((card, index) => {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateY(20px)';
+                        setTimeout(() => {
+                            card.style.transition = 'all 0.4s ease';
+                            card.style.opacity = '1';
+                            card.style.transform = 'translateY(0)';
+                        }, index * 100);
+                    });
+                }, 100);
             });
         });
     </script>

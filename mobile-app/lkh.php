@@ -1419,16 +1419,16 @@ ob_clean();
                                     </span>
                                     <?php if ($lkh['lampiran']): ?>
                                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewAttachment('<?= htmlspecialchars($lkh['lampiran']) ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>')">
-                                            <i class="fas fa-eye me-1"></i>Lihat
+                                            <i class="fas fa-eye me-1"></i>Lihat lampiran
                                         </button>
                                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAttachment(<?= $lkh['id_lkh'] ?>)"
                                             <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : '' ?>>
-                                            <i class="fas fa-trash me-1"></i>Hapus
+                                            <i class="fas fa-trash me-1"></i>Hapus lampiran
                                         </button>
                                     <?php else: ?>
                                         <button type="button" class="btn btn-sm btn-outline-success" onclick="addAttachment(<?= $lkh['id_lkh'] ?>)"
                                             <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : '' ?>>
-                                            <i class="fas fa-plus me-1"></i>Tambah
+                                            <i class="fas fa-plus me-1"></i>Lampiran
                                         </button>
                                     <?php endif; ?>
                                 </div>
