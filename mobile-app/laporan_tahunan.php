@@ -4,17 +4,17 @@
  * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE APP VERSION
  * ========================================================
  * 
- * Mobile App Annual Report Page
+ * Annual Report Redirect - Now integrated in laporan.php
  * 
  * @package    E-Lapkin-MTSN11
  * @version    1.0.0
  * ========================================================
  */
-session_start();
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../template/session_user.php';
 
-// Check if user is logged in
+// Redirect to main laporan page with annual tab active
+header("Location: laporan.php?tab=tahunan#tahunan");
+exit();
+?>
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header("Location: login.php");
     exit();

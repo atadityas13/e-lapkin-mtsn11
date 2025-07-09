@@ -10,16 +10,19 @@
  * @version    1.0.0
  * ========================================================
  */
+
+// Start output buffering to prevent any unwanted output
+ob_start();
+
 session_start();
+
+// Include mobile session and database
+require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../template/session_user.php';
 require_once __DIR__ . '/../vendor/fpdf/fpdf.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header("Location: login.php");
-    exit();
-}
+// Check mobile login
+checkMobileLogin();
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -27,38 +30,35 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit("Method not allowed");
 }
 
-$id_pegawai_login = $_SESSION['id_pegawai'];
-$nama_pegawai_login = $_SESSION['nama'];
+// Get user session data
+$userData = getMobileSessionData();
+$id_pegawai_login = $userData['id_pegawai'];
+$nama_pegawai_login = $userData['nama'];
+
+// Get year parameter
+$selected_year = isset($_POST['year']) ? (int)$_POST['year'] : (int)date('Y');
 
 // Get periode aktif
-function get_periode_aktif($conn, $id_pegawai) {
-    $stmt = $conn->prepare("SELECT tahun_aktif FROM pegawai WHERE id_pegawai = ?");
-    $stmt->bind_param("i", $id_pegawai);
-    $stmt->execute();
-    $stmt->bind_result($tahun_aktif);
-    $stmt->fetch();
-    $stmt->close();
-    return ['tahun' => $tahun_aktif ?: (int)date('Y')];
-}
+$stmt = $conn->prepare("SELECT tahun_aktif FROM pegawai WHERE id_pegawai = ?");
+$stmt->bind_param("i", $id_pegawai_login);
+$stmt->execute();
+$stmt->bind_result($tahun_aktif);
+$stmt->fetch();
+$stmt->close();
+$periode_tahun = $tahun_aktif ?: (int)date('Y');
 
 // Get pejabat penilai info
-function get_pejabat_penilai($conn, $id_pegawai) {
-    $stmt = $conn->prepare("SELECT nama_penilai, nip_penilai FROM pegawai WHERE id_pegawai = ?");
-    $stmt->bind_param("i", $id_pegawai);
-    $stmt->execute();
-    $stmt->bind_result($nama_pejabat, $nip_pejabat);
-    $stmt->fetch();
-    $stmt->close();
-    
-    return [
-        'nama' => $nama_pejabat ?: '(...................................)',
-        'nip' => $nip_pejabat ?: '.................................'
-    ];
-}
+$stmt = $conn->prepare("SELECT nama_penilai, nip_penilai FROM pegawai WHERE id_pegawai = ?");
+$stmt->bind_param("i", $id_pegawai_login);
+$stmt->execute();
+$stmt->bind_result($nama_pejabat, $nip_pejabat);
+$stmt->fetch();
+$stmt->close();
 
-$periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
-$periode_tahun = $periode_aktif['tahun'];
-$pejabat_penilai = get_pejabat_penilai($conn, $id_pegawai_login);
+$pejabat_penilai = [
+    'nama' => $nama_pejabat ?: '(...................................)',
+    'nip' => $nip_pejabat ?: '.................................'
+];
 
 // Month names
 $months = [
@@ -77,7 +77,7 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
                                      JOIN rkb ON rhk.id_rhk = rkb.id_rhk
                                      WHERE rhk.id_pegawai = ? AND rkb.bulan = ? AND rkb.tahun = ?
                                      ORDER BY rhk.id_rhk ASC");
-    $stmt_rhk_month->bind_param("iii", $id_pegawai_login, $bulan_num, $periode_tahun);
+    $stmt_rhk_month->bind_param("iii", $id_pegawai_login, $bulan_num, $selected_year);
     $stmt_rhk_month->execute();
     $result_rhk_month = $stmt_rhk_month->get_result();
 
@@ -104,7 +104,7 @@ for ($bulan_num = 1; $bulan_num <= 12; $bulan_num++) {
                                     FROM rkb
                                     WHERE rkb.id_rhk = ? AND rkb.bulan = ? AND rkb.tahun = ? AND rkb.id_pegawai = ?
                                     ORDER BY rkb.id_rkb ASC");
-        $stmt_rkb->bind_param("iiii", $rhk_item['id_rhk'], $bulan_num, $periode_tahun, $id_pegawai_login);
+        $stmt_rkb->bind_param("iiii", $rhk_item['id_rhk'], $bulan_num, $selected_year, $id_pegawai_login);
         $stmt_rkb->execute();
         $result_rkb = $stmt_rkb->get_result();
 
@@ -201,7 +201,6 @@ class LaporanTahunanPDF extends FPDF {
         
         // Employee info table
         $this->SetFont('Arial', '', 10);
-        $y_start = $this->GetY();
         
         // Labels
         $this->Cell(40, 6, 'Nama Pegawai', 1, 0, 'L');
@@ -225,7 +224,7 @@ class LaporanTahunanPDF extends FPDF {
     function Footer() {
         $this->SetY(-15);
         $this->SetFont('Arial', 'I', 8);
-        $this->Cell(0, 10, 'Halaman ' . $this->PageNo() . ' - Digenerate melalui E-Lapkin MTsN 11 Majalengka', 0, 0, 'C');
+        $this->Cell(0, 10, 'Halaman ' . $this->PageNo() . ' - Mobile App E-Lapkin MTsN 11 Majalengka', 0, 0, 'C');
     }
     
     function addTableHeader() {
@@ -282,9 +281,13 @@ class LaporanTahunanPDF extends FPDF {
     }
 }
 
-// Generate filename with mobile-app prefix for identification
-$filename = 'mobile_laporan_tahunan_' . str_replace(' ', '_', $nama_pegawai_login) . '_' . $periode_tahun . '_' . date('YmdHis') . '.pdf';
-$temp_dir = __DIR__ . '/../generated/temp/mobile-app/';
+// Clear any output buffer
+ob_clean();
+
+// Generate filename - save in generated/temp as requested
+$clean_name = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama_pegawai_login);
+$filename = 'mobile_laporan_tahunan_' . $clean_name . '_' . $selected_year . '_' . date('YmdHis') . '.pdf';
+$temp_dir = __DIR__ . '/../generated/temp/';
 
 // Create temp directory if not exists
 if (!is_dir($temp_dir)) {
@@ -297,17 +300,17 @@ $file_path = $temp_dir . $filename;
 $pdf = new LaporanTahunanPDF('L', 'mm', 'A4');
 $pdf->setEmployeeInfo(
     $nama_pegawai_login,
-    $_SESSION['nip'],
-    $_SESSION['jabatan'],
-    $_SESSION['unit_kerja'],
-    $periode_tahun,
+    $userData['nip'],
+    $userData['jabatan'],
+    $userData['unit_kerja'],
+    $selected_year,
     $pejabat_penilai
 );
 
 $pdf->AddPage();
 $pdf->addTableHeader();
 
-// Add data to PDF
+// Add data to PDF with proper cell merging
 $pdf->SetFont('Arial', '', 7);
 $current_bulan = '';
 $current_rhk = '';
@@ -319,8 +322,6 @@ foreach ($data_for_display as $index => $row) {
         $pdf->AddPage();
         $pdf->addTableHeader();
     }
-    
-    $y = $pdf->GetY();
     
     // No
     $pdf->Cell(12, 6, $row['no'], 1, 0, 'C');
@@ -369,7 +370,7 @@ $pdf->addSignatureArea();
 // Save PDF
 $pdf->Output('F', $file_path);
 
-// Schedule file deletion after 3 minutes with mobile-app specific cleanup
+// Schedule file deletion after 3 minutes
 $delete_time = time() + (3 * 60); // 3 minutes from now
 $delete_script = "<?php
 // Mobile App PDF Auto-Delete Script
@@ -390,14 +391,14 @@ header('Cache-Control: no-cache, must-revalidate');
 header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
 header('X-Mobile-App: E-Lapkin-MTSN11');
 
-// Output file and delete immediately after sending
+// Output file
 readfile($file_path);
 
-// Clean up old mobile-app files (optional cleanup)
+// Clean up old mobile-app files (5 minutes old)
 $files = glob($temp_dir . 'mobile_*.pdf');
 $now = time();
 foreach ($files as $file) {
-    if (is_file($file) && ($now - filemtime($file)) > 300) { // 5 minutes old
+    if (is_file($file) && ($now - filemtime($file)) > 300) {
         unlink($file);
     }
 }
@@ -405,7 +406,7 @@ foreach ($files as $file) {
 // Clean up old mobile delete scripts
 $delete_files = glob($temp_dir . 'delete_mobile_*.php');
 foreach ($delete_files as $file) {
-    if (is_file($file) && ($now - filemtime($file)) > 600) { // 10 minutes old
+    if (is_file($file) && ($now - filemtime($file)) > 600) {
         unlink($file);
     }
 }
