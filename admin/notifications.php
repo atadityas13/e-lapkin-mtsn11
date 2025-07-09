@@ -96,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Log detailed error for debugging
                         error_log("FCM Error Details: " . json_encode($result));
+                        error_log("=== PENTING: Cek endpoint FCM di FirebaseNotificationService.php. Error 404 artinya URL endpoint FCM salah atau tidak ditemukan. ===");
                     }
                 } catch (Exception $e) {
                     $message = "Error: " . $e->getMessage();

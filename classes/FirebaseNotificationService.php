@@ -160,6 +160,11 @@ class FirebaseNotificationService
             'Content-Type: application/json'
         ];
 
+        // Debug log
+        error_log("FCM DEBUG URL: " . $this->fcmUrl);
+        error_log("FCM DEBUG HEADERS: " . json_encode($headers));
+        error_log("FCM DEBUG PAYLOAD: " . json_encode($payload));
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->fcmUrl);
         curl_setopt($ch, CURLOPT_POST, true);
