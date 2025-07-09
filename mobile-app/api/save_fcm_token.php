@@ -102,6 +102,11 @@ try {
 
     // Nonaktifkan token lama user di device ini (gunakan prepared statement untuk keamanan)
     $updateStmt = $conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ? AND device_id = ?");
+    if ($updateStmt === false) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Prepare failed (update): ' . $conn->error]);
+        exit;
+    }
     $updateStmt->bind_param("is", $userId, $deviceId);
     $updateStmt->execute();
     $updateStmt->close();
@@ -117,6 +122,11 @@ try {
             last_used_at = NOW(),
             is_active = 1
     ");
+    if ($stmt === false) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Prepare failed (insert): ' . $conn->error]);
+        exit;
+    }
     $stmt->bind_param("issss", $userId, $fcmToken, $deviceId, $deviceType, $appVersion);
 
     if ($stmt->execute()) {
