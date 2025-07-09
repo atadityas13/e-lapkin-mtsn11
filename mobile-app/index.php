@@ -6,56 +6,139 @@
  */
 
 session_start();
-require_once '../config/database.php';
 
-// Check if user is logged in
-$isLoggedIn = isset($_SESSION['id_pegawai']);
-$userInfo = null;
-$error = '';
+// Mobile app configuration (define here to avoid including full mobile_session.php)
+define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
+define('MOBILE_PACKAGE_NAME', 'id.sch.mtsn11majalengka.elapkin');
+define('MOBILE_USER_AGENT', 'E-LAPKIN-MTSN11-Mobile-App/1.0');
 
-if ($isLoggedIn) {
-    $userId = $_SESSION['id_pegawai'];
-    $stmt = $conn->prepare("SELECT id_pegawai, nama, nip, jabatan, unit_kerja FROM pegawai WHERE id_pegawai = ?");
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $userInfo = $result->fetch_assoc();
-    $stmt->close();
+// Generate mobile token for validation
+function generateLoginToken() {
+    $originalTimezone = date_default_timezone_get();
+    date_default_timezone_set('Asia/Jakarta');
+    
+    $currentDate = date('Y-m-d');
+    $input = MOBILE_SECRET_KEY . $currentDate;
+    $token = md5($input);
+    
+    date_default_timezone_set($originalTimezone);
+    return $token;
 }
 
-// Handle login
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLoggedIn) {
+// For login page, validate User Agent and optionally validate token/package if provided
+function validateLoginAccess() {
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    
+    // Always validate User Agent
+    if ($user_agent !== MOBILE_USER_AGENT) {
+        http_response_code(403);
+        die(json_encode([
+            'error' => 'Access denied. This mobile interface is only accessible via the official E-LAPKIN Mobile App.',
+            'required_user_agent' => MOBILE_USER_AGENT
+        ]));
+    }
+    
+    // If token and package headers are provided, validate them too
+    $headers = getallheaders();
+    $receivedToken = '';
+    $receivedPackage = '';
+    
+    // Handle case-insensitive headers
+    if (isset($headers['X-Mobile-Token'])) {
+        $receivedToken = $headers['X-Mobile-Token'];
+    } elseif (isset($headers['x-mobile-token'])) {
+        $receivedToken = $headers['x-mobile-token'];
+    }
+    
+    if (isset($headers['X-App-Package'])) {
+        $receivedPackage = $headers['X-App-Package'];
+    } elseif (isset($headers['x-app-package'])) {
+        $receivedPackage = $headers['x-app-package'];
+    }
+    
+    if (!empty($receivedToken) && !empty($receivedPackage)) {
+        // Validate token
+        $expectedToken = generateLoginToken();
+        if ($receivedToken !== $expectedToken) {
+            http_response_code(403);
+            die(json_encode([
+                'error' => 'Invalid mobile token.',
+                'code' => 'INVALID_TOKEN'
+            ]));
+        }
+        
+        // Validate package
+        if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
+            http_response_code(403);
+            die(json_encode([
+                'error' => 'Invalid app package.',
+                'code' => 'INVALID_PACKAGE'
+            ]));
+        }
+    }
+}
+
+// Validate access for login page
+validateLoginAccess();
+
+// Check if user is already logged in
+if (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true) {
+    header("Location: dashboard.php");
+    exit();
+}
+
+require_once __DIR__ . '/../config/database.php';
+
+$error_message = '';
+$nip = '';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nip = trim($_POST['nip']);
     $password = trim($_POST['password']);
-    
-    if (!empty($nip) && !empty($password)) {
-        $stmt = $conn->prepare("SELECT id_pegawai, nama, nip, jabatan, unit_kerja, password FROM pegawai WHERE nip = ?");
-        $stmt->bind_param("s", $nip);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $user = $result->fetch_assoc();
-            
-            // Simple password check (you should use password_hash/password_verify in production)
-            if ($password === $user['password'] || password_verify($password, $user['password'])) {
-                $_SESSION['id_pegawai'] = $user['id_pegawai'];
-                $_SESSION['nama'] = $user['nama'];
-                $_SESSION['nip'] = $user['nip'];
-                $_SESSION['jabatan'] = $user['jabatan'];
-                $_SESSION['unit_kerja'] = $user['unit_kerja'];
-                
-                $isLoggedIn = true;
-                $userInfo = $user;
-            } else {
-                $error = 'Password salah';
-            }
-        } else {
-            $error = 'NIP tidak ditemukan';
-        }
-        $stmt->close();
+    $remember_me = isset($_POST['remember_me']) ? true : false;
+
+    if (empty($nip) || empty($password)) {
+        $error_message = "NIP dan Password harus diisi.";
     } else {
-        $error = 'NIP dan password harus diisi';
+        $stmt = $conn->prepare("SELECT id_pegawai, nip, password, nama, jabatan, unit_kerja, role, status FROM pegawai WHERE nip = ? AND role != 'admin'");
+        if ($stmt) {
+            $stmt->bind_param("s", $nip);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows == 1) {
+                $pegawai = $result->fetch_assoc();
+
+                if (password_verify($password, $pegawai['password'])) {
+                    $status = $pegawai['status'] ?? 'approved';
+                    
+                    if ($status === 'approved' || empty($status)) {
+                        // Mobile login session
+                        $_SESSION['mobile_loggedin'] = true;
+                        $_SESSION['mobile_id_pegawai'] = $pegawai['id_pegawai'];
+                        $_SESSION['mobile_nip'] = $pegawai['nip'];
+                        $_SESSION['mobile_nama'] = $pegawai['nama'];
+                        $_SESSION['mobile_jabatan'] = $pegawai['jabatan'];
+                        $_SESSION['mobile_unit_kerja'] = $pegawai['unit_kerja'];
+                        $_SESSION['mobile_role'] = $pegawai['role'];
+
+                        // Set remember me flag for JavaScript
+                        $remember_js = $remember_me ? 'true' : 'false';
+                        echo "<script>localStorage.setItem('rememberLogin', '$remember_js');</script>";
+                        
+                        header("Location: dashboard.php");
+                        exit();
+                    } else {
+                        $error_message = "Akun Anda belum disetujui atau ditolak.";
+                    }
+                } else {
+                    $error_message = "NIP atau password salah.";
+                }
+            } else {
+                $error_message = "NIP atau password salah.";
+            }
+            $stmt->close();
+        }
     }
 }
 ?>
@@ -64,209 +147,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLoggedIn) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-LAPKIN MTSN 11 Majalengka</title>
-    
-    <?php if ($isLoggedIn): ?>
-    <meta name="user-session" content="<?= $userInfo['id_pegawai'] ?>">
-    <meta name="user-name" content="<?= htmlspecialchars($userInfo['nama']) ?>">
-    <meta name="user-nip" content="<?= htmlspecialchars($userInfo['nip']) ?>">
-    <meta name="user-jabatan" content="<?= htmlspecialchars($userInfo['jabatan']) ?>">
-    <?php endif; ?>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>E-Lapkin Mobile - MTsN 11 Majalengka</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     
     <style>
-        body { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            min-height: 100vh; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .main-card { 
-            background: rgba(255,255,255,0.95); 
-            border-radius: 15px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1); 
-        }
-        .btn-custom {
+
+        body {
+            font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            color: white;
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -3;
         }
-        .user-info {
-            background: rgba(102, 126, 234, 0.1);
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+
+        /* Floating Graphics */
+        .floating-graphics {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            pointer-events: none;
         }
-    </style>
-</head>
-<body>
-    <div class="container-fluid d-flex align-items-center justify-content-center min-vh-100">
-        <div class="col-md-6">
-            <div class="card main-card">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="fw-bold text-primary">E-LAPKIN</h2>
-                        <p class="text-muted">Sistem Elektronik Laporan Kegiatan Harian</p>
-                        <p class="text-muted">MTSN 11 Majalengka</p>
-                    </div>
-                    
-                    <?php if ($isLoggedIn): ?>
-                        <div class="user-info">
-                            <h5 class="text-primary mb-2">
-                                <i class="fas fa-user-circle me-2"></i>Selamat Datang
-                            </h5>
-                            <p class="mb-1"><strong><?= htmlspecialchars($userInfo['nama']) ?></strong></p>
-                            <small class="text-muted">
-                                NIP: <?= htmlspecialchars($userInfo['nip']) ?> | 
-                                <?= htmlspecialchars($userInfo['jabatan']) ?>
-                            </small>
-                        </div>
-                        
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <a href="dashboard.php" class="btn btn-custom w-100 mb-3">
-                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="rkb.php" class="btn btn-custom w-100 mb-3">
-                                    <i class="fas fa-calendar-alt me-2"></i>RKB
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="lkh.php" class="btn btn-custom w-100 mb-3">
-                                    <i class="fas fa-clipboard-list me-2"></i>LKH
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="laporan.php" class="btn btn-custom w-100 mb-3">
-                                    <i class="fas fa-chart-bar me-2"></i>Laporan
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <a href="logout.php" class="btn btn-outline-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i>Logout
-                            </a>
-                        </div>
-                    <?php else: ?>
-                        <?php if ($error): ?>
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($error) ?>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <form method="POST">
-                            <div class="mb-3">
-                                <label for="nip" class="form-label">
-                                    <i class="fas fa-id-card me-2"></i>NIP
-                                </label>
-                                <input type="text" class="form-control" id="nip" name="nip" required 
-                                       placeholder="Masukkan NIP Anda" value="<?= htmlspecialchars($_POST['nip'] ?? '') ?>">
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">
-                                    <i class="fas fa-lock me-2"></i>Password
-                                </label>
-                                <input type="password" class="form-control" id="password" name="password" required 
-                                       placeholder="Masukkan Password">
-                            </div>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-custom">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Login
-                                </button>
-                            </div>
-                        </form>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Global user data for Android app
-        window.ELAPKIN_USER_DATA = {
-            isLoggedIn: <?= $isLoggedIn ? 'true' : 'false' ?>,
-            userId: <?= $isLoggedIn ? $userInfo['id_pegawai'] : 'null' ?>,
-            userName: <?= $isLoggedIn ? '"' . addslashes($userInfo['nama']) . '"' : 'null' ?>,
-            userNip: <?= $isLoggedIn ? '"' . addslashes($userInfo['nip']) . '"' : 'null' ?>,
-            userJabatan: <?= $isLoggedIn ? '"' . addslashes($userInfo['jabatan']) . '"' : 'null' ?>
-        };
+        .floating-shape {
+            position: absolute;
+            opacity: 0.1;
+            animation: floatShape 20s linear infinite;
+        }
 
-        // Function to get user ID (called by Android app)
-        window.getUserId = function() {
-            console.log('getUserId called, returning:', window.ELAPKIN_USER_DATA.userId);
-            return window.ELAPKIN_USER_DATA.userId ? window.ELAPKIN_USER_DATA.userId.toString() : null;
-        };
+        .floating-shape.circle {
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+        }
 
-        // Function to get user info (called by Android app)
-        window.getUserInfo = function() {
-            console.log('getUserInfo called, returning:', window.ELAPKIN_USER_DATA);
-            return window.ELAPKIN_USER_DATA;
-        };
+        .floating-shape.square {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(45deg);
+        }
 
-        // Function to receive FCM token from Android app
-        window.setFCMToken = function(token) {
-            console.log('FCM Token received from Android:', token);
-            localStorage.setItem('fcm_token', token);
-            
-            // If user is logged in, immediately try to send token to server
-            if (window.ELAPKIN_USER_DATA.isLoggedIn && typeof Android !== 'undefined') {
-                console.log('User is logged in, notifying Android about user ID');
-                if (Android.setUserId) {
-                    Android.setUserId(window.ELAPKIN_USER_DATA.userId.toString());
-                }
+        .floating-shape.hexagon {
+            background: rgba(255, 255, 255, 0.25);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        @keyframes floatShape {
+            0% {
+                transform: translateX(-100px) translateY(100vh) rotate(0deg);
             }
-        };
-
-        // Notify Android app when DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, user data:', window.ELAPKIN_USER_DATA);
-            
-            if (window.ELAPKIN_USER_DATA.isLoggedIn && typeof Android !== 'undefined') {
-                console.log('Notifying Android about logged in user');
-                
-                // Notify Android app about logged in user
-                if (Android.onUserLogin) {
-                    Android.onUserLogin(
-                        window.ELAPKIN_USER_DATA.userId.toString(), 
-                        window.ELAPKIN_USER_DATA.userName
-                    );
-                }
-                
-                // Also call setUserId directly
-                if (Android.setUserId) {
-                    Android.setUserId(window.ELAPKIN_USER_DATA.userId.toString());
-                }
+            100% {
+                transform: translateX(calc(100vw + 100px)) translateY(-100px) rotate(360deg);
             }
-        });
+        }
 
-        // Also try after a short delay to ensure Android interface is ready
-        setTimeout(function() {
-            if (window.ELAPKIN_USER_DATA.isLoggedIn && typeof Android !== 'undefined') {
-                console.log('Delayed notification to Android about user ID');
-                if (Android.setUserId) {
-                    Android.setUserId(window.ELAPKIN_USER_DATA.userId.toString());
-                }
-            }
-        }, 1000);
-    </script>
-</body>
-</html>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            padding: 0;
+            width: 100%;
+            max-width: 400px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             overflow: hidden;
             position: relative;
