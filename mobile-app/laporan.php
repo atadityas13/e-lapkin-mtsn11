@@ -881,113 +881,152 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 }
             });
 
-            // Send request to generate yearly PDF
+            // Send request to generate yearly PDF with better error handling
             fetch('generate_yearly_pdf.php?year=' + year, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Accept': 'application/pdf',
+                    'Cache-Control': 'no-cache'
                 }
             })
             .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    // Try to get error message from response
+                    return response.text().then(text => {
+                        throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
+                    });
                 }
+                
+                // Check if response is actually PDF
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('pdf')) {
+                    console.warn('Response is not PDF, content-type:', contentType);
+                }
+                
                 return response.blob();
             })
             .then(blob => {
+                console.log('Blob received, size:', blob.size);
+                
+                if (blob.size === 0) {
+                    throw new Error('File kosong atau tidak dapat digenerate');
+                }
+                
                 const url = window.URL.createObjectURL(blob);
                 const filename = 'Laporan_Tahunan_' + year + '_<?= $nama_file_nip ?>.pdf';
                 
                 Swal.close();
                 
-                // Use enhanced download function
-                downloadFile(url, filename);
+                // Try multiple download methods
+                downloadFileMultiMethod(url, filename);
                 
                 // Clean up
                 setTimeout(() => {
                     window.URL.revokeObjectURL(url);
-                }, 5000);
+                }, 10000);
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error details:', error);
+                Swal.close();
+                
+                // Show detailed error with fallback option
                 Swal.fire({
                     icon: 'error',
                     title: 'Download Gagal',
-                    text: 'Terjadi kesalahan saat generate laporan: ' + error.message,
+                    html: `
+                        <p>Terjadi kesalahan saat generate laporan:</p>
+                        <small style="color: #666;">${error.message}</small>
+                        <br><br>
+                        <button onclick="openYearlyReportDirectly(${year})" class="btn btn-secondary btn-sm">
+                            Buka di Tab Baru
+                        </button>
+                    `,
                     confirmButtonText: 'OK'
                 });
             });
         }
 
-        function printYearlyReport() {
-            const printWindow = window.open('', '_blank');
-            const reportContent = document.getElementById('yearly-report-content').innerHTML;
+        // Enhanced download function with multiple methods
+        function downloadFileMultiMethod(url, filename) {
+            console.log('Attempting download with multiple methods:', filename);
             
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Laporan Kinerja Tahunan</title>
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                    <style>
-                        body { font-size: 12px; }
-                        .mobile-yearly-report { padding: 20px; }
-                        @media print {
-                            .btn, .no-print { display: none !important; }
-                            body { background: white !important; }
-                        }
-                    </style>
-                </head>
-                <body onload="window.print(); window.close();">
-                    ${reportContent}
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
+            // Method 1: Android native interface
+            if (typeof Android !== 'undefined' && Android.downloadFile) {
+                try {
+                    Android.downloadFile(url, filename);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Dimulai',
+                        text: 'File sedang diunduh melalui aplikasi Android...',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                    return;
+                } catch (e) {
+                    console.error('Android download failed:', e);
+                }
+            }
+            
+            // Method 2: Standard download link
+            try {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Download Dimulai',
+                    text: 'File sedang diunduh. Periksa folder Download Anda.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            } catch (e) {
+                console.error('Standard download failed:', e);
+            }
+            
+            // Method 3: Open in new window/tab
+            try {
+                window.open(url, '_blank');
+                Swal.fire({
+                    icon: 'info',
+                    title: 'File Dibuka',
+                    text: 'File dibuka di tab baru. Gunakan menu browser untuk menyimpan.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } catch (e) {
+                console.error('All download methods failed:', e);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Download Tidak Berhasil',
+                    text: 'Silakan coba lagi atau hubungi administrator.',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Direct link fallback
+        function openYearlyReportDirectly(year) {
+            const url = 'generate_yearly_pdf.php?year=' + year;
+            window.open(url, '_blank');
         }
 
         function exportYearlyExcel(year) {
+            // For now, show coming soon message
             Swal.fire({
-                title: 'Export Excel',
-                text: 'Sedang memproses export data ke Excel...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Send request to export Excel
-            fetch('export_yearly_excel.php?year=' + year, {
-                method: 'GET'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const filename = 'Laporan_Tahunan_' + year + '_<?= $nama_file_nip ?>.xlsx';
-                
-                Swal.close();
-                
-                // Use enhanced download function
-                downloadFile(url, filename);
-                
-                // Clean up
-                setTimeout(() => {
-                    window.URL.revokeObjectURL(url);
-                }, 5000);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Export Gagal',
-                    text: 'Terjadi kesalahan saat export Excel: ' + error.message,
-                    confirmButtonText: 'OK'
-                });
+                icon: 'info',
+                title: 'Fitur Segera Hadir',
+                text: 'Export Excel untuk laporan tahunan sedang dalam pengembangan.',
+                confirmButtonText: 'OK'
             });
         }
 
