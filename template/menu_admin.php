@@ -127,6 +127,12 @@ if (!defined('ABSPATH')) {
             </nav>
           </div>
 
+          <!-- Notifikasi -->
+          <a class="nav-link" href="notifications.php">
+            <div class="sb-nav-link-icon"><i class="fas fa-bell"></i></div>
+            Notifikasi
+          </a>
+
           <div class="sb-sidenav-menu-heading">AKSI</div>
 
           <a class="nav-link logout-btn" href="/logout.php">
