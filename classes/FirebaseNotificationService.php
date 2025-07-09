@@ -1,40 +1,57 @@
 <?php
-require_once __DIR__ . '/../config/firebase_config.php';
+// Hapus baris ini karena kita akan menggunakan Composer autoload:
+// require_once __DIR__ . '/../config/firebase_config.php';
+
+// Pastikan path ke autoload Composer sudah benar
+// Asumsi: file ini (FirebaseNotificationService.php) berada di 'path/to/your-app/services/'
+// dan folder 'vendor' berada di 'path/to/your-app/'
+require __DIR__ . '/../vendor/autoload.php';
+
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+use Kreait\Firebase\Exception\MessagingException;
+use Kreait\Firebase\Exception\FirebaseException; // Tambahkan untuk penanganan error inisialisasi
 
 class FirebaseNotificationService
 {
     private $conn;
-    private $serverKey;
-    private $fcmUrl = 'https://fcm.googleapis.com/fcm/send';
+    // Hapus $serverKey dan $fcmUrl karena akan digantikan oleh Messaging instance
+    private $messaging; // Instance Firebase Messaging
 
     public function __construct($database_connection)
     {
         $this->conn = $database_connection;
-        // Get FCM server key from config or environment
-        $this->serverKey = $this->getFcmServerKey();
-        if (empty($this->serverKey)) {
-            error_log("FCM server key is not set. Please check config/firebase.php");
+        
+        // Path ke file JSON akun layanan Anda
+        // Sesuaikan path ini dengan lokasi service-account.json Anda
+        $serviceAccountPath = __DIR__ . '/../config/service-account.json'; 
+        
+        if (!file_exists($serviceAccountPath)) {
+            $errorMsg = "Firebase Service Account JSON file not found at: " . $serviceAccountPath;
+            error_log($errorMsg);
+            // Anda mungkin ingin melempar exception fatal di sini jika file ini mutlak diperlukan
+            // throw new \Exception($errorMsg);
+            return; // Hentikan eksekusi jika file tidak ditemukan
         }
-        // Optional: check if config file exists
-        $configFile = __DIR__ . '/../config/firebase.php';
-        if (!file_exists($configFile)) {
-            error_log("FCM config file not found at: " . $configFile);
+
+        try {
+            $factory = (new Factory)->withServiceAccount($serviceAccountPath);
+            $this->messaging = $factory->createMessaging();
+            error_log("Firebase Messaging initialized successfully.");
+        } catch (FirebaseException $e) {
+            $errorMsg = "Error initializing Firebase Messaging: " . $e->getMessage();
+            error_log($errorMsg);
+            // throw new \Exception($errorMsg, 0, $e); // Melempar exception untuk penanganan lebih lanjut
+        } catch (\Exception $e) { // Tangkap exception umum lainnya
+            $errorMsg = "An unexpected error occurred during Firebase Messaging initialization: " . $e->getMessage();
+            error_log($errorMsg);
+            // throw new \Exception($errorMsg, 0, $e);
         }
     }
 
-    private function getFcmServerKey()
-    {
-        // You can store this in config file or database
-        // For now, get it from config file
-        $configFile = __DIR__ . '/../config/firebase.php';
-        if (file_exists($configFile)) {
-            $config = include $configFile;
-            return $config['fcm_server_key'] ?? '';
-        }
-        
-        // Fallback: return the server key directly (not recommended for production)
-        return 'AAAA9vX-3pI:APA91bEhKv6XQjQlXyJ_aP3u4N_qY0XzH9w_Vk2C3dE4fG5hI6jK7lM8nO9pQ0rS1tU2vW3xY4zA5bC6dE7fG8hI9jK0lM1nO2pQ3rS4tU5vW6xY7zA8bC9dE0fG1hI2jK3';
-    }
+    // Metode getFcmServerKey() tidak lagi diperlukan, bisa dihapus
+    // private function getFcmServerKey() { ... }
 
     /**
      * Send notification to all active users
@@ -71,30 +88,44 @@ class FirebaseNotificationService
      */
     public function sendToTopic($topic, $title, $message, $data = [])
     {
-        $payload = [
-            'to' => '/topics/' . $topic,
-            'notification' => [
-                'title' => $title,
-                'body' => $message,
-                'sound' => 'default',
-                'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
-            ],
-            'data' => array_merge($data, [
-                'title' => $title,
-                'message' => $message,
-                'type' => 'topic',
-                'topic' => $topic
-            ])
-        ];
+        if (!$this->messaging) {
+            error_log("Firebase Messaging not initialized. Cannot send to topic.");
+            return ['success' => false, 'error' => 'Firebase Messaging not initialized', 'total_success' => 0, 'total_failure' => 0];
+        }
 
-        $result = $this->sendFcmRequest($payload);
+        $notification = Notification::create($title, $message);
         
-        return [
-            'success' => $result['success'],
-            'total_success' => $result['success'] ? 1 : 0,
-            'total_failure' => $result['success'] ? 0 : 1,
-            'response' => $result
-        ];
+        // Data kustom yang akan dikirim ke aplikasi Android
+        $customData = array_merge($data, [
+            'title' => $title,
+            'message' => $message,
+            'type' => 'topic_message', // Tambahkan tipe untuk penanganan di Android
+            'topic' => $topic
+        ]);
+
+        $messageObj = CloudMessage::withTarget('topic', $topic)
+                                ->withNotification($notification)
+                                ->withData($customData); // Gunakan data kustom
+
+        try {
+            $this->messaging->send($messageObj);
+            error_log("FCM Topic sent successfully to: " . $topic);
+            return [
+                'success' => true,
+                'total_success' => 1,
+                'total_failure' => 0,
+                'response' => 'Message sent to topic successfully'
+            ];
+        } catch (MessagingException $e) {
+            error_log("FCM Topic Error for topic '" . $topic . "': " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'total_success' => 0,
+                'total_failure' => 1,
+                'response' => null
+            ];
+        }
     }
 
     /**
@@ -102,108 +133,75 @@ class FirebaseNotificationService
      */
     public function sendToMultiple($tokens, $title, $message, $data = [])
     {
+        if (!$this->messaging) {
+            error_log("Firebase Messaging not initialized. Cannot send to multiple tokens.");
+            return ['success' => false, 'error' => 'Firebase Messaging not initialized', 'total_success' => 0, 'total_failure' => 0];
+        }
         if (empty($tokens)) {
             return ['success' => false, 'error' => 'No tokens provided', 'total_success' => 0, 'total_failure' => 0];
         }
 
-        $totalSuccess = 0;
-        $totalFailure = 0;
-        $responses = [];
-
-        // FCM allows maximum 1000 tokens per request
-        $chunks = array_chunk($tokens, 1000);
-
-        foreach ($chunks as $chunk) {
-            $payload = [
-                'registration_ids' => $chunk,
-                'notification' => [
-                    'title' => $title,
-                    'body' => $message,
-                    'sound' => 'default',
-                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
-                ],
-                'data' => array_merge($data, [
-                    'title' => $title,
-                    'message' => $message,
-                    'type' => 'multiple'
-                ])
-            ];
-
-            $result = $this->sendFcmRequest($payload);
-            $responses[] = $result;
-
-            if ($result['success'] && isset($result['response']['success'])) {
-                $totalSuccess += $result['response']['success'];
-            }
-            if ($result['success'] && isset($result['response']['failure'])) {
-                $totalFailure += $result['response']['failure'];
-            } else if (!$result['success']) {
-                $totalFailure += count($chunk);
-            }
-        }
-
-        return [
-            'success' => $totalSuccess > 0,
-            'total_success' => $totalSuccess,
-            'total_failure' => $totalFailure,
-            'responses' => $responses
-        ];
-    }
-
-    /**
-     * Send FCM request using cURL
-     */
-    private function sendFcmRequest($payload)
-    {
-        if (empty($this->serverKey)) {
-            return [
-                'success' => false,
-                'error' => 'FCM server key not configured',
-                'response' => null
-            ];
-        }
-
-        $headers = [
-            'Authorization: key=' . $this->serverKey,
-            'Content-Type: application/json'
-        ];
-
-        // Pastikan cURL menggunakan IPv4 (hindari masalah DNS/IPv6 di shared hosting)
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->fcmUrl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4); // <--- Tambahkan baris ini
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error) {
-            error_log("FCM cURL Error: " . $error);
-            return [
-                'success' => false,
-                'error' => 'cURL Error: ' . $error,
-                'response' => null
-            ];
-        }
-
-        $responseData = json_decode($response, true);
+        $notification = Notification::create($title, $message);
         
-        // Log the response for debugging
-        error_log("FCM Response: " . $response);
+        // Data kustom yang akan dikirim ke aplikasi Android
+        $customData = array_merge($data, [
+            'title' => $title,
+            'message' => $message,
+            'type' => 'direct_message' // Tambahkan tipe untuk penanganan di Android
+        ]);
 
-        return [
-            'success' => $httpCode === 200 && $responseData !== null,
-            'response' => $responseData,
-            'http_code' => $httpCode,
-            'raw_response' => $response
-        ];
+        $messageObj = CloudMessage::new()
+                                ->withNotification($notification)
+                                ->withData($customData); // Gunakan data kustom
+
+        $report = null;
+        try {
+            // sendMulticast akan secara otomatis membagi menjadi batch 500
+            $report = $this->messaging->sendMulticast($messageObj, $tokens);
+            
+            $successCount = $report->successCount();
+            $failureCount = $report->failureCount();
+
+            // Handle invalid/expired tokens (NotRegistered, InvalidArgument)
+            foreach ($report->failures()->getItems() as $failure) {
+                // target()->value() mengembalikan token FCM yang gagal
+                $failedToken = $failure->target()->value();
+                $errorMessage = $failure->error()->getMessage();
+
+                if ($errorMessage === 'NotRegistered' || $errorMessage === 'InvalidArgument') {
+                    // Token tidak valid, hapus atau nonaktifkan dari database
+                    $this->deactivateToken($failedToken); 
+                    error_log("FCM: Invalid token '" . $failedToken . "' - Deactivated. Error: " . $errorMessage);
+                } else {
+                    // Log error lainnya jika diperlukan
+                    error_log("FCM: Error for token '" . $failedToken . "': " . $errorMessage);
+                }
+                // Anda juga bisa memeriksa untuk token yang perlu di-refresh, tapi ini jarang terjadi dengan FCM v1
+                // Jika ada kasus where token berubah, FCM akan mengirim 'Canonical ID' di response lama.
+                // Firebase Admin SDK biasanya menanganinya secara internal jika ada.
+            }
+
+            return [
+                'success' => $successCount > 0,
+                'total_success' => $successCount,
+                'total_failure' => $failureCount,
+                'responses' => $report->getResults() // Detail respon untuk setiap token
+            ];
+
+        } catch (MessagingException $e) {
+            error_log("FCM Multicast Error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'total_success' => 0,
+                'total_failure' => count($tokens), // Asumsikan semua gagal jika ada exception
+                'response' => null
+            ];
+        }
     }
+
+    // Metode sendFcmRequest() tidak lagi diperlukan, karena digantikan oleh Firebase Admin SDK.
+    // private function sendFcmRequest($payload) { ... }
 
     /**
      * Get all active FCM tokens
@@ -233,6 +231,9 @@ class FirebaseNotificationService
      */
     private function getTokensByUserIds($userIds)
     {
+        if (empty($userIds)) {
+            return [];
+        }
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $stmt = $this->conn->prepare("SELECT fcm_token FROM user_fcm_tokens WHERE user_id IN ($placeholders) AND is_active = 1");
         
@@ -241,8 +242,9 @@ class FirebaseNotificationService
             return [];
         }
         
+        // Build types string dynamically based on number of user IDs
         $types = str_repeat('i', count($userIds));
-        $stmt->bind_param($types, ...$userIds);
+        $stmt->bind_param($types, ...$userIds); // Menggunakan splat operator untuk array
         $stmt->execute();
         $result = $stmt->get_result();
         $tokens = [];
@@ -258,21 +260,31 @@ class FirebaseNotificationService
     /**
      * Save or update FCM token for user
      */
-    public function saveUserToken($userId, $fcmToken, $deviceType = 'android', $appVersion = null)
+    public function saveUserToken($userId, $fcmToken, $deviceType = 'android', $appVersion = null, $deviceId = null)
     {
-        // First, deactivate old tokens for this user
-        $stmt = $this->conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ?");
+        // Untuk on DUPLICATE KEY UPDATE, fcm_token harus menjadi UNIQUE KEY
+        // atau gabungan (user_id, device_id) jika device_id juga unik per user.
+        // Asumsi fcm_token adalah UNIQUE KEY.
+
+        // Pertama, nonaktifkan token lama untuk user_id tertentu jika ada
+        // agar hanya ada satu token aktif per user_id, device_type (dan device_id jika relevan)
+        // Jika Anda ingin mendukung banyak perangkat per pengguna, sesuaikan logika ini.
+        // Misalnya: UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ? AND device_id = ?;
+        // Current logic deactivates all tokens for a user_id which is okay for single device per user.
+        $stmt = $this->conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ? AND fcm_token != ?");
         if ($stmt) {
-            $stmt->bind_param("i", $userId);
+            $stmt->bind_param("is", $userId, $fcmToken);
             $stmt->execute();
             $stmt->close();
         }
 
         // Insert or update the new token
+        // Menambahkan device_id ke kolom INSERT/UPDATE
         $stmt = $this->conn->prepare("
-            INSERT INTO user_fcm_tokens (user_id, fcm_token, device_type, app_version, last_used_at, is_active) 
-            VALUES (?, ?, ?, ?, NOW(), 1)
+            INSERT INTO user_fcm_tokens (user_id, fcm_token, device_id, device_type, app_version, last_used_at, is_active) 
+            VALUES (?, ?, ?, ?, ?, NOW(), 1)
             ON DUPLICATE KEY UPDATE 
+            device_id = VALUES(device_id),
             device_type = VALUES(device_type),
             app_version = VALUES(app_version),
             last_used_at = NOW(),
@@ -280,11 +292,45 @@ class FirebaseNotificationService
         ");
         
         if ($stmt) {
-            $stmt->bind_param("isss", $userId, $fcmToken, $deviceType, $appVersion);
+            // Pastikan tipe parameter sesuai: i (int), s (string)
+            $stmt->bind_param("issss", $userId, $fcmToken, $deviceId, $deviceType, $appVersion);
             $result = $stmt->execute();
+            if (!$result) {
+                error_log("Error saving FCM token: " . $stmt->error);
+            }
             $stmt->close();
             return $result;
         }
+        error_log("Failed to prepare saveUserToken statement: " . $this->conn->error);
         return false;
     }
+
+    // Metode baru untuk deactivate/update token, seperti yang disarankan sebelumnya
+    private function deactivateToken($fcmToken) {
+        $stmt = $this->conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE fcm_token = ?");
+        if ($stmt) {
+            $stmt->bind_param("s", $fcmToken);
+            $stmt->execute();
+            $stmt->close();
+            error_log("Token " . $fcmToken . " deactivated in DB.");
+        } else {
+            error_log("Error preparing deactivateToken statement: " . $this->conn->error);
+        }
+    }
+
+    // Metode updateToken jarang digunakan dengan FCM v1 karena token jarang berubah
+    // kecuali jika Anda menerima informasi update token secara eksplisit dari FCM
+    // Misalnya, jika FCM mengembalikan 'registration_id' baru.
+    // Firebase Admin SDK seharusnya sudah menangani ini secara internal.
+    // private function updateToken($oldToken, $newToken) {
+    //     $stmt = $this->conn->prepare("UPDATE user_fcm_tokens SET fcm_token = ?, last_used_at = NOW(), is_active = 1 WHERE fcm_token = ?");
+    //     if ($stmt) {
+    //         $stmt->bind_param("ss", $newToken, $oldToken);
+    //         $stmt->execute();
+    //         $stmt->close();
+    //         error_log("Token " . $oldToken . " updated to " . $newToken . " in DB.");
+    //     } else {
+    //         error_log("Error preparing updateToken statement: " . $this->conn->error);
+    //     }
+    // }
 }
