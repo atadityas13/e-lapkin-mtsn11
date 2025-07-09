@@ -82,8 +82,11 @@ try {
     ";
     $conn->query($createTableQuery);
 
-    // Nonaktifkan token lama user di device ini
-    $conn->query("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = '$userId' AND device_id = '$deviceId'");
+    // Nonaktifkan token lama user di device ini (gunakan prepared statement untuk keamanan)
+    $updateStmt = $conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ? AND device_id = ?");
+    $updateStmt->bind_param("is", $userId, $deviceId);
+    $updateStmt->execute();
+    $updateStmt->close();
 
     // Insert or update the new token
     $stmt = $conn->prepare("
@@ -92,19 +95,16 @@ try {
         ON DUPLICATE KEY UPDATE 
             fcm_token = VALUES(fcm_token),
             device_type = VALUES(device_type),
-            app_version = VALUES(appVersion),
+            app_version = VALUES(app_version),
             last_used_at = NOW(),
             is_active = 1
     ");
-    
     $stmt->bind_param("issss", $userId, $fcmToken, $deviceId, $deviceType, $appVersion);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
-        
         // Log the registration
         error_log("FCM Token registered for user: {$user['nama']} (ID: $userId)");
-        
         echo json_encode([
             'success' => true, 
             'message' => 'Token saved successfully',
@@ -115,7 +115,7 @@ try {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to save token: ' . $conn->error]);
     }
-    
+
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
