@@ -80,12 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $message_type = "success";
                     } else {
                         $errorMsg = $result['error'] ?? 'Unknown error';
-                        if (isset($result['response']['error'])) {
-                            $errorMsg = $result['response']['error'];
+                        // Tambahkan debug response jika ada
+                        if (isset($result['response'])) {
+                            $errorMsg .= ' | Response: ' . json_encode($result['response']);
                         }
                         $message = "Gagal mengirim notifikasi: " . $errorMsg;
                         $message_type = "danger";
-                        
+
                         // Log detailed error for debugging
                         error_log("FCM Error Details: " . json_encode($result));
                     }
