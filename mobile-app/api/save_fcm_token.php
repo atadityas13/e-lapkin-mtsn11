@@ -35,10 +35,6 @@ function verifyMobileToken($headers) {
 // Get headers
 $headers = getallheaders();
 
-// Pastikan header X-Mobile-Token dan X-App-Package dikirim dengan benar dari Android.
-// Untuk debug, tambahkan log header berikut sebelum verifikasi token:
-file_put_contents(__DIR__ . '/debug_headers.log', json_encode($headers) . PHP_EOL, FILE_APPEND);
-
 // Verify request
 if (!verifyMobileToken($headers)) {
     http_response_code(401);
@@ -137,8 +133,6 @@ try {
 
     if ($stmt->execute()) {
         $stmt->close();
-        // Log the registration
-        error_log("FCM Token registered for user: {$user['nama']} (ID: $userId)");
         echo json_encode([
             'success' => true, 
             'message' => 'Token saved successfully',
@@ -148,6 +142,12 @@ try {
         $stmt->close();
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to save token: ' . $conn->error]);
+    }
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+}
     }
 
 } catch (Exception $e) {
