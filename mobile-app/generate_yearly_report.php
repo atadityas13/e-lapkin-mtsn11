@@ -1,17 +1,15 @@
 <?php
-session_start();
-
-// Include mobile session config
-require_once __DIR__ . '/config/mobile_session.php';
-require_once __DIR__ . '/../config/database.php';
-
-// Check mobile login
-checkMobileLogin();
-
-// Get user session data
-$userData = getMobileSessionData();
-$id_pegawai_login = $userData['id_pegawai'];
-$nama_pegawai_login = $userData['nama'];
+// Remove session_start() and includes since they're handled by the parent file
+if (!isset($userData)) {
+    // Include necessary files only if not already included
+    session_start();
+    require_once __DIR__ . '/config/mobile_session.php';
+    require_once __DIR__ . '/../config/database.php';
+    checkMobileLogin();
+    $userData = getMobileSessionData();
+    $id_pegawai_login = $userData['id_pegawai'];
+    $nama_pegawai_login = $userData['nama'];
+}
 
 // Get year parameter
 $year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
@@ -204,7 +202,7 @@ function format_date_indonesia($date_string) {
 }
 </style>
 
-<div class="mobile-yearly-report p-3">
+<div class="mobile-yearly-report">
     <!-- Employee Information -->
     <div class="employee-info">
         <table class="table table-bordered mb-3">
@@ -370,5 +368,7 @@ function format_date_indonesia($date_string) {
             <p><strong><?= htmlspecialchars($nama_pegawai_login) ?></strong><br>
             NIP. <?= htmlspecialchars($emp_data['nip']) ?></p>
         </div>
+    </div>
+</div>
     </div>
 </div>

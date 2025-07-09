@@ -400,14 +400,45 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             color: #6c757d;
             font-size: 0.9rem;
         }
+
+        .mobile-container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        
+        .tab-content {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            min-height: 70vh;
+        }
+        
+        .nav-tabs .nav-link {
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        @media (max-width: 576px) {
+            .nav-tabs .nav-link {
+                font-size: 10px;
+                padding: 6px 8px;
+            }
+        }
     </style>
     <?= getMobileHeaderCSS() ?>
 </head>
 <body>
-    <!-- Header -->
-    <?php renderMobileHeader('Laporan Kinerja', 'Generate & Unduh', 'dashboard.php', $userData, $activePeriod); ?>
+    <div class="mobile-container">
+        <!-- Header -->
+        <?php renderMobileHeader('Laporan Kinerja', 'Generate & Unduh', 'dashboard.php', $userData, $activePeriod); ?>
 
-    <div class="container-fluid px-3">
         <!-- Info Alert -->
         <div class="info-alert">
             <div class="d-flex align-items-start">
@@ -423,20 +454,28 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
 
         <!-- Tab Navigation -->
-        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="lkb-tab" data-bs-toggle="tab" data-bs-target="#lkb-pane" 
-                        type="button" role="tab" aria-controls="lkb-pane" aria-selected="true">
-                    <i class="fas fa-file-alt"></i>LKB
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="lkh-tab" data-bs-toggle="tab" data-bs-target="#lkh-pane" 
-                        type="button" role="tab" aria-controls="lkh-pane" aria-selected="false">
-                    <i class="fas fa-list"></i>LKH
-                </button>
-            </li>
-        </ul>
+        <div class="bg-white">
+            <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="lkb-tab" data-bs-toggle="tab" data-bs-target="#lkb-pane" 
+                            type="button" role="tab" aria-controls="lkb-pane" aria-selected="true">
+                        <i class="fas fa-file-alt"></i>LKB
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="lkh-tab" data-bs-toggle="tab" data-bs-target="#lkh-pane" 
+                            type="button" role="tab" aria-controls="lkh-pane" aria-selected="false">
+                        <i class="fas fa-list"></i>LKH
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tahunan-tab" data-bs-toggle="tab" data-bs-target="#tahunan-pane" 
+                            type="button" role="tab" aria-controls="tahunan-pane" aria-selected="false">
+                        <i class="fas fa-chart-line"></i>Tahunan
+                    </button>
+                </li>
+            </ul>
+        </div>
 
         <!-- Tab Content -->
         <div class="tab-content" id="reportTabContent">
@@ -625,6 +664,44 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <?php endif; ?>
                         <?php endfor; ?>
                     <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Yearly Report Tab -->
+            <div class="tab-pane fade" id="tahunan-pane" role="tabpanel" aria-labelledby="tahunan-tab">
+                <div class="tab-header">
+                    <h5><i class="fas fa-chart-line text-info me-2"></i>Laporan Kinerja Tahunan</h5>
+                    <p>Laporan kinerja yang disusun berdasarkan rencana kerja tahunan</p>
+                </div>
+                
+                <div class="p-3">
+                    <!-- Year Selection -->
+                    <div class="mb-3">
+                        <form method="GET" class="d-flex align-items-center gap-2">
+                            <input type="hidden" name="tab" value="tahunan">
+                            <label for="year" class="form-label mb-0 text-nowrap">Pilih Tahun:</label>
+                            <select name="year" id="year" class="form-select form-select-sm" style="max-width: 120px;">
+                                <?php
+                                $current_year = (int)date('Y');
+                                $selected_year = isset($_GET['year']) ? (int)$_GET['year'] : $current_year;
+                                for ($y = $current_year; $y >= $current_year - 5; $y--) {
+                                    $selected = ($y === $selected_year) ? 'selected' : '';
+                                    echo "<option value='$y' $selected>$y</option>";
+                                }
+                                ?>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Yearly Report Content -->
+                    <?php 
+                    // Set year for yearly report
+                    $_GET['year'] = $selected_year;
+                    include 'generate_yearly_report.php'; 
+                    ?>
                 </div>
             </div>
         </div>
