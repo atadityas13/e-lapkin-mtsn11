@@ -1,483 +1,483 @@
 <?php
 /**
- * E-LAPKIN Mobile Report Management
+ * ========================================================
+ * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE APP VERSION
+ * ========================================================
+ * 
+ * Mobile App Report Page with Tabs
+ * 
+ * @package    E-Lapkin-MTSN11
+ * @version    1.0.0
+ * ========================================================
  */
-
-// Start output buffering to catch any unwanted output
-ob_start();
-
 session_start();
-
-// Include mobile session config
-require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/components/mobile-header.php';
+require_once __DIR__ . '/../template/session_user.php';
 
-// Check mobile login
-checkMobileLogin();
-
-// Get user session data
-$userData = getMobileSessionData();
-$id_pegawai_login = $userData['id_pegawai'];
-$nama_pegawai_login = $userData['nama'];
-
-$months = [
-    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-];
-
-// Get active period from user settings
-$periode_mulai = $periode_akhir = null;
-$stmt_periode = $conn->prepare("SELECT tahun_aktif FROM pegawai WHERE id_pegawai = ?");
-$stmt_periode->bind_param("i", $id_pegawai_login);
-$stmt_periode->execute();
-$stmt_periode->bind_result($tahun_aktif_pegawai);
-$stmt_periode->fetch();
-$stmt_periode->close();
-
-if ($tahun_aktif_pegawai) {
-    $periode_mulai = $periode_akhir = (int)$tahun_aktif_pegawai;
-} else {
-    $periode_mulai = $periode_akhir = (int)date('Y');
+// Check if user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header("Location: login.php");
+    exit();
 }
 
-// Initialize years array
-$years = [];
-for ($y = $periode_akhir; $y >= $periode_mulai; $y--) {
-    $years[] = $y;
+$id_pegawai_login = $_SESSION['id_pegawai'];
+$nama_pegawai_login = $_SESSION['nama'];
+$role_pegawai_login = $_SESSION['role'];
+
+// Get active period
+function get_periode_aktif($conn, $id_pegawai) {
+    $stmt = $conn->prepare("SELECT tahun_aktif FROM pegawai WHERE id_pegawai = ?");
+    $stmt->bind_param("i", $id_pegawai);
+    $stmt->execute();
+    $stmt->bind_result($tahun_aktif);
+    $stmt->fetch();
+    $stmt->close();
+    return ['tahun' => $tahun_aktif ?: (int)date('Y')];
 }
 
-// Get NIP for filename generation
-$nip_pegawai = '';
-$stmt_nip = $conn->prepare("SELECT nip FROM pegawai WHERE id_pegawai = ?");
-$stmt_nip->bind_param("i", $id_pegawai_login);
-$stmt_nip->execute();
-$stmt_nip->bind_result($nip_pegawai_db);
-$stmt_nip->fetch();
-$stmt_nip->close();
+$periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
+$periode_tahun = $periode_aktif['tahun'];
 
-$nama_file_nip = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nip_pegawai_db);
+// Get current month and year for monthly report
+$current_month = (int)date('m');
+$current_year = (int)date('Y');
+$filter_month = isset($_GET['month']) ? (int)$_GET['month'] : $current_month;
+$filter_year = isset($_GET['year']) ? (int)$_GET['year'] : $current_year;
 
-// Check if PDF files exist
-function lkb_pdf_exists($id_pegawai, $bulan, $tahun, $nama_file_nip_param, $months_param) {
-    $filename = __DIR__ . "/../generated/LKB_{$months_param[$bulan]}_{$tahun}_{$nama_file_nip_param}.pdf";
-    return file_exists($filename);
-}
+// Check data availability for both reports
+$stmt_monthly = $conn->prepare("SELECT COUNT(*) as total FROM rhk r 
+    JOIN rkb ON r.id_rhk = rkb.id_rhk 
+    WHERE r.id_pegawai = ? AND rkb.bulan = ? AND rkb.tahun = ?");
+$stmt_monthly->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+$stmt_monthly->execute();
+$monthly_data_count = $stmt_monthly->get_result()->fetch_assoc()['total'];
+$stmt_monthly->close();
 
-function lkh_pdf_exists($id_pegawai, $bulan, $tahun, $nama_file_nip_param, $months_param) {
-    $filename = __DIR__ . "/../generated/LKH_{$months_param[$bulan]}_{$tahun}_{$nama_file_nip_param}.pdf";
-    return file_exists($filename);
-}
+$stmt_annual = $conn->prepare("SELECT COUNT(*) as total FROM rhk r 
+    JOIN rkb ON r.id_rhk = rkb.id_rhk 
+    WHERE r.id_pegawai = ? AND rkb.tahun = ?");
+$stmt_annual->bind_param("ii", $id_pegawai_login, $periode_tahun);
+$stmt_annual->execute();
+$annual_data_count = $stmt_annual->get_result()->fetch_assoc()['total'];
+$stmt_annual->close();
 
-// Helper function for notifications
-function set_mobile_notification($type, $title, $text) {
-    $_SESSION['mobile_notification'] = [
-        'type' => $type,
-        'title' => $title,
-        'text' => $text
-    ];
-}
-
-// Clear any unwanted output before HTML
-ob_clean();
-$activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
+$page_title = "Laporan - Mobile App";
+include __DIR__ . '/template/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan - E-Lapkin Mobile</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
-            --accent-blue: #667eea;
-            --accent-purple: #764ba2;
-            --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --info-gradient: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        }
 
-        body {
-            padding-bottom: 80px;
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<style>
+.mobile-report-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 0;
+}
 
-        .nav-header {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 20px 15px;
-            border-radius: 0 0 25px 25px;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 20px;
-        }
+.mobile-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 0 0 20px 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: white;
+}
 
-        .nav-header .navbar-brand {
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
+.tab-navigation {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 8px;
+    margin: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
 
-        .nav-header .text-end {
-            text-align: right !important;
-            min-width: 150px;
-        }
+.nav-pills .nav-link {
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin: 0 4px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    color: #6c757d;
+    background: transparent;
+    border: none;
+}
 
-        .nav-header .text-end > div {
-            white-space: nowrap;
-            margin-bottom: 2px;
-        }
+.nav-pills .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
 
-        .card {
-            border-radius: 20px;
-            box-shadow: var(--card-shadow);
-            border: none;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
+.nav-pills .nav-link:not(.active):hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
 
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--card-hover-shadow);
-        }
+.tab-content {
+    margin: 15px;
+}
 
-        .report-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-        }
+.report-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
+}
 
-        .lkb-card {
-            border-left: 4px solid #007bff;
-        }
+.quick-stats {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px 0;
+    color: white;
+}
 
-        .lkh-card {
-            border-left: 4px solid #17a2b8;
-        }
+.feature-highlight {
+    background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px 0;
+    text-align: center;
+}
 
-        .btn {
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
+.action-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 25px;
+    padding: 15px 30px;
+    color: white;
+    font-weight: 600;
+    width: 100%;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
 
-        .btn:hover {
-            transform: translateY(-1px);
-        }
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+    color: white;
+}
 
-        .btn-sm {
-            padding: 4px 8px;
-            font-size: 0.75rem;
-        }
+.action-btn:disabled {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    transform: none;
+    box-shadow: 0 4px 10px rgba(108, 117, 125, 0.3);
+    cursor: not-allowed;
+}
 
-        .btn-download {
-            background: var(--success-gradient);
-            border: none;
-            color: white;
-        }
+.month-selector {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px 0;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
 
-        .btn-download:hover {
-            color: white;
-            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.3);
-        }
+@media (max-width: 768px) {
+    .tab-navigation, .tab-content {
+        margin: 10px;
+    }
+    
+    .report-card {
+        padding: 20px;
+    }
+    
+    .nav-pills .nav-link {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+}
+</style>
 
-        .btn-generate {
-            background: var(--primary-gradient);
-            border: none;
-            color: white;
-        }
+<div class="mobile-report-container">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-1">📊 Laporan Kinerja</h4>
+                <small class="opacity-75">Mobile App - E-Lapkin MTsN 11</small>
+            </div>
+            <button class="btn btn-light btn-sm" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+        </div>
+    </div>
 
-        .btn-generate:hover {
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <ul class="nav nav-pills justify-content-center" id="reportTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="monthly-tab" data-bs-toggle="pill" data-bs-target="#monthly" type="button" role="tab">
+                    📅 Bulanan
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="annual-tab" data-bs-toggle="pill" data-bs-target="#annual" type="button" role="tab">
+                    📊 Tahunan
+                </button>
+            </li>
+        </ul>
+    </div>
 
-        .btn-regenerate {
-            background: var(--warning-gradient);
-            border: none;
-            color: white;
-        }
+    <!-- Tab Content -->
+    <div class="tab-content" id="reportTabContent">
+        <!-- Monthly Report Tab -->
+        <div class="tab-pane fade show active" id="monthly" role="tabpanel">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-month text-primary me-2"></i>
+                    Laporan Bulanan
+                </h5>
+                
+                <!-- Month Selector -->
+                <div class="month-selector">
+                    <label class="form-label fw-bold">Pilih Bulan & Tahun:</label>
+                    <div class="row">
+                        <div class="col-7">
+                            <select class="form-select" id="monthSelect">
+                                <?php
+                                $months = [
+                                    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                                ];
+                                foreach ($months as $num => $name) {
+                                    $selected = ($num == $filter_month) ? 'selected' : '';
+                                    echo "<option value='$num' $selected>$name</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-5">
+                            <select class="form-select" id="yearSelect">
+                                <?php
+                                for ($y = $current_year; $y >= ($current_year - 3); $y--) {
+                                    $selected = ($y == $filter_year) ? 'selected' : '';
+                                    echo "<option value='$y' $selected>$y</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-        .btn-regenerate:hover {
-            color: white;
-            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
-        }
+                <!-- Monthly Stats -->
+                <div class="quick-stats">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h3 mb-1"><?php echo $monthly_data_count; ?></div>
+                            <small>RKB Bulan Ini</small>
+                        </div>
+                        <div class="col-6">
+                            <?php
+                            $stmt_monthly_lkh = $conn->prepare("SELECT COUNT(*) as total FROM lkh l 
+                                JOIN rkb ON l.id_rkb = rkb.id_rkb 
+                                JOIN rhk ON rkb.id_rhk = rhk.id_rhk 
+                                WHERE rhk.id_pegawai = ? AND rkb.bulan = ? AND rkb.tahun = ?");
+                            $stmt_monthly_lkh->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
+                            $stmt_monthly_lkh->execute();
+                            $monthly_lkh_count = $stmt_monthly_lkh->get_result()->fetch_assoc()['total'];
+                            $stmt_monthly_lkh->close();
+                            ?>
+                            <div class="h3 mb-1"><?php echo $monthly_lkh_count; ?></div>
+                            <small>LKH Bulan Ini</small>
+                        </div>
+                    </div>
+                </div>
 
-        .badge {
-            border-radius: 15px;
-            padding: 6px 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+                <!-- Monthly Action -->
+                <?php if ($monthly_data_count > 0): ?>
+                    <button class="action-btn" onclick="downloadMonthlyPDF()">
+                        <i class="fas fa-download me-2"></i>
+                        Download Laporan Bulanan PDF
+                    </button>
+                <?php else: ?>
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Belum ada data untuk bulan <?php echo $months[$filter_month] . ' ' . $filter_year; ?>
+                    </div>
+                    <button class="action-btn" disabled>
+                        <i class="fas fa-ban me-2"></i>
+                        Tidak Ada Data Bulanan
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
 
-        .badge-status {
-            padding: 8px 12px;
-        }
+        <!-- Annual Report Tab -->
+        <div class="tab-pane fade" id="annual" role="tabpanel">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line text-success me-2"></i>
+                    Laporan Tahunan
+                </h5>
+                
+                <!-- Annual Stats -->
+                <div class="quick-stats">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">📈 Statistik Tahun <?php echo $periode_tahun; ?></h6>
+                        <i class="fas fa-chart-bar fa-2x opacity-75"></i>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h3 mb-1"><?php echo $annual_data_count; ?></div>
+                            <small>Total RKB</small>
+                        </div>
+                        <div class="col-6">
+                            <?php
+                            $stmt_annual_lkh = $conn->prepare("SELECT COUNT(*) as total FROM lkh l 
+                                JOIN rkb ON l.id_rkb = rkb.id_rkb 
+                                JOIN rhk ON rkb.id_rhk = rhk.id_rhk 
+                                WHERE rhk.id_pegawai = ? AND rkb.tahun = ?");
+                            $stmt_annual_lkh->bind_param("ii", $id_pegawai_login, $periode_tahun);
+                            $stmt_annual_lkh->execute();
+                            $annual_lkh_count = $stmt_annual_lkh->get_result()->fetch_assoc()['total'];
+                            $stmt_annual_lkh->close();
+                            ?>
+                            <div class="h3 mb-1"><?php echo $annual_lkh_count; ?></div>
+                            <small>Total LKH</small>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <small class="opacity-75">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Periode: Januari - Desember <?php echo $periode_tahun; ?>
+                        </small>
+                    </div>
+                </div>
 
-        .report-header {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
+                <!-- Feature Highlights -->
+                <div class="feature-highlight">
+                    <div class="row">
+                        <div class="col-6">
+                            <i class="fas fa-file-pdf text-danger fa-2x mb-2"></i>
+                            <h6>Format PDF</h6>
+                            <small>Siap cetak & bagikan</small>
+                        </div>
+                        <div class="col-6">
+                            <i class="fas fa-table text-primary fa-2x mb-2"></i>
+                            <h6>Komprehensif</h6>
+                            <small>Semua data tahun ini</small>
+                        </div>
+                    </div>
+                </div>
 
-        .report-section {
-            margin-bottom: 30px;
-        }
+                <!-- Annual Action -->
+                <?php if ($annual_data_count > 0): ?>
+                    <button class="action-btn" onclick="redirectToAnnualReport()">
+                        <i class="fas fa-external-link-alt me-2"></i>
+                        Buka Laporan Tahunan
+                    </button>
+                    <small class="text-muted d-block text-center mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Akan membuka halaman laporan tahunan lengkap
+                    </small>
+                <?php else: ?>
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Belum ada data untuk tahun <?php echo $periode_tahun; ?>
+                    </div>
+                    <button class="action-btn" disabled>
+                        <i class="fas fa-ban me-2"></i>
+                        Tidak Ada Data Tahunan
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
 
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
+    <!-- Security Notice -->
+    <div class="report-card">
+        <div class="text-center">
+            <i class="fas fa-shield-alt text-success fa-2x mb-3"></i>
+            <h6>Keamanan Data</h6>
+            <p class="text-muted mb-0">
+                File PDF yang diunduh akan dihapus otomatis setelah 3 menit untuk melindungi privasi data Anda.
+            </p>
+        </div>
+    </div>
+</div>
 
-        .section-title i {
-            margin-right: 10px;
-            width: 20px;
-        }
+<script>
+// Monthly report functions
+function downloadMonthlyPDF() {
+    const month = document.getElementById('monthSelect').value;
+    const year = document.getElementById('yearSelect').value;
+    
+    // Create form for monthly PDF download
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'generate_pdf_bulanan.php';
+    form.style.display = 'none';
+    
+    const monthInput = document.createElement('input');
+    monthInput.type = 'hidden';
+    monthInput.name = 'month';
+    monthInput.value = month;
+    form.appendChild(monthInput);
+    
+    const yearInput = document.createElement('input');
+    yearInput.type = 'hidden';
+    yearInput.name = 'year';
+    yearInput.value = year;
+    form.appendChild(yearInput);
+    
+    const mobileInput = document.createElement('input');
+    mobileInput.type = 'hidden';
+    mobileInput.name = 'mobile_app';
+    mobileInput.value = '1';
+    form.appendChild(mobileInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
 
-        .report-item {
-            background: white;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #e9ecef;
-            transition: all 0.3s ease;
-        }
+// Annual report functions
+function redirectToAnnualReport() {
+    window.location.href = 'laporan_tahunan.php';
+}
 
-        .report-item:hover {
-            transform: translateX(5px);
-            border-left-color: var(--accent-blue);
-        }
+// Update monthly data when month/year changes
+document.getElementById('monthSelect').addEventListener('change', updateMonthlyData);
+document.getElementById('yearSelect').addEventListener('change', updateMonthlyData);
 
-        .report-item-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
+function updateMonthlyData() {
+    const month = document.getElementById('monthSelect').value;
+    const year = document.getElementById('yearSelect').value;
+    window.location.href = `laporan.php?month=${month}&year=${year}`;
+}
 
-        .report-period {
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .report-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: var(--card-hover-shadow);
-        }
-
-        .modal-header {
-            border-radius: 20px 20px 0 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-        }
-
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid rgba(102, 126, 234, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .info-alert {
-            background: linear-gradient(135deg, rgba(23, 162, 184, 0.1), rgba(19, 132, 150, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-left: 4px solid #17a2b8;
-        }
-
-        @media (max-width: 576px) {
-            .card-body {
-                padding: 15px;
+// Tab switching enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="pill"]');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Add haptic feedback for mobile
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
             }
-            
-            .report-actions {
-                flex-direction: column;
-            }
-            
-            .report-actions .btn {
-                width: 100%;
-            }
-        }
+        });
+    });
+    
+    // Add touch feedback
+    const actionButtons = document.querySelectorAll('.action-btn');
+    actionButtons.forEach(button => {
+        button.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.98)';
+        });
+        
+        button.addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+});
+</script>
 
-        /* Tab Styles */
-        .nav-tabs {
-            border: none;
-            margin-bottom: 20px;
-            padding: 0 10px;
-        }
-
-        .nav-tabs .nav-item {
-            margin-bottom: 0;
-            flex: 1;
-        }
-
-        .nav-tabs .nav-link {
-            border: none;
-            border-radius: 15px;
-            margin-right: 8px;
-            background: white;
-            color: #6c757d;
-            font-weight: 600;
-            padding: 18px 20px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-            font-size: 1rem;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 65px;
-        }
-
-        .nav-tabs .nav-link:hover {
-            color: var(--accent-blue);
-            background: rgba(102, 126, 234, 0.1);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-        }
-
-        .nav-tabs .nav-link.active {
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .nav-tabs .nav-link i {
-            font-size: 1.3rem;
-            margin-bottom: 5px;
-            display: block;
-        }
-
-        .nav-tabs .nav-link .tab-text {
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-
-        @media (max-width: 768px) {
-            .nav-tabs {
-                padding: 0 5px;
-            }
-            
-            .nav-tabs .nav-link {
-                padding: 15px 15px;
-                font-size: 0.9rem;
-                margin-right: 5px;
-                min-height: 60px;
-            }
-            
-            .nav-tabs .nav-link i {
-                font-size: 1.2rem;
-                margin-bottom: 4px;
-            }
-            
-            .nav-tabs .nav-link .tab-text {
-                font-size: 0.8rem;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .nav-tabs {
-                padding: 0 3px;
-            }
-            
-            .nav-tabs .nav-link {
-                padding: 12px 10px;
-                font-size: 0.8rem;
-                margin-right: 3px;
-                min-height: 55px;
-            }
-            
-            .nav-tabs .nav-link i {
-                font-size: 1.1rem;
-                margin-bottom: 3px;
-            }
-            
-            .nav-tabs .nav-link .tab-text {
-                font-size: 0.75rem;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .nav-tabs .nav-link {
-                padding: 10px 8px;
-                font-size: 0.75rem;
-                margin-right: 2px;
-                min-height: 50px;
-            }
-            
-            .nav-tabs .nav-link i {
-                font-size: 1rem;
-                margin-bottom: 2px;
-            }
-            
-            .nav-tabs .nav-link .tab-text {
-                font-size: 0.7rem;
-            }
-        }
-
-        .tab-content {
-            background: transparent;
-        }
-
-        .tab-pane {
-            animation: fadeInUp 0.3s ease;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .tab-header {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .tab-header h5 {
-            margin: 0;
-            color: #2d3748;
-            font-weight: 600;
-        }
-
-        .tab-header p {
-            margin: 5px 0 0 0;
-            color: #6c757d;
+<?php include __DIR__ . '/template/footer.php'; ?>
             font-size: 0.9rem;
         }
 
