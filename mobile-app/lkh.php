@@ -1817,6 +1817,52 @@ ob_clean();
         <input type="hidden" name="batal_verval_lkh" value="1">
     </form>
 
+    <!-- Add Attachment Modal -->
+    <div class="modal fade" id="addAttachmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form id="addAttachmentForm" method="POST" enctype="multipart/form-data">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-plus me-2"></i>Tambah Lampiran
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="add_attachment">
+                        <input type="hidden" name="id_lkh" id="attachmentLkhId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Pilih File Lampiran</label>
+                            <input type="file" class="form-control" name="lampiran" id="attachmentFile" 
+                                   accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" 
+                                   capture="environment" required>
+                            <div class="form-text">Format: PDF, JPG, JPEG, PNG. Maksimal 2MB.</div>
+                            <div id="attachmentFilePreview" class="mt-2" style="display: none;">
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    File dipilih: <span id="attachmentFileName"></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="addAttachmentBtn">
+                            <i class="fas fa-upload me-1"></i>Upload Lampiran
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Remove Attachment Form -->
+    <form id="removeAttachmentForm" method="POST" style="display: none;">
+        <input type="hidden" name="action" value="remove_attachment">
+        <input type="hidden" name="id_lkh" id="removeAttachmentId">
+    </form>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
@@ -2100,110 +2146,6 @@ ob_clean();
             });
         });
 
-        // View attachment function
-        function viewAttachment(fileName, title) {
-            const attachmentPath = '../uploads/lkh/' + fileName;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-            
-            // Set modal title
-            document.getElementById('attachmentTitle').textContent = 'Lampiran: ' + title;
-            
-            // Set download link
-            document.getElementById('downloadAttachment').href = attachmentPath;
-            
-            // Get attachment content container
-            const contentDiv = document.getElementById('attachmentContent');
-            
-            // Show loading state
-            contentDiv.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <span class="ms-2">Memuat lampiran...</span>
-                </div>
-            `;
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('attachmentModal'));
-            modal.show();
-            
-            // Load content based on file type
-            setTimeout(() => {
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-                    // Image file - Fixed the onerror syntax
-                    contentDiv.innerHTML = `
-                        <div class="text-center">
-                            <img src="${attachmentPath}" class="img-fluid rounded shadow" 
-                                 style="max-height: 500px; max-width: 100%;" 
-                                 alt="Lampiran ${title}"
-                                 onerror="this.parentElement.innerHTML='<div class=&quot;alert alert-danger&quot;><i class=&quot;fas fa-exclamation-triangle&quot;></i> Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.</div>'">
-                        </div>
-                    `;
-                } else if (fileExtension === 'pdf') {
-                    // PDF file
-                    contentDiv.innerHTML = `
-                        <div class="text-center">
-                            <div class="mb-3">
-                                <i class="fas fa-file-pdf text-danger" style="font-size: 4rem;"></i>
-                            </div>
-                            <h5>Dokumen PDF</h5>
-                            <p class="text-muted">File: ${fileName}</p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <a href="${attachmentPath}" target="_blank" class="btn btn-primary">
-                                    <i class="fas fa-external-link-alt me-1"></i>Buka di Tab Baru
-                                </a>
-                                <a href="${attachmentPath}" download class="btn btn-outline-primary">
-                                    <i class="fas fa-download me-1"></i>Download
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    // Other file types
-                    contentDiv.innerHTML = `
-                        <div class="text-center">
-                            <div class="mb-3">
-                                <i class="fas fa-file text-secondary" style="font-size: 4rem;"></i>
-                            </div>
-                            <h5>File Lampiran</h5>
-                            <p class="text-muted">File: ${fileName}</p>
-                            <p class="text-muted">Tipe: ${fileExtension.toUpperCase()}</p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <a href="${attachmentPath}" target="_blank" class="btn btn-primary">
-                                    <i class="fas fa-external-link-alt me-1"></i>Buka File
-                                </a>
-                                <a href="${attachmentPath}" download class="btn btn-outline-primary">
-                                    <i class="fas fa-download me-1"></i>Download
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Add error handling for file not found
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-                    const img = contentDiv.querySelector('img');
-                    if (img) {
-                        img.addEventListener('load', function() {
-                            console.log('Image loaded successfully');
-                        });
-                        
-                        img.addEventListener('error', function() {
-                            console.log('Image failed to load:', attachmentPath);
-                            this.parentElement.innerHTML = `
-                                <div class="alert alert-danger">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.
-                                    <br><small class="text-muted">Path: ${fileName}</small>
-                                </div>
-                            `;
-                        });
-                    }
-                }
-            }, 500);
-        }
-
         // Add CSS for ripple effect
         const style = document.createElement('style');
         style.textContent = `
@@ -2314,7 +2256,7 @@ ob_clean();
             const originalText = submitBtn.innerHTML;
             
             // Show loading state
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...';
             submitBtn.disabled = true;
             
             // Submit form after short delay for better UX
