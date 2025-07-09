@@ -6,25 +6,21 @@ namespace Kreait\Firebase\RemoteConfig;
 
 final class ParameterGroup implements \JsonSerializable
 {
-    /** @var string */
-    private $name;
+    private string $name;
 
-    /** @var string */
-    private $description = '';
+    private string $description = '';
 
     /** @var Parameter[] */
-    private $parameters = [];
+    private array $parameters = [];
 
-    private function __construct()
+    private function __construct(string $name)
     {
+        $this->name = $name;
     }
 
     public static function named(string $name): self
     {
-        $group = new self();
-        $group->name = $name;
-
-        return $group;
+        return new self($name);
     }
 
     public function name(): string
@@ -61,7 +57,10 @@ final class ParameterGroup implements \JsonSerializable
         return $group;
     }
 
-    public function jsonSerialize()
+    /**
+     * @return array{description: string, parameters: Parameter[]}
+     */
+    public function jsonSerialize(): array
     {
         return [
             'description' => $this->description,

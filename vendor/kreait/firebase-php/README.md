@@ -1,7 +1,7 @@
 # Firebase Admin PHP SDK
 
 [![Current version](https://img.shields.io/packagist/v/kreait/firebase-php.svg?logo=composer)](https://packagist.org/packages/kreait/firebase-php)
-[![Supported PHP version](https://img.shields.io/static/v1?logo=php&label=PHP&message=%5E7.2|~8.0.0&color=777bb4)](https://packagist.org/packages/kreait/firebase-php)
+[![Supported PHP version](https://img.shields.io/static/v1?logo=php&label=PHP&message=%5E7.4|%5E8.0&color=777bb4)](https://packagist.org/packages/kreait/firebase-php)
 [![Monthly Downloads](https://img.shields.io/packagist/dm/kreait/firebase-php.svg)](https://packagist.org/packages/kreait/firebase-php/stats)
 [![Total Downloads](https://img.shields.io/packagist/dt/kreait/firebase-php.svg)](https://packagist.org/packages/kreait/firebase-php/stats)
 [![Tests](https://github.com/kreait/firebase-php/workflows/Tests/badge.svg)](https://github.com/kreait/firebase-php/actions)
@@ -29,7 +29,7 @@ For more information, visit the [Firebase Admin PHP SDK documentation](https://f
 The Firebase Admin PHP SDK is available on Packagist as [`kreait/firebase-php`](https://packagist.org/packages/kreait/firebase-php):
 
 ```bash
-$ composer require kreait/firebase-php
+composer require kreait/firebase-php
 ```
 
 Integrations for Laravel, Lumen and Symfony are available:

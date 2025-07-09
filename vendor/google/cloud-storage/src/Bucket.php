@@ -65,6 +65,7 @@ class Bucket
 
     /**
      * @var ConnectionInterface Represents a connection to Cloud Storage.
+     * @internal
      */
     private $connection;
 
@@ -95,7 +96,8 @@ class Bucket
 
     /**
      * @param ConnectionInterface $connection Represents a connection to Cloud
-     *        Storage.
+     *        Storage. This object is created by StorageClient,
+     *        and should not be instantiated outside of this client.
      * @param string $name The bucket's name.
      * @param array $info [optional] The bucket's metadata.
      */
@@ -244,10 +246,8 @@ class Bucket
      *           are `true`, `false`, `md5` and `crc32`. If true, either md5 or
      *           crc32c will be chosen based on your platform. If false, no
      *           validation hash will be sent. Choose either `md5` or `crc32` to
-     *           force a hash method regardless of performance implications. In
-     *           PHP versions earlier than 7.4, performance will be very
-     *           adversely impacted by using crc32c unless you install the
-     *           `crc32c` PHP extension. **Defaults to** `true`.
+     *           force a hash method regardless of performance implications.
+     *           **Defaults to** `true`.
      *     @type int $chunkSize If provided the upload will be done in chunks.
      *           The size must be in multiples of 262144 bytes. With chunking
      *           you have increased reliability at the risk of higher overhead.
@@ -265,6 +265,13 @@ class Bucket
      *           Acceptable values include, `"authenticatedRead"`,
      *           `"bucketOwnerFullControl"`, `"bucketOwnerRead"`, `"private"`,
      *           `"projectPrivate"`, and `"publicRead"`.
+     *     @type array $retention The full list of available options are outlined
+     *           at the [JSON API docs](https://cloud.google.com/storage/docs/json_api/v1/objects/insert#request-body).
+     *     @type string $retention.retainUntilTime The earliest time in RFC 3339
+     *           UTC "Zulu" format that the object can be deleted or replaced.
+     *           This is the retention configuration set for this object.
+     *     @type string $retention.mode The mode of the retention configuration,
+     *           which can be either `"Unlocked"` or `"Locked"`.
      *     @type array $metadata The full list of available options are outlined
      *           at the [JSON API docs](https://cloud.google.com/storage/docs/json_api/v1/objects/insert#request-body).
      *     @type array $metadata.metadata User-provided metadata, in key/value pairs.
@@ -288,8 +295,8 @@ class Bucket
             throw new \InvalidArgumentException('A name is required when data is of type string or null.');
         }
 
-        $encryptionKey = isset($options['encryptionKey']) ? $options['encryptionKey'] : null;
-        $encryptionKeySHA256 = isset($options['encryptionKeySHA256']) ? $options['encryptionKeySHA256'] : null;
+        $encryptionKey = $options['encryptionKey'] ?? null;
+        $encryptionKeySHA256 = $options['encryptionKeySHA256'] ?? null;
 
         $response = $this->connection->insertObject(
             $this->formatEncryptionHeaders($options) + $this->identity + [
@@ -356,10 +363,8 @@ class Bucket
      *           are `true`, `false`, `md5` and `crc32`. If true, either md5 or
      *           crc32c will be chosen based on your platform. If false, no
      *           validation hash will be sent. Choose either `md5` or `crc32` to
-     *           force a hash method regardless of performance implications. In
-     *           PHP versions earlier than 7.4, performance will be very
-     *           adversely impacted by using crc32c unless you install the
-     *           `crc32c` PHP extension. **Defaults to** `true`.ß
+     *           force a hash method regardless of performance implications.
+     *           **Defaults to** `true`.
      *     @type string $predefinedAcl Predefined ACL to apply to the object.
      *           Acceptable values include, `"authenticatedRead"`,
      *           `"bucketOwnerFullControl"`, `"bucketOwnerRead"`, `"private"`,
@@ -391,8 +396,8 @@ class Bucket
             throw new \InvalidArgumentException('A name is required when data is of type string or null.');
         }
 
-        $encryptionKey = isset($options['encryptionKey']) ? $options['encryptionKey'] : null;
-        $encryptionKeySHA256 = isset($options['encryptionKeySHA256']) ? $options['encryptionKeySHA256'] : null;
+        $encryptionKey = $options['encryptionKey'] ?? null;
+        $encryptionKeySHA256 = $options['encryptionKeySHA256'] ?? null;
 
         $promise = $this->connection->insertObject(
             $this->formatEncryptionHeaders($options) +
@@ -564,8 +569,10 @@ class Bucket
 
     /**
      * Lazily instantiates an object. There are no network requests made at this
-     * point. To see the operations that can be performed on an object please
-     * see {@see Google\Cloud\Storage\StorageObject}.
+     * point.
+     *
+     * To see the operations that can be performed on an object please
+     * see {@see StorageObject}.
      *
      * Example:
      * ```
@@ -585,14 +592,17 @@ class Bucket
      *           from the `encryptionKey` on your behalf if not provided, but
      *           for best performance it is recommended to pass in a cached
      *           version of the already calculated SHA.
+     *     @type boolean $softDeleted If true, returns the metadata of the
+     *           soft-deleted object. If true, generation must also be specified,
+     *           and alt=media cannot be specified.
      * }
      * @return StorageObject
      */
     public function object($name, array $options = [])
     {
-        $generation = isset($options['generation']) ? $options['generation'] : null;
-        $encryptionKey = isset($options['encryptionKey']) ? $options['encryptionKey'] : null;
-        $encryptionKeySHA256 = isset($options['encryptionKeySHA256']) ? $options['encryptionKeySHA256'] : null;
+        $generation = $options['generation'] ?? null;
+        $encryptionKey = $options['encryptionKey'] ?? null;
+        $encryptionKeySHA256 = $options['encryptionKeySHA256'] ?? null;
 
         return new StorageObject(
             $this->connection,
@@ -604,6 +614,50 @@ class Bucket
             ]),
             $encryptionKey,
             $encryptionKeySHA256
+        );
+    }
+
+    /**
+     * Restores an object.
+     *
+     * Example:
+     * ```
+     * $object = $bucket->restore('file.txt');
+     * ```
+     *
+     * @param string $name The name of the object to restore.
+     * @param string $generation Request a specific generation of the object.
+     * @param array $options [optional] {
+     *     Configuration Options.
+     *
+     *     @type string $restoreToken Must be specified when getting a soft-deleted object from
+     *           an HNS-enabled bucket that has a name and generation conflict with another object in the same bucket.
+     *     @type string $ifGenerationMatch Makes the operation conditional on whether
+     *           the object's current generation matches the given value.
+     *     @type string $ifGenerationNotMatch Makes the operation conditional on whether
+     *           the object's current generation matches the given value.
+     *     @type string $ifMetagenerationMatch If set, only restores
+     *           if its metageneration matches this value.
+     *     @type string $ifMetagenerationNotMatch If set, only restores
+     *           if its metageneration does not match this value.
+     * }
+     * @return StorageObject
+     */
+    public function restore($name, $generation, array $options = [])
+    {
+        $res = $this->connection->restoreObject([
+            'bucket' => $this->identity['bucket'],
+            'generation' => $generation,
+            'object' => $name,
+        ] + $options);
+        return new StorageObject(
+            $this->connection,
+            $name,
+            $this->identity['bucket'],
+            $res['generation'], // restored object will have a new generation
+            $res + array_filter([
+                'requesterProjectId' => $this->identity['userProject']
+            ])
         );
     }
 
@@ -634,6 +688,9 @@ class Bucket
      *           from the prefix, contain delimiter will have their name,
      *           truncated after the delimiter, returned in prefixes. Duplicate
      *           prefixes are omitted.
+     *     @type bool $includeFoldersAsPrefixes If true, will also include folders
+     *           and managed folders (besides objects) in the returned prefixes.
+     *           Only applicable if delimiter is set to '/'.
      *     @type int $maxResults Maximum number of results to return per
      *           request. **Defaults to** `1000`.
      *     @type int $resultLimit Limit the number of results returned in total.
@@ -647,6 +704,9 @@ class Bucket
      *           distinct results. **Defaults to** `false`.
      *     @type string $fields Selector which will cause the response to only
      *           return the specified fields.
+     *     @type string $matchGlob A glob pattern to filter results. The string
+     *           value must be UTF-8 encoded. See:
+     *           https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
      * }
      * @return ObjectIterator<StorageObject>
      */
@@ -756,7 +816,7 @@ class Bucket
      * }
      * @return Notification
      * @throws \InvalidArgumentException When providing a type other than string
-     *         or {@see Google\Cloud\PubSub\Topic} as $topic.
+     *         or {@see \Google\Cloud\PubSub\Topic} as $topic.
      * @throws GoogleException When a project ID has not been detected.
      * @experimental The experimental flag means that while we believe this
      *      method or class is ready for use, it may change before release in
@@ -782,8 +842,10 @@ class Bucket
 
     /**
      * Lazily instantiates a notification. There are no network requests made at
-     * this point. To see the operations that can be performed on a notification
-     * please see {@see Google\Cloud\Storage\Notification}.
+     * this point.
+     *
+     * To see the operations that can be performed on a notification
+     * please see {@see Notification}.
      *
      * Example:
      * ```
@@ -948,6 +1010,8 @@ class Bucket
      *           Buckets can have either StorageClass OLM rules or Autoclass,
      *           but not both. When Autoclass is enabled on a bucket, adding
      *           StorageClass OLM rules will result in failure.
+     *           For more information, refer to
+     *           [Storage Autoclass](https://cloud.google.com/storage/docs/autoclass)
      *     @type array $versioning The bucket's versioning configuration.
      *     @type array $website The bucket's website configuration.
      *     @type array $billing The bucket's billing configuration.
@@ -970,7 +1034,7 @@ class Bucket
      *           occurs, signified by the hold's release.
      *     @type array $retentionPolicy Defines the retention policy for a
      *           bucket. In order to lock a retention policy, please see
-     *           {@see Google\Cloud\Storage\Bucket::lockRetentionPolicy()}.
+     *           {@see Bucket::lockRetentionPolicy()}.
      *     @type int $retentionPolicy.retentionPeriod Specifies the duration
      *           that objects need to be retained, in seconds. Retention
      *           duration must be greater than zero and less than 100 years.
@@ -1065,9 +1129,7 @@ class Bucket
 
                 if ($sourceObject instanceof StorageObject) {
                     $name = $sourceObject->name();
-                    $generation = isset($sourceObject->identity()['generation'])
-                        ? $sourceObject->identity()['generation']
-                        : null;
+                    $generation = $sourceObject->identity()['generation'] ?? null;
                 }
 
                 return array_filter([
@@ -1184,8 +1246,8 @@ class Bucket
      * replace the configuration with the rules provided by this builder.
      *
      * This builder is intended to be used in tandem with
-     * {@see Google\Cloud\Storage\StorageClient::createBucket()} and
-     * {@see Google\Cloud\Storage\Bucket::update()}.
+     * {@see StorageClient::createBucket()} and
+     * {@see Bucket::update()}.
      *
      * Example:
      * ```
@@ -1215,13 +1277,15 @@ class Bucket
 
     /**
      * Retrieves a lifecycle builder preconfigured with the lifecycle rules that
-     * already exists on the bucket. Use this if you want to make updates to an
+     * already exists on the bucket.
+     *
+     * Use this if you want to make updates to an
      * existing configuration without removing existing rules, as would be the
-     * case when using {@see Google\Cloud\Storage\Bucket::lifecycle()}.
+     * case when using {@see Bucket::lifecycle()}.
      *
      * This builder is intended to be used in tandem with
-     * {@see Google\Cloud\Storage\StorageClient::createBucket()} and
-     * {@see Google\Cloud\Storage\Bucket::update()}.
+     * {@see StorageClient::createBucket()} and
+     * {@see Bucket::update()}.
      *
      * Please note, this method may trigger a network request in order to fetch
      * the existing lifecycle rules from the server.
@@ -1343,8 +1407,8 @@ class Bucket
      * metageneration value will need to be available. It can either be supplied
      * explicitly through the `ifMetagenerationMatch` option or detected for you
      * by ensuring a value is cached locally (by calling
-     * {@see Google\Cloud\Storage\Bucket::reload()} or
-     * {@see Google\Cloud\Storage\Bucket::info()}, for example).
+     * {@see Bucket::reload()} or
+     * {@see Bucket::info()}, for example).
      *
      * Example:
      * ```
@@ -1416,7 +1480,7 @@ class Bucket
      * @see https://cloud.google.com/storage/docs/access-control/signed-urls Signed URLs
      *
      * @param Timestamp|\DateTimeInterface|int $expires Specifies when the URL
-     *        will expire. May provide an instance of {@see Google\Cloud\Core\Timestamp},
+     *        will expire. May provide an instance of {@see \Google\Cloud\Core\Timestamp},
      *        [http://php.net/datetimeimmutable](`\DateTimeImmutable`), or a
      *        UNIX timestamp as an integer.
      * @param array $options {
@@ -1522,7 +1586,7 @@ class Bucket
      * @param string $objectName The path to the file in Google Cloud Storage,
      *        relative to the bucket.
      * @param Timestamp|\DateTimeInterface|int $expires Specifies when the URL
-     *        will expire. May provide an instance of {@see Google\Cloud\Core\Timestamp},
+     *        will expire. May provide an instance of {@see \Google\Cloud\Core\Timestamp},
      *        [http://php.net/datetimeimmutable](`\DateTimeImmutable`), or a
      *        UNIX timestamp as an integer.
      * @param array $options [optional] {
