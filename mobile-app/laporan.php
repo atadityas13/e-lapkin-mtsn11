@@ -436,12 +436,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <i class="fas fa-list"></i>LKH
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tahunan-tab" data-bs-toggle="tab" data-bs-target="#tahunan-pane" 
-                        type="button" role="tab" aria-controls="tahunan-pane" aria-selected="false">
-                    <i class="fas fa-calendar-alt"></i>Tahunan
-                </button>
-            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -488,8 +482,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         <div class="report-actions">
                                             <?php if ($pdf_exists_lkb): ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
-                                                        onclick="previewPDF('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>', 'LKB <?= $months[$bulan] ?> <?= $tahun ?>')">
-                                                    <i class="fas fa-eye me-1"></i>Preview
+                                                        onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
+                                                    <i class="fas fa-download me-1"></i>Download
                                                 </button>
                                                 <button type="button" class="btn btn-regenerate btn-sm" 
                                                         data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
@@ -582,8 +576,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         <div class="report-actions">
                                             <?php if ($pdf_exists_lkh): ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
-                                                        onclick="previewPDF('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>', 'LKH <?= $months[$bulan] ?> <?= $tahun ?>')">
-                                                    <i class="fas fa-eye me-1"></i>Preview
+                                                        onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
+                                                    <i class="fas fa-download me-1"></i>Download
                                                 </button>
                                                 <button type="button" class="btn btn-regenerate btn-sm" 
                                                         data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
@@ -631,181 +625,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <?php endif; ?>
                         <?php endfor; ?>
                     <?php endforeach; ?>
-                </div>
-            </div>
-
-            <!-- Tahunan Tab Pane -->
-            <div class="tab-pane fade" id="tahunan-pane" role="tabpanel" aria-labelledby="tahunan-tab">
-                <div class="tab-header">
-                    <h5><i class="fas fa-calendar-alt text-warning me-2"></i>Laporan Kinerja Tahunan</h5>
-                    <p>Laporan kinerja komprehensif selama satu tahun periode aktif</p>
-                </div>
-                
-                <!-- Yearly Report Controls -->
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-8">
-                                <h6 class="card-title mb-1">
-                                    <i class="fas fa-file-pdf text-danger me-2"></i>
-                                    Laporan Tahun <?= $activePeriod['tahun'] ?>
-                                </h6>
-                                <small class="text-muted">
-                                    Rekapitulasi RKB dan LKH selama tahun <?= $activePeriod['tahun'] ?>
-                                </small>
-                            </div>
-                            <div class="col-4 text-end">
-                                <button type="button" class="btn btn-primary btn-sm" id="generateYearlyReport">
-                                    <i class="fas fa-eye me-1"></i>
-                                    <span class="d-none d-sm-inline">Preview</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Yearly Summary Cards -->
-                <div class="row mb-3">
-                    <?php
-                    // Get yearly statistics
-                    $yearly_stats = [];
-                    
-                    // Count RKB entries
-                    $stmt_rkb_count = $conn->prepare("SELECT COUNT(*) as total_rkb FROM rkb WHERE id_pegawai = ? AND tahun = ?");
-                    $stmt_rkb_count->bind_param("ii", $id_pegawai_login, $activePeriod['tahun']);
-                    $stmt_rkb_count->execute();
-                    $result_rkb = $stmt_rkb_count->get_result()->fetch_assoc();
-                    $yearly_stats['total_rkb'] = $result_rkb['total_rkb'];
-                    $stmt_rkb_count->close();
-                    
-                    // Count LKH entries
-                    $stmt_lkh_count = $conn->prepare("SELECT COUNT(*) as total_lkh FROM lkh WHERE id_pegawai = ? AND YEAR(tanggal_lkh) = ?");
-                    $stmt_lkh_count->bind_param("ii", $id_pegawai_login, $activePeriod['tahun']);
-                    $stmt_lkh_count->execute();
-                    $result_lkh = $stmt_lkh_count->get_result()->fetch_assoc();
-                    $yearly_stats['total_lkh'] = $result_lkh['total_lkh'];
-                    $stmt_lkh_count->close();
-                    
-                    // Count approved months
-                    $stmt_approved = $conn->prepare("
-                        SELECT COUNT(DISTINCT rkb.bulan) as approved_months 
-                        FROM rkb 
-                        WHERE rkb.id_pegawai = ? AND rkb.tahun = ? AND rkb.status_verval = 'disetujui'
-                    ");
-                    $stmt_approved->bind_param("ii", $id_pegawai_login, $activePeriod['tahun']);
-                    $stmt_approved->execute();
-                    $result_approved = $stmt_approved->get_result()->fetch_assoc();
-                    $yearly_stats['approved_months'] = $result_approved['approved_months'];
-                    $stmt_approved->close();
-                    ?>
-                    
-                    <div class="col-4">
-                        <div class="card text-center border-primary">
-                            <div class="card-body p-2">
-                                <div class="text-primary">
-                                    <i class="fas fa-file-alt fa-2x mb-1"></i>
-                                </div>
-                                <h6 class="card-title mb-0 text-primary"><?= $yearly_stats['total_rkb'] ?></h6>
-                                <small class="text-muted">Total RKB</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-4">
-                        <div class="card text-center border-info">
-                            <div class="card-body p-2">
-                                <div class="text-info">
-                                    <i class="fas fa-list fa-2x mb-1"></i>
-                                </div>
-                                <h6 class="card-title mb-0 text-info"><?= $yearly_stats['total_lkh'] ?></h6>
-                                <small class="text-muted">Total LKH</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-4">
-                        <div class="card text-center border-success">
-                            <div class="card-body p-2">
-                                <div class="text-success">
-                                    <i class="fas fa-check-circle fa-2x mb-1"></i>
-                                </div>
-                                <h6 class="card-title mb-0 text-success"><?= $yearly_stats['approved_months'] ?></h6>
-                                <small class="text-muted">Bulan Disetujui</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Monthly Summary -->
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">
-                            <i class="fas fa-calendar me-2"></i>
-                            Ringkasan Bulanan Tahun <?= $activePeriod['tahun'] ?>
-                        </h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <?php
-                        for ($bulan_mobile = 1; $bulan_mobile <= 12; $bulan_mobile++):
-                            // Check month status
-                            $stmt_month_status = $conn->prepare("
-                                SELECT 
-                                    COUNT(DISTINCT rkb.id_rkb) as rkb_count,
-                                    COUNT(DISTINCT lkh.id_lkh) as lkh_count,
-                                    MAX(rkb.status_verval) as status_verval
-                                FROM rkb 
-                                LEFT JOIN lkh ON rkb.id_rkb = lkh.id_rkb
-                                WHERE rkb.id_pegawai = ? AND rkb.bulan = ? AND rkb.tahun = ?
-                            ");
-                            $stmt_month_status->bind_param("iii", $id_pegawai_login, $bulan_mobile, $activePeriod['tahun']);
-                            $stmt_month_status->execute();
-                            $month_data = $stmt_month_status->get_result()->fetch_assoc();
-                            $stmt_month_status->close();
-                            
-                            if ($month_data['rkb_count'] == 0) continue; // Skip months without data
-                            
-                            $status_badge = '';
-                            $status_icon = '';
-                            if ($month_data['status_verval'] === 'disetujui') {
-                                $status_badge = 'bg-success';
-                                $status_icon = 'fas fa-check-circle';
-                            } elseif ($month_data['status_verval'] === 'diajukan') {
-                                $status_badge = 'bg-warning';
-                                $status_icon = 'fas fa-clock';
-                            } else {
-                                $status_badge = 'bg-secondary';
-                                $status_icon = 'fas fa-times-circle';
-                            }
-                        ?>
-                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <h6 class="mb-1"><?= $months[$bulan_mobile] ?> <?= $activePeriod['tahun'] ?></h6>
-                                <div class="d-flex gap-3">
-                                    <small class="text-muted">
-                                        <i class="fas fa-file-alt me-1"></i><?= $month_data['rkb_count'] ?> RKB
-                                    </small>
-                                    <small class="text-muted">
-                                        <i class="fas fa-list me-1"></i><?= $month_data['lkh_count'] ?> LKH
-                                    </small>
-                                </div>
-                            </div>
-                            <span class="badge <?= $status_badge ?> rounded-pill">
-                                <i class="<?= $status_icon ?> me-1"></i>
-                                <?= ucfirst($month_data['status_verval'] ?: 'Belum') ?>
-                            </span>
-                        </div>
-                        <?php endfor; ?>
-                        
-                        <?php if ($yearly_stats['total_rkb'] == 0): ?>
-                        <div class="text-center py-4">
-                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                            <h6 class="text-muted">Belum Ada Data</h6>
-                            <p class="text-muted small mb-0">
-                                Belum ada RKB yang dibuat untuk tahun <?= $activePeriod['tahun'] ?>
-                            </p>
-                        </div>
-                        <?php endif; ?>
-                    </div>
                 </div>
             </div>
         </div>
@@ -875,74 +694,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
     </div>
 
-    <!-- Modal Generate Yearly Report -->
-    <div class="modal fade" id="yearlyReportModal" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-calendar-alt me-2"></i>Preview Laporan Tahunan
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-0" style="max-height: 70vh; overflow-y: auto;">
-                    <div id="yearlyReportContent">
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Memuat laporan tahunan...</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="button" class="btn btn-primary" id="printYearlyReport">
-                        <i class="fas fa-print me-1"></i>Cetak Laporan
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal PDF Preview -->
-    <div class="modal fade" id="pdfPreviewModal" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="pdfPreviewTitle">
-                        <i class="fas fa-file-pdf me-2"></i>Preview Dokumen
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-0" style="height: 80vh;">
-                    <div id="pdfPreviewContent" class="h-100 d-flex flex-column">
-                        <!-- PDF will be loaded here -->
-                        <div class="d-flex justify-content-center align-items-center h-100">
-                            <div class="text-center">
-                                <div class="spinner-border text-primary mb-3" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <p>Memuat dokumen PDF...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>Tutup
-                    </button>
-                    <button type="button" class="btn btn-success" id="downloadFromPreview">
-                        <i class="fas fa-download me-1"></i>Download PDF
-                    </button>
-                    <button type="button" class="btn btn-info" id="printFromPreview">
-                        <i class="fas fa-print me-1"></i>Print
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Bottom Navigation -->
     <?php include __DIR__ . '/components/bottom-nav.php'; ?>
 
@@ -978,311 +729,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             var tahun = button.getAttribute('data-tahun');
             var form = document.getElementById('generateLkhForm');
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
-        });
-
-        // Yearly Report Functionality
-        document.getElementById('generateYearlyReport').addEventListener('click', function() {
-            const modal = new bootstrap.Modal(document.getElementById('yearlyReportModal'));
-            const contentDiv = document.getElementById('yearlyReportContent');
-            
-            // Reset content
-            contentDiv.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Memuat laporan tahunan...</p>
-                </div>
-            `;
-            
-            modal.show();
-            
-            // Fetch yearly report data
-            fetch('generate_yearly_report.php?year=<?= $activePeriod["tahun"] ?>')
-                .then(response => response.text())
-                .then(html => {
-                    contentDiv.innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    contentDiv.innerHTML = `
-                        <div class="alert alert-danger m-3">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Gagal memuat laporan tahunan. Silakan coba lagi.
-                        </div>
-                    `;
-                });
-        });
-
-        // Print Yearly Report
-        document.getElementById('printYearlyReport').addEventListener('click', function() {
-            const reportContent = document.getElementById('yearlyReportContent').innerHTML;
-            
-            if (reportContent.includes('spinner-border') || reportContent.includes('alert-danger')) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Laporan Belum Siap',
-                    text: 'Harap tunggu hingga laporan selesai dimuat.'
-                });
-                return;
-            }
-            
-            // Create print window
-            const printWindow = window.open('', '_blank', 'width=800,height=600');
-            
-            if (!printWindow) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Pop-up Diblokir',
-                    text: 'Silakan izinkan pop-up untuk mencetak laporan.'
-                });
-                return;
-            }
-            
-            const printHtml = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Laporan Kinerja Tahunan - <?= $activePeriod["tahun"] ?></title>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            margin: 0; 
-                            padding: 20px; 
-                            font-size: 12px; 
-                            line-height: 1.4; 
-                        }
-                        .print-header { 
-                            text-align: center; 
-                            margin-bottom: 30px; 
-                            border-bottom: 2px solid #000; 
-                            padding-bottom: 20px; 
-                        }
-                        .print-header h1 { 
-                            font-size: 18px; 
-                            margin: 0; 
-                            text-transform: uppercase; 
-                        }
-                        .print-header h2 { 
-                            font-size: 16px; 
-                            margin: 8px 0; 
-                        }
-                        table { 
-                            width: 100%; 
-                            border-collapse: collapse; 
-                            font-size: 10px; 
-                        }
-                        th, td { 
-                            border: 1px solid #000; 
-                            padding: 6px; 
-                            text-align: center; 
-                            vertical-align: middle; 
-                        }
-                        th { 
-                            background-color: #e0e0e0; 
-                            font-weight: bold; 
-                        }
-                        .employee-info td { 
-                            text-align: left; 
-                        }
-                        .employee-info td:first-child { 
-                            background-color: #f0f0f0; 
-                            font-weight: bold; 
-                            width: 150px; 
-                        }
-                        @media print {
-                            body { margin: 0; }
-                            .no-print { display: none !important; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="print-header">
-                        <h1>MTsN 11 MAJALENGKA</h1>
-                        <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
-                        <h3>TAHUN <?= $activePeriod["tahun"] ?></h3>
-                    </div>
-                    ${reportContent}
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(function() {
-                                window.close();
-                            }, 1000);
-                        };
-                    </script>
-                </body>
-                </html>
-            `;
-            
-            printWindow.document.write(printHtml);
-            printWindow.document.close();
-        });
-
-        // PDF Preview Functionality
-        let currentPdfUrl = '';
-        let currentPdfFilename = '';
-
-        function previewPDF(url, filename, title) {
-            console.log('Preview PDF called:', url, filename, title);
-            
-            // Store current PDF info for download
-            currentPdfUrl = url;
-            currentPdfFilename = filename;
-            
-            // Set modal title
-            document.getElementById('pdfPreviewTitle').innerHTML = `<i class="fas fa-file-pdf me-2"></i>${title}`;
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
-            const contentDiv = document.getElementById('pdfPreviewContent');
-            
-            // Reset content
-            contentDiv.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p>Memuat dokumen PDF...</p>
-                    </div>
-                </div>
-            `;
-            
-            modal.show();
-            
-            // Add timestamp to prevent caching
-            const pdfUrl = url + '?t=' + new Date().getTime();
-            
-            // Try different methods to display PDF
-            setTimeout(() => {
-                displayPdfContent(pdfUrl, contentDiv);
-            }, 500);
-        }
-
-        function displayPdfContent(url, container) {
-            // Method 1: Try PDF embed
-            const embedHtml = `
-                <div class="h-100 position-relative">
-                    <embed src="${url}" type="application/pdf" width="100%" height="100%" 
-                           onload="console.log('PDF loaded successfully')" 
-                           onerror="handlePdfError()">
-                    <div id="pdfFallback" style="display: none;" class="h-100 d-flex flex-column justify-content-center align-items-center">
-                        <div class="text-center">
-                            <i class="fas fa-file-pdf fa-4x text-danger mb-3"></i>
-                            <h5>PDF tidak dapat ditampilkan</h5>
-                            <p class="text-muted mb-3">Browser Anda tidak mendukung preview PDF atau file tidak dapat dimuat.</p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <button class="btn btn-primary" onclick="downloadFile('${currentPdfUrl}', '${currentPdfFilename}')">
-                                    <i class="fas fa-download me-2"></i>Download PDF
-                                </button>
-                                <button class="btn btn-info" onclick="openInNewTab('${url}')">
-                                    <i class="fas fa-external-link-alt me-2"></i>Buka di Tab Baru
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = embedHtml;
-            
-            // Fallback for mobile/WebView that might not support embed
-            if (navigator.userAgent.includes('wv') || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                setTimeout(() => {
-                    // Check if PDF loaded, if not show fallback
-                    const embed = container.querySelector('embed');
-                    if (embed && (embed.offsetHeight === 0 || embed.contentDocument === null)) {
-                        handlePdfError();
-                    }
-                }, 2000);
-            }
-        }
-
-        function handlePdfError() {
-            console.log('PDF embed failed, showing fallback');
-            const fallback = document.getElementById('pdfFallback');
-            const embed = document.querySelector('#pdfPreviewContent embed');
-            
-            if (fallback && embed) {
-                embed.style.display = 'none';
-                fallback.style.display = 'flex';
-            }
-        }
-
-        function openInNewTab(url) {
-            window.open(url, '_blank');
-        }
-
-        // Download from preview modal
-        document.getElementById('downloadFromPreview').addEventListener('click', function() {
-            if (currentPdfUrl && currentPdfFilename) {
-                downloadFile(currentPdfUrl, currentPdfFilename);
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Download Dimulai',
-                    text: 'File PDF sedang diunduh...',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        });
-
-        // Print from preview modal
-        document.getElementById('printFromPreview').addEventListener('click', function() {
-            if (currentPdfUrl) {
-                // Try to print the embedded PDF
-                const embed = document.querySelector('#pdfPreviewContent embed');
-                if (embed && embed.contentWindow) {
-                    try {
-                        embed.contentWindow.print();
-                    } catch (e) {
-                        console.log('Direct print failed, opening in new window');
-                        printPdfInNewWindow();
-                    }
-                } else {
-                    printPdfInNewWindow();
-                }
-            }
-        });
-
-        function printPdfInNewWindow() {
-            const printWindow = window.open(currentPdfUrl, '_blank', 'width=800,height=600');
-            if (printWindow) {
-                printWindow.onload = function() {
-                    setTimeout(() => {
-                        printWindow.print();
-                    }, 1000);
-                };
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Pop-up Diblokir',
-                    text: 'Silakan izinkan pop-up untuk mencetak dokumen.'
-                });
-            }
-        }
-
-        // Handle PDF preview modal close
-        document.getElementById('pdfPreviewModal').addEventListener('hidden.bs.modal', function() {
-            // Clear PDF content to free memory
-            const contentDiv = document.getElementById('pdfPreviewContent');
-            contentDiv.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="text-center text-muted">
-                        <i class="fas fa-file-pdf fa-3x mb-3"></i>
-                        <p>Modal ditutup</p>
-                    </div>
-                </div>
-            `;
-            
-            // Clear current PDF info
-            currentPdfUrl = '';
-            currentPdfFilename = '';
         });
 
         // Fixed download function for Android WebView compatibility
@@ -1452,7 +898,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             }
         }
 
-        // Main download function with multiple fallbacks
+        // Main download function with multiple fallbacks - FIXED VERSION
         function enhancedDownload(url, filename) {
             console.log('Enhanced download called:', url, filename);
             
@@ -1505,6 +951,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             
             // Strategy 4: Traditional download for regular browsers
             console.log('Using traditional download');
+            // Call the original downloadFile function, NOT recursively calling enhancedDownload
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
@@ -1526,103 +973,58 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         // Set the main download function
         window.downloadFile = enhancedDownload;
 
-        // Enhanced tab switching with proper Bootstrap integration
+        // Add smooth scroll animation for report items
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Initializing tabs and functions');
-            
-            // Initialize Bootstrap tabs properly
-            const triggerTabList = [].slice.call(document.querySelectorAll('#reportTabs button[data-bs-toggle="tab"]'))
-            
-            triggerTabList.forEach(function (triggerEl) {
+            const items = document.querySelectorAll('.report-item');
+            items.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    item.style.transition = 'all 0.5s ease';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // Add smooth animation when switching tabs
+        document.addEventListener('DOMContentLoaded', function() {
+            const triggerTabList = document.querySelectorAll('#reportTabs button')
+            triggerTabList.forEach(triggerEl => {
                 const tabTrigger = new bootstrap.Tab(triggerEl)
-                
-                triggerEl.addEventListener('shown.bs.tab', function (event) {
-                    console.log('Tab shown:', event.target.id); // Debug log
+
+                triggerEl.addEventListener('click', event => {
+                    event.preventDefault()
+                    tabTrigger.show()
                     
-                    // Get the active tab pane
-                    const targetPane = document.querySelector(event.target.getAttribute('data-bs-target'));
-                    
-                    if (targetPane) {
-                        // Animate items in the active pane
-                        setTimeout(() => {
-                            const items = targetPane.querySelectorAll('.report-item, .card');
-                            items.forEach((item, index) => {
-                                item.style.opacity = '0';
-                                item.style.transform = 'translateY(10px)';
-                                setTimeout(() => {
-                                    item.style.transition = 'all 0.3s ease';
-                                    item.style.opacity = '1';
-                                    item.style.transform = 'translateY(0)';
-                                }, index * 50);
-                            });
-                        }, 50);
-                    }
-                });
-
-                // Add click event for manual triggering
-                triggerEl.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    console.log('Tab clicked:', this.id); // Debug log
-                    tabTrigger.show();
-                });
-            });
-
-            // Initial animation for the default active tab (LKB)
-            setTimeout(() => {
-                const activePane = document.querySelector('.tab-pane.show.active');
-                if (activePane) {
-                    const items = activePane.querySelectorAll('.report-item');
-                    items.forEach((item, index) => {
-                        item.style.opacity = '0';
-                        item.style.transform = 'translateY(20px)';
-                        setTimeout(() => {
-                            item.style.transition = 'all 0.5s ease';
-                            item.style.opacity = '1';
-                            item.style.transform = 'translateY(0)';
-                        }, index * 100);
-                    });
-                }
-            }, 100);
-
-            // Special handling for yearly tab
-            const yearlyTab = document.getElementById('tahunan-tab');
-            if (yearlyTab) {
-                yearlyTab.addEventListener('shown.bs.tab', function() {
-                    console.log('Yearly tab shown'); // Debug log
+                    // Re-animate items when tab is shown
                     setTimeout(() => {
-                        const yearlyPane = document.getElementById('tahunan-pane');
-                        if (yearlyPane) {
-                            const cards = yearlyPane.querySelectorAll('.card');
-                            cards.forEach((card, index) => {
-                                card.style.opacity = '0';
-                                card.style.transform = 'translateY(20px)';
-                                setTimeout(() => {
-                                    card.style.transition = 'all 0.4s ease';
-                                    card.style.opacity = '1';
-                                    card.style.transform = 'translateY(0)';
-                                }, index * 100);
-                            });
-                        }
+                        const activePane = document.querySelector('.tab-pane.active');
+                        const items = activePane.querySelectorAll('.report-item');
+                        items.forEach((item, index) => {
+                            item.style.opacity = '0';
+                            item.style.transform = 'translateY(10px)';
+                            setTimeout(() => {
+                                item.style.transition = 'all 0.3s ease';
+                                item.style.opacity = '1';
+                                item.style.transform = 'translateY(0)';
+                            }, index * 50);
+                        });
                     }, 100);
-                });
-            }
+                })
+            })
 
-            // Debug: Log all tabs found
-            console.log('Tabs found:', triggerTabList.length);
-            triggerTabList.forEach(tab => {
-                console.log('Tab ID:', tab.id, 'Target:', tab.getAttribute('data-bs-target'));
+            // Initial animation for LKB tab (active by default)
+            const items = document.querySelectorAll('#lkb-pane .report-item');
+            items.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    item.style.transition = 'all 0.5s ease';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 100);
             });
-
-            // Check if bottom navigation exists
-            const bottomNav = document.querySelector('.bottom-nav, .fixed-bottom, .navbar-bottom');
-            if (bottomNav) {
-                console.log('Bottom navigation found:', bottomNav);
-            } else {
-                console.warn('Bottom navigation not found - checking include');
-            }
-
-            // Ensure all button functions are working
-            console.log('All functions initialized successfully');
         });
     </script>
 </body>
