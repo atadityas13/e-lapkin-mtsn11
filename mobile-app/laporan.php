@@ -325,22 +325,32 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         .nav-tabs {
             border: none;
             margin-bottom: 20px;
+            padding: 0 10px;
         }
 
         .nav-tabs .nav-item {
             margin-bottom: 0;
+            flex: 1;
         }
 
         .nav-tabs .nav-link {
             border: none;
             border-radius: 15px;
-            margin-right: 10px;
+            margin-right: 8px;
             background: white;
             color: #6c757d;
             font-weight: 600;
-            padding: 12px 20px;
+            padding: 18px 20px;
             transition: all 0.3s ease;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            font-size: 1rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 65px;
         }
 
         .nav-tabs .nav-link:hover {
@@ -359,7 +369,77 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
 
         .nav-tabs .nav-link i {
-            margin-right: 8px;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .nav-tabs .nav-link .tab-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                padding: 0 5px;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 15px 15px;
+                font-size: 0.9rem;
+                margin-right: 5px;
+                min-height: 60px;
+            }
+            
+            .nav-tabs .nav-link i {
+                font-size: 1.2rem;
+                margin-bottom: 4px;
+            }
+            
+            .nav-tabs .nav-link .tab-text {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .nav-tabs {
+                padding: 0 3px;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 12px 10px;
+                font-size: 0.8rem;
+                margin-right: 3px;
+                min-height: 55px;
+            }
+            
+            .nav-tabs .nav-link i {
+                font-size: 1.1rem;
+                margin-bottom: 3px;
+            }
+            
+            .nav-tabs .nav-link .tab-text {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .nav-tabs .nav-link {
+                padding: 10px 8px;
+                font-size: 0.75rem;
+                margin-right: 2px;
+                min-height: 50px;
+            }
+            
+            .nav-tabs .nav-link i {
+                font-size: 1rem;
+                margin-bottom: 2px;
+            }
+            
+            .nav-tabs .nav-link .tab-text {
+                font-size: 0.7rem;
+            }
         }
 
         .tab-content {
@@ -454,24 +534,27 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
 
         <!-- Tab Navigation -->
-        <div class="bg-white">
-            <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+        <div class="bg-white px-2 pt-3">
+            <ul class="nav nav-tabs d-flex" id="reportTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="lkb-tab" data-bs-toggle="tab" data-bs-target="#lkb-pane" 
                             type="button" role="tab" aria-controls="lkb-pane" aria-selected="true">
-                        <i class="fas fa-file-alt"></i>LKB
+                        <i class="fas fa-file-alt"></i>
+                        <span class="tab-text">LKB</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="lkh-tab" data-bs-toggle="tab" data-bs-target="#lkh-pane" 
                             type="button" role="tab" aria-controls="lkh-pane" aria-selected="false">
-                        <i class="fas fa-list"></i>LKH
+                        <i class="fas fa-list"></i>
+                        <span class="tab-text">LKH</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tahunan-tab" data-bs-toggle="tab" data-bs-target="#tahunan-pane" 
                             type="button" role="tab" aria-controls="tahunan-pane" aria-selected="false">
-                        <i class="fas fa-chart-line"></i>Tahunan
+                        <i class="fas fa-chart-line"></i>
+                        <span class="tab-text">Tahunan</span>
                     </button>
                 </li>
             </ul>
