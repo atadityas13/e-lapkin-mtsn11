@@ -8,15 +8,24 @@ header('Access-Control-Allow-Headers: Content-Type, X-Mobile-Token, X-App-Packag
 // Jika folder config ada di root project, gunakan path berikut:
 require_once __DIR__ . '/../../config/database.php';
 
-// Verify mobile token
+// Perbaiki key header agar case-insensitive (beberapa server mengubah header menjadi lowercase)
+function getHeaderValue($headers, $key) {
+    foreach ($headers as $k => $v) {
+        if (strtolower($k) === strtolower($key)) {
+            return $v;
+        }
+    }
+    return null;
+}
+
 function verifyMobileToken($headers) {
     $secretKey = "MTSN11-MOBILE-KEY-2025";
     $currentDate = date('Y-m-d');
     $expectedToken = md5($secretKey . $currentDate);
-    
-    $providedToken = $headers['X-Mobile-Token'] ?? '';
-    $appPackage = $headers['X-App-Package'] ?? '';
-    
+
+    $providedToken = getHeaderValue($headers, 'X-Mobile-Token');
+    $appPackage = getHeaderValue($headers, 'X-App-Package');
+
     return $providedToken === $expectedToken && $appPackage === 'id.sch.mtsn11majalengka.elapkin';
 }
 
