@@ -655,14 +655,31 @@ if ($is_generate_file) {
     header('Content-Type: application/json');
     
     try {
-        // Create temp directory if it doesn't exist
-        $temp_dir = __DIR__ . '/../generated/temp';
-        if (!file_exists($temp_dir)) {
-            mkdir($temp_dir, 0755, true);
+        // Create generated directory structure if it doesn't exist
+        $base_dir = dirname(__DIR__); // Go up one level from mobile-app
+        $generated_dir = $base_dir . '/generated';
+        $temp_dir = $generated_dir . '/temp';
+        
+        if (!file_exists($generated_dir)) {
+            if (!mkdir($generated_dir, 0755, true)) {
+                throw new Exception('Gagal membuat direktori generated');
+            }
         }
         
-        // Generate filename
-        $filename = 'Laporan_Tahunan_' . $year . '_' . preg_replace('/[^A-Za-z0-9]/', '_', $nama_pegawai_login) . '_' . date('YmdHis') . '.html';
+        if (!file_exists($temp_dir)) {
+            if (!mkdir($temp_dir, 0755, true)) {
+                throw new Exception('Gagal membuat direktori temp');
+            }
+        }
+        
+        // Check if directory is writable
+        if (!is_writable($temp_dir)) {
+            throw new Exception('Direktori temp tidak dapat ditulis');
+        }
+        
+        // Generate safe filename
+        $safe_name = preg_replace('/[^A-Za-z0-9]/', '_', $nama_pegawai_login);
+        $filename = 'Laporan_Tahunan_' . $year . '_' . $safe_name . '_' . date('YmdHis') . '.html';
         $filepath = $temp_dir . '/' . $filename;
         
         // Generate HTML content
@@ -675,23 +692,84 @@ if ($is_generate_file) {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Laporan Tahunan <?= $year ?> - <?= htmlspecialchars($nama_pegawai_login) ?></title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
-                .header h1 { font-size: 18px; margin: 0; text-transform: uppercase; }
-                .header h2 { font-size: 16px; margin: 5px 0; }
-                .employee-info { margin-bottom: 20px; }
-                .employee-info table { width: 100%; border-collapse: collapse; }
-                .employee-info td { padding: 8px; border: 1px solid #000; }
-                .employee-info td:first-child { background-color: #f0f0f0; font-weight: bold; width: 150px; }
-                .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-                .report-table th, .report-table td { border: 1px solid #000; padding: 6px; text-align: center; vertical-align: middle; }
-                .report-table th { background-color: #e0e0e0; font-weight: bold; }
-                .signature-area { margin-top: 40px; display: flex; justify-content: space-between; }
-                .signature-box { text-align: center; width: 45%; }
-                .signature-line { border-bottom: 1px solid #000; margin: 60px auto 5px auto; width: 200px; }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 20px; 
+                    font-size: 12px; 
+                    line-height: 1.4;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px; 
+                    border-bottom: 2px solid #000; 
+                    padding-bottom: 20px; 
+                }
+                .header h1 { 
+                    font-size: 18px; 
+                    margin: 0; 
+                    text-transform: uppercase; 
+                    font-weight: bold;
+                }
+                .header h2 { 
+                    font-size: 16px; 
+                    margin: 5px 0; 
+                    font-weight: bold;
+                }
+                .employee-info { 
+                    margin-bottom: 20px; 
+                }
+                .employee-info table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                }
+                .employee-info td { 
+                    padding: 8px; 
+                    border: 1px solid #000; 
+                    vertical-align: top;
+                }
+                .employee-info td:first-child { 
+                    background-color: #f0f0f0; 
+                    font-weight: bold; 
+                    width: 150px; 
+                }
+                .report-table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 10px; 
+                    margin-top: 20px;
+                }
+                .report-table th, 
+                .report-table td { 
+                    border: 1px solid #000; 
+                    padding: 6px; 
+                    text-align: center; 
+                    vertical-align: middle; 
+                    word-wrap: break-word;
+                }
+                .report-table th { 
+                    background-color: #e0e0e0; 
+                    font-weight: bold; 
+                }
+                .signature-area { 
+                    margin-top: 40px; 
+                    display: flex; 
+                    justify-content: space-between; 
+                    page-break-inside: avoid;
+                }
+                .signature-box { 
+                    text-align: center; 
+                    width: 45%; 
+                    font-size: 12px;
+                }
+                .signature-line { 
+                    border-bottom: 1px solid #000; 
+                    margin: 60px auto 5px auto; 
+                    width: 200px; 
+                }
                 @media print {
                     body { margin: 10px; }
                     .report-table { font-size: 8px; }
+                    .report-table th, .report-table td { padding: 4px; }
                 }
             </style>
         </head>
@@ -710,15 +788,15 @@ if ($is_generate_file) {
                     </tr>
                     <tr>
                         <td><strong>NIP</strong></td>
-                        <td><?= htmlspecialchars($emp_data['nip']) ?></td>
+                        <td><?= htmlspecialchars($emp_data['nip'] ?? '') ?></td>
                     </tr>
                     <tr>
                         <td><strong>Jabatan</strong></td>
-                        <td><?= htmlspecialchars($emp_data['jabatan']) ?></td>
+                        <td><?= htmlspecialchars($emp_data['jabatan'] ?? '') ?></td>
                     </tr>
                     <tr>
                         <td><strong>Unit Kerja</strong></td>
-                        <td><?= htmlspecialchars($emp_data['unit_kerja']) ?></td>
+                        <td><?= htmlspecialchars($emp_data['unit_kerja'] ?? '') ?></td>
                     </tr>
                     <tr>
                         <td><strong>Tahun Laporan</strong></td>
@@ -751,87 +829,24 @@ if ($is_generate_file) {
                     if (empty($data_for_display)) {
                         echo '<tr><td colspan="10">Belum ada data untuk tahun ' . $year . '</td></tr>';
                     } else {
-                        // Calculate rowspan for grouping (same logic as before)
-                        $rowspan_map = [];
-                        $total_rows = count($data_for_display);
-                        
-                        for ($i = 0; $i < $total_rows; $i++) {
-                            $row = $data_for_display[$i];
-                            $bulan = $row['bulan'];
-                            $rhk = $row['rhk_terkait'];
-                            $rkb = $row['uraian_kegiatan_rkb'];
-
-                            if (!isset($rowspan_map['bulan'][$bulan])) {
-                                $rowspan_map['bulan'][$bulan] = 0;
-                                for ($j = $i; $j < $total_rows; $j++) {
-                                    if ($data_for_display[$j]['bulan'] === $bulan) {
-                                        $rowspan_map['bulan'][$bulan]++;
-                                    }
-                                }
-                            }
-                            
-                            $rhk_key = $bulan . '||' . $rhk;
-                            if (!isset($rowspan_map['rhk'][$rhk_key])) {
-                                $rowspan_map['rhk'][$rhk_key] = 0;
-                                for ($j = $i; $j < $total_rows; $j++) {
-                                    if ($data_for_display[$j]['bulan'] === $bulan && $data_for_display[$j]['rhk_terkait'] === $rhk) {
-                                        $rowspan_map['rhk'][$rhk_key]++;
-                                    }
-                                }
-                            }
-                            
-                            $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
-                            if (!isset($rowspan_map['rkb'][$rkb_key])) {
-                                $rowspan_map['rkb'][$rkb_key] = 0;
-                                for ($j = $i; $j < $total_rows; $j++) {
-                                    if (
-                                        $data_for_display[$j]['bulan'] === $bulan &&
-                                        $data_for_display[$j]['rhk_terkait'] === $rhk &&
-                                        $data_for_display[$j]['uraian_kegiatan_rkb'] === $rkb
-                                    ) {
-                                        $rowspan_map['rkb'][$rkb_key]++;
-                                    }
-                                }
-                            }
-                        }
-
+                        // Calculate rowspan for grouping (simplified version)
                         $no_counter = 1;
-                        $printed_bulan = [];
-                        $printed_rhk = [];
-                        $printed_rkb = [];
+                        $current_month = '';
+                        $current_rhk = '';
+                        $current_rkb = '';
                         
-                        for ($i = 0; $i < $total_rows; $i++) {
-                            $row_html = $data_for_display[$i];
-                            $bulan = $row_html['bulan'];
-                            $rhk = $row_html['rhk_terkait'];
-                            $rkb = $row_html['uraian_kegiatan_rkb'];
-                            $rhk_key = $bulan . '||' . $rhk;
-                            $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
-                            
+                        foreach ($data_for_display as $row_html) {
                             echo '<tr>';
                             echo '<td>' . $no_counter++ . '</td>';
-
-                            if (!isset($printed_bulan[$bulan])) {
-                                echo '<td rowspan="' . $rowspan_map['bulan'][$bulan] . '">' . $bulan . '</td>';
-                                $printed_bulan[$bulan] = true;
-                            }
-
-                            if (!isset($printed_rhk[$rhk_key])) {
-                                echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '">' . $rhk . '</td>';
-                                $printed_rhk[$rhk_key] = true;
-                            }
-
-                            if (!isset($printed_rkb[$rkb_key])) {
-                                echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '">' . $rkb . '</td>';
-                                echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '">' . $row_html['target_kuantitas'] . '</td>';
-                                echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '">' . $row_html['target_satuan'] . '</td>';
-                                $printed_rkb[$rkb_key] = true;
-                            }
-
-                            echo '<td>' . $row_html['tanggal_lkh'] . '</td>';
-                            echo '<td>' . $row_html['nama_kegiatan_harian'] . '</td>';
-                            echo '<td>' . $row_html['uraian_kegiatan_lkh'] . '</td>';
-                            echo '<td>' . $row_html['lampiran'] . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['bulan']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['rhk_terkait']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['uraian_kegiatan_rkb']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['target_kuantitas']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['target_satuan']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['tanggal_lkh']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['nama_kegiatan_harian']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['uraian_kegiatan_lkh']) . '</td>';
+                            echo '<td>' . htmlspecialchars($row_html['lampiran']) . '</td>';
                             echo '</tr>';
                         }
                     }
@@ -843,55 +858,76 @@ if ($is_generate_file) {
                 <div class="signature-box">
                     <p><strong>Pejabat Penilai</strong></p>
                     <div class="signature-line"></div>
-                    <p><strong><?= htmlspecialchars($emp_data['nama_penilai'] ?: '(..................................)') ?></strong><br>
-                    NIP. <?= htmlspecialchars($emp_data['nip_penilai'] ?: '.................................') ?></p>
+                    <p><strong><?= htmlspecialchars($emp_data['nama_penilai'] ?? '(..................................)') ?></strong><br>
+                    NIP. <?= htmlspecialchars($emp_data['nip_penilai'] ?? '.................................') ?></p>
                 </div>
                 <div class="signature-box">
                     <p>Cingambul, <?= format_date_indonesia(date('Y-m-d')) ?><br>
                     <strong>Pegawai Yang Dinilai</strong></p>
                     <div class="signature-line"></div>
                     <p><strong><?= htmlspecialchars($nama_pegawai_login) ?></strong><br>
-                    NIP. <?= htmlspecialchars($emp_data['nip']) ?></p>
+                    NIP. <?= htmlspecialchars($emp_data['nip'] ?? '') ?></p>
                 </div>
             </div>
             
             <script>
+                // Auto print functionality
+                function autoPrint() {
+                    if (confirm('Apakah Anda ingin mencetak laporan ini sekarang?')) {
+                        window.print();
+                    }
+                }
+                
                 // Optional: Auto print when file is opened
-                // window.addEventListener('load', function() {
-                //     setTimeout(() => window.print(), 1000);
-                // });
+                // setTimeout(autoPrint, 1000);
             </script>
         </body>
         </html>
         <?php
         $html_content = ob_get_clean();
         
-        // Write to file
-        if (file_put_contents($filepath, $html_content) !== false) {
-            // Schedule file deletion after 1 hour
-            $cleanup_time = time() + 3600; // 1 hour from now
-            $cleanup_file = $temp_dir . '/.cleanup_' . basename($filename, '.html') . '.txt';
-            file_put_contents($cleanup_file, $cleanup_time);
-            
-            // Clean up old files
-            cleanupOldFiles($temp_dir);
-            
-            echo json_encode([
-                'success' => true,
-                'filename' => $filename,
-                'download_url' => '../generated/temp/' . $filename,
-                'message' => 'File berhasil dibuat'
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Gagal menulis file'
-            ]);
+        // Write to file with error checking
+        $bytes_written = file_put_contents($filepath, $html_content);
+        if ($bytes_written === false) {
+            throw new Exception('Gagal menulis file ke disk');
         }
+        
+        // Verify file was created successfully
+        if (!file_exists($filepath)) {
+            throw new Exception('File tidak ditemukan setelah penulisan');
+        }
+        
+        // Schedule file deletion after 2 hours (more time for mobile users)
+        $cleanup_time = time() + 7200; // 2 hours from now
+        $cleanup_file = $temp_dir . '/.cleanup_' . basename($filename, '.html') . '.txt';
+        file_put_contents($cleanup_file, $cleanup_time);
+        
+        // Clean up old files
+        cleanupOldFiles($temp_dir);
+        
+        // Return success with relative path from mobile-app directory
+        echo json_encode([
+            'success' => true,
+            'filename' => $filename,
+            'download_url' => '../generated/temp/' . $filename,
+            'file_size' => filesize($filepath),
+            'message' => 'File berhasil dibuat'
+        ]);
+        
     } catch (Exception $e) {
+        // Log error for debugging
+        error_log('Generate file error: ' . $e->getMessage());
+        
         echo json_encode([
             'success' => false,
-            'error' => $e->getMessage()
+            'error' => $e->getMessage(),
+            'debug_info' => [
+                'php_version' => PHP_VERSION,
+                'base_dir' => isset($base_dir) ? $base_dir : 'undefined',
+                'temp_dir' => isset($temp_dir) ? $temp_dir : 'undefined',
+                'temp_dir_exists' => isset($temp_dir) ? file_exists($temp_dir) : false,
+                'temp_dir_writable' => isset($temp_dir) ? is_writable($temp_dir) : false
+            ]
         ]);
     }
     exit;
@@ -899,33 +935,42 @@ if ($is_generate_file) {
 
 // Function to clean up old files
 function cleanupOldFiles($temp_dir) {
-    $current_time = time();
-    $files = glob($temp_dir . '/*');
-    
-    foreach ($files as $file) {
-        if (is_file($file)) {
-            $filename = basename($file);
-            
-            // Check for cleanup marker files
-            if (strpos($filename, '.cleanup_') === 0) {
-                $cleanup_time = (int)file_get_contents($file);
-                if ($current_time > $cleanup_time) {
-                    $target_file = str_replace('.cleanup_', '', $filename);
-                    $target_file = str_replace('.txt', '.html', $target_file);
-                    $target_path = $temp_dir . '/' . $target_file;
-                    
-                    // Delete the target file and cleanup marker
-                    if (file_exists($target_path)) {
-                        unlink($target_path);
+    try {
+        $current_time = time();
+        $files = glob($temp_dir . '/*');
+        
+        if ($files === false) {
+            return; // Unable to read directory
+        }
+        
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                $filename = basename($file);
+                
+                // Check for cleanup marker files
+                if (strpos($filename, '.cleanup_') === 0) {
+                    $cleanup_time = (int)file_get_contents($file);
+                    if ($current_time > $cleanup_time) {
+                        $target_file = str_replace('.cleanup_', '', $filename);
+                        $target_file = str_replace('.txt', '.html', $target_file);
+                        $target_path = $temp_dir . '/' . $target_file;
+                        
+                        // Delete the target file and cleanup marker
+                        if (file_exists($target_path)) {
+                            @unlink($target_path);
+                        }
+                        @unlink($file);
                     }
-                    unlink($file);
+                }
+                // Also clean up files older than 4 hours as fallback
+                else if (filemtime($file) < ($current_time - 14400)) {
+                    @unlink($file);
                 }
             }
-            // Also clean up files older than 2 hours as fallback
-            else if (filemtime($file) < ($current_time - 7200)) {
-                unlink($file);
-            }
         }
+    } catch (Exception $e) {
+        // Log cleanup errors but don't fail the main operation
+        error_log('Cleanup error: ' . $e->getMessage());
     }
 }
 
