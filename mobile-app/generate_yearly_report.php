@@ -433,47 +433,40 @@ function generateAndDownload() {
     const originalText = downloadBtn.innerHTML;
     
     // Show loading state
-    downloadBtn.innerHTML = '⏳ Membuat file...';
+    downloadBtn.innerHTML = '⏳ Membuat PDF...';
     downloadBtn.disabled = true;
     
-    // Generate file first
-    fetch('?year=<?= $year ?>&generate=file')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show file info
-                const fileInfo = `File berhasil dibuat!\nNama: ${data.filename}\nUkuran: ${formatFileSize(data.file_size)}\n\nFile akan otomatis terdownload...`;
-                
-                // File created successfully, now download it
-                const link = document.createElement('a');
-                link.href = data.download_url;
-                link.download = data.filename;
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Show success message with file info
-                downloadBtn.innerHTML = '✅ Berhasil!';
-                
-                // Show notification
-                showNotification('success', fileInfo);
-                
-                setTimeout(() => {
-                    downloadBtn.innerHTML = originalText;
-                    downloadBtn.disabled = false;
-                }, 3000);
-            } else {
-                const errorMsg = 'Gagal membuat file: ' + (data.error || 'Unknown error');
-                alert(errorMsg);
-                showNotification('error', errorMsg);
+    // Generate PDF file directly
+    fetch('?year=<?= $year ?>&generate=pdf')
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            }
+            throw new Error('Failed to generate PDF');
+        })
+        .then(blob => {
+            // Create download link for PDF
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Tahunan_<?= $year ?>_<?= preg_replace('/[^A-Za-z0-9]/', '_', $nama_pegawai_login) ?>_${new Date().getTime()}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Show success message
+            downloadBtn.innerHTML = '✅ Berhasil!';
+            showNotification('success', `PDF berhasil dibuat dan didownload!\nFile: ${link.download}`);
+            
+            setTimeout(() => {
                 downloadBtn.innerHTML = originalText;
                 downloadBtn.disabled = false;
-            }
+            }, 3000);
         })
         .catch(error => {
             console.error('Error:', error);
-            const errorMsg = 'Terjadi kesalahan saat membuat file';
+            const errorMsg = 'Terjadi kesalahan saat membuat PDF';
             alert(errorMsg);
             showNotification('error', errorMsg);
             downloadBtn.innerHTML = originalText;
@@ -707,636 +700,171 @@ function showNotification(type, message) {
 </div>
 
 <?php
-// Handle file generation request
-if ($is_generate_file) {
-    header('Content-Type: application/json');
-    
+// Handle PDF generation request
+if ($is_generate_file && $_GET['generate'] === 'pdf') {
     try {
-        // Create generated directory structure if it doesn't exist
-        $base_dir = dirname(__DIR__); // Go up one level from mobile-app
-        $generated_dir = $base_dir . '/generated';
-        $temp_dir = $generated_dir . '/temp';
+        // Include FPDF library
+        require_once __DIR__ . '/../vendor/fpdf/fpdf.php';
         
-        if (!file_exists($generated_dir)) {
-            if (!mkdir($generated_dir, 0755, true)) {
-                throw new Exception('Gagal membuat direktori generated');
-            }
-        }
+        // Create new PDF instance
+        $pdf = new FPDF('L', 'mm', 'A4'); // Landscape orientation
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', 'B', 16);
         
-        if (!file_exists($temp_dir)) {
-            if (!mkdir($temp_dir, 0755, true)) {
-                throw new Exception('Gagal membuat direktori temp');
-            }
-        }
+        // Header
+        $pdf->Cell(0, 10, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', 14);
+        $pdf->Cell(0, 8, 'LAPORAN KINERJA PEGAWAI TAHUNAN', 0, 1, 'C');
+        $pdf->Cell(0, 8, 'TAHUN ' . $year, 0, 1, 'C');
+        $pdf->Ln(5);
         
-        // Check if directory is writable
-        if (!is_writable($temp_dir)) {
-            throw new Exception('Direktori temp tidak dapat ditulis');
-        }
+        // Employee Information
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(40, 6, 'Nama Pegawai', 1, 0, 'L');
+        $pdf->Cell(0, 6, $nama_pegawai_login, 1, 1, 'L');
+        $pdf->Cell(40, 6, 'NIP', 1, 0, 'L');
+        $pdf->Cell(0, 6, $emp_data['nip'] ?? '', 1, 1, 'L');
+        $pdf->Cell(40, 6, 'Jabatan', 1, 0, 'L');
+        $pdf->Cell(0, 6, $emp_data['jabatan'] ?? '', 1, 1, 'L');
+        $pdf->Cell(40, 6, 'Unit Kerja', 1, 0, 'L');
+        $pdf->Cell(0, 6, $emp_data['unit_kerja'] ?? '', 1, 1, 'L');
+        $pdf->Cell(40, 6, 'Tahun Laporan', 1, 0, 'L');
+        $pdf->Cell(0, 6, $year, 1, 1, 'L');
+        $pdf->Ln(5);
         
-        // Clean up old files before creating new one
-        cleanupOldFiles($temp_dir);
+        // Table Header
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(10, 12, 'No', 1, 0, 'C');
+        $pdf->Cell(20, 12, 'Bulan', 1, 0, 'C');
+        $pdf->Cell(40, 12, 'RHK Terkait', 1, 0, 'C');
+        $pdf->Cell(40, 12, 'Uraian Kegiatan RKB', 1, 0, 'C');
+        $pdf->Cell(15, 6, 'Target RKB', 1, 0, 'C');
+        $pdf->Cell(50, 6, 'Realisasi LKH', 1, 0, 'C');
+        $pdf->Ln();
         
-        // Generate safe filename with better naming
-        $safe_name = preg_replace('/[^A-Za-z0-9_]/', '_', $nama_pegawai_login);
-        $safe_name = substr($safe_name, 0, 30); // Limit length
-        $timestamp = date('Ymd_His');
-        $filename = "Laporan_Tahunan_{$year}_{$safe_name}_{$timestamp}.html";
-        $filepath = $temp_dir . '/' . $filename;
+        // Sub header
+        $pdf->Cell(10, 6, '', 0, 0, 'C'); // No
+        $pdf->Cell(20, 6, '', 0, 0, 'C'); // Bulan
+        $pdf->Cell(40, 6, '', 0, 0, 'C'); // RHK
+        $pdf->Cell(40, 6, '', 0, 0, 'C'); // RKB
+        $pdf->Cell(8, 6, 'Qty', 1, 0, 'C');
+        $pdf->Cell(7, 6, 'Sat', 1, 0, 'C');
+        $pdf->Cell(18, 6, 'Tanggal', 1, 0, 'C');
+        $pdf->Cell(18, 6, 'Kegiatan', 1, 0, 'C');
+        $pdf->Cell(10, 6, 'Lamp', 1, 1, 'C');
         
-        // Check if similar file already exists (prevent duplicates within same minute)
-        $existing_pattern = $temp_dir . "/Laporan_Tahunan_{$year}_{$safe_name}_" . date('Ymd_Hi') . "*.html";
-        $existing_files = glob($existing_pattern);
-        if (!empty($existing_files)) {
-            // Use existing file instead of creating duplicate
-            $existing_file = $existing_files[0];
-            echo json_encode([
-                'success' => true,
-                'filename' => basename($existing_file),
-                'download_url' => '../generated/temp/' . basename($existing_file),
-                'file_size' => filesize($existing_file),
-                'message' => 'Menggunakan file yang sudah ada (dibuat dalam 1 menit terakhir)'
-            ]);
-            exit;
-        }
-        
-        // Generate HTML content
-        ob_start();
-        ?>
-        <!DOCTYPE html>
-        <html lang="id">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Laporan Tahunan <?= $year ?> - <?= htmlspecialchars($nama_pegawai_login) ?></title>
-            <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 20px; 
-                    font-size: 12px; 
-                    line-height: 1.4;
-                    background: white;
-                }
-                .header { 
-                    text-align: center; 
-                    margin-bottom: 30px; 
-                    border-bottom: 2px solid #000; 
-                    padding-bottom: 20px; 
-                }
-                .header h1 { 
-                    font-size: 18px; 
-                    margin: 0; 
-                    text-transform: uppercase; 
-                    font-weight: bold;
-                }
-                .header h2 { 
-                    font-size: 16px; 
-                    margin: 5px 0; 
-                    font-weight: bold;
-                }
-                .download-info {
-                    background: #e3f2fd;
-                    border: 1px solid #2196f3;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                    border-radius: 5px;
-                    font-size: 14px;
-                }
-                .download-info strong {
-                    color: #1976d2;
-                }
-                .employee-info { 
-                    margin-bottom: 20px; 
-                }
-                .employee-info table { 
-                    width: 100%; 
-                    border-collapse: collapse; 
-                }
-                .employee-info td { 
-                    padding: 8px; 
-                    border: 1px solid #000; 
-                    vertical-align: top;
-                }
-                .employee-info td:first-child { 
-                    background-color: #f0f0f0; 
-                    font-weight: bold; 
-                    width: 150px; 
-                }
-                .report-table { 
-                    width: 100%; 
-                    border-collapse: collapse; 
-                    font-size: 10px; 
-                    margin-top: 20px;
-                }
-                .report-table th, 
-                .report-table td { 
-                    border: 1px solid #000; 
-                    padding: 6px; 
-                    text-align: center; 
-                    vertical-align: middle; 
-                    word-wrap: break-word;
-                }
-                .report-table th { 
-                    background-color: #e0e0e0; 
-                    font-weight: bold; 
-                }
-                .signature-area { 
-                    margin-top: 40px; 
-                    display: flex; 
-                    justify-content: space-between; 
-                    page-break-inside: avoid;
-                }
-                .signature-box { 
-                    text-align: center; 
-                    width: 45%; 
-                    font-size: 12px;
-                }
-                .signature-line { 
-                    border-bottom: 1px solid #000; 
-                    margin: 60px auto 5px auto; 
-                    width: 200px; 
-                }
-                @media print {
-                    .download-info { display: none; }
-                    body { margin: 10px; }
-                    .report-table { font-size: 8px; }
-                    .report-table th, .report-table td { padding: 4px; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="download-info">
-                <strong>📄 Laporan Kinerja Pegawai Tahunan</strong><br>
-                File ini dibuat otomatis pada: <?= date('d F Y, H:i:s') ?><br>
-                Untuk mencetak: Tekan Ctrl+P (Windows) atau Cmd+P (Mac)<br>
-                Untuk menyimpan sebagai PDF: Pilih "Save as PDF" saat print
-            </div>
+        // Table Data
+        $pdf->SetFont('Arial', '', 7);
+        if (!empty($data_for_display)) {
+            $no_counter = 1;
+            $current_bulan = '';
+            $current_rhk = '';
+            $current_rkb = '';
             
-            <div class="header">
-                <h1>MTsN 11 MAJALENGKA</h1>
-                <h2>LAPORAN KINERJA PEGAWAI TAHUNAN</h2>
-                <h2>TAHUN <?= $year ?></h2>
-            </div>
-            
-            <div class="employee-info">
-                <table>
-                    <tr>
-                        <td><strong>Nama Pegawai</strong></td>
-                        <td><?= htmlspecialchars($nama_pegawai_login) ?></td>
-                    </tr>
-                    <tr>
-                        <td><strong>NIP</strong></td>
-                        <td><?= htmlspecialchars($emp_data['nip'] ?? '') ?></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Jabatan</strong></td>
-                        <td><?= htmlspecialchars($emp_data['jabatan'] ?? '') ?></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Unit Kerja</strong></td>
-                        <td><?= htmlspecialchars($emp_data['unit_kerja'] ?? '') ?></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Tahun Laporan</strong></td>
-                        <td><?= $year ?></td>
-                    </tr>
-                </table>
-            </div>
-            
-            <table class="report-table">
-                <thead>
-                    <tr>
-                        <th rowspan="2">No</th>
-                        <th rowspan="2">Bulan</th>
-                        <th rowspan="2">RHK Terkait</th>
-                        <th rowspan="2">Uraian Kegiatan RKB</th>
-                        <th colspan="2">Target RKB</th>
-                        <th colspan="4">Realisasi LKH</th>
-                    </tr>
-                    <tr>
-                        <th>Kuantitas</th>
-                        <th>Satuan</th>
-                        <th>Tanggal LKH</th>
-                        <th>Nama Kegiatan</th>
-                        <th>Uraian LKH</th>
-                        <th>Lampiran</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    if (empty($data_for_display)) {
-                        echo '<tr><td colspan="10">Belum ada data untuk tahun ' . $year . '</td></tr>';
-                    } else {
-                        // Calculate rowspan for grouping (simplified version)
-                        $no_counter = 1;
-                        $current_month = '';
-                        $current_rhk = '';
-                        $current_rkb = '';
-                        
-                        foreach ($data_for_display as $row_html) {
-                            echo '<tr>';
-                            echo '<td>' . $no_counter++ . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['bulan']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['rhk_terkait']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['uraian_kegiatan_rkb']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['target_kuantitas']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['target_satuan']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['tanggal_lkh']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['nama_kegiatan_harian']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['uraian_kegiatan_lkh']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row_html['lampiran']) . '</td>';
-                            echo '</tr>';
-                        }
-                    }
-                    ?>
-                </tbody>
-            </table>
-            
-            <div class="signature-area">
-                <div class="signature-box">
-                    <p><strong>Pejabat Penilai</strong></p>
-                    <div class="signature-line"></div>
-                    <p><strong><?= htmlspecialchars($emp_data['nama_penilai'] ?? '(..................................)') ?></strong><br>
-                    NIP. <?= htmlspecialchars($emp_data['nip_penilai'] ?? '.................................') ?></p>
-                </div>
-                <div class="signature-box">
-                    <p>Cingambul, <?= format_date_indonesia(date('Y-m-d')) ?><br>
-                    <strong>Pegawai Yang Dinilai</strong></p>
-                    <div class="signature-line"></div>
-                    <p><strong><?= htmlspecialchars($nama_pegawai_login) ?></strong><br>
-                    NIP. <?= htmlspecialchars($emp_data['nip'] ?? '') ?></p>
-                </div>
-            </div>
-            
-            <script>
-                // Enhanced print functionality
-                function smartPrint() {
-                    if (confirm('Apakah Anda ingin mencetak laporan ini sekarang?')) {
-                        // Hide download info
-                        const downloadInfo = document.querySelector('.download-info');
-                        if (downloadInfo) downloadInfo.style.display = 'none';
-                        
-                        // Print
-                        window.print();
-                        
-                        // Restore download info
-                        setTimeout(() => {
-                            if (downloadInfo) downloadInfo.style.display = 'block';
-                        }, 1000);
-                    }
+            foreach ($data_for_display as $row) {
+                // Check if we need a new page
+                if ($pdf->GetY() > 180) {
+                    $pdf->AddPage();
+                    // Repeat header on new page
+                    $pdf->SetFont('Arial', 'B', 8);
+                    $pdf->Cell(10, 6, 'No', 1, 0, 'C');
+                    $pdf->Cell(20, 6, 'Bulan', 1, 0, 'C');
+                    $pdf->Cell(40, 6, 'RHK Terkait', 1, 0, 'C');
+                    $pdf->Cell(40, 6, 'Uraian RKB', 1, 0, 'C');
+                    $pdf->Cell(8, 6, 'Qty', 1, 0, 'C');
+                    $pdf->Cell(7, 6, 'Sat', 1, 0, 'C');
+                    $pdf->Cell(18, 6, 'Tanggal', 1, 0, 'C');
+                    $pdf->Cell(18, 6, 'Kegiatan', 1, 0, 'C');
+                    $pdf->Cell(10, 6, 'Lamp', 1, 1, 'C');
+                    $pdf->SetFont('Arial', '', 7);
                 }
                 
-                // Add print button at top
-                window.addEventListener('load', function() {
-                    const downloadInfo = document.querySelector('.download-info');
-                    if (downloadInfo) {
-                        const printBtn = document.createElement('button');
-                        printBtn.innerHTML = '🖨️ Cetak Sekarang';
-                        printBtn.style.cssText = `
-                            background: #4caf50; color: white; border: none; padding: 8px 16px;
-                            border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 14px;
-                        `;
-                        printBtn.onclick = smartPrint;
-                        downloadInfo.appendChild(printBtn);
-                    }
-                });
-            </script>
-        </body>
-        </html>
-        <?php
-        $html_content = ob_get_clean();
-        
-        // Write to file with error checking
-        $bytes_written = file_put_contents($filepath, $html_content);
-        if ($bytes_written === false) {
-            throw new Exception('Gagal menulis file ke disk');
+                $pdf->Cell(10, 6, $no_counter++, 1, 0, 'C');
+                
+                // Only show bulan if different from previous
+                if ($current_bulan !== $row['bulan']) {
+                    $pdf->Cell(20, 6, substr($row['bulan'], 0, 8), 1, 0, 'C');
+                    $current_bulan = $row['bulan'];
+                } else {
+                    $pdf->Cell(20, 6, '', 1, 0, 'C');
+                }
+                
+                // Only show RHK if different from previous
+                if ($current_rhk !== $row['rhk_terkait']) {
+                    $pdf->Cell(40, 6, substr($row['rhk_terkait'], 0, 35), 1, 0, 'L');
+                    $current_rhk = $row['rhk_terkait'];
+                } else {
+                    $pdf->Cell(40, 6, '', 1, 0, 'L');
+                }
+                
+                // Only show RKB if different from previous
+                if ($current_rkb !== $row['uraian_kegiatan_rkb']) {
+                    $pdf->Cell(40, 6, substr($row['uraian_kegiatan_rkb'], 0, 35), 1, 0, 'L');
+                    $pdf->Cell(8, 6, $row['target_kuantitas'], 1, 0, 'C');
+                    $pdf->Cell(7, 6, substr($row['target_satuan'], 0, 5), 1, 0, 'C');
+                    $current_rkb = $row['uraian_kegiatan_rkb'];
+                } else {
+                    $pdf->Cell(40, 6, '', 1, 0, 'L');
+                    $pdf->Cell(8, 6, '', 1, 0, 'C');
+                    $pdf->Cell(7, 6, '', 1, 0, 'C');
+                }
+                
+                // LKH data
+                $pdf->Cell(18, 6, substr($row['tanggal_lkh'], 0, 12), 1, 0, 'C');
+                $pdf->Cell(18, 6, substr($row['nama_kegiatan_harian'], 0, 15), 1, 0, 'L');
+                $pdf->Cell(10, 6, $row['lampiran'] === '1 Dokumen' ? '1 Doc' : 'Nihil', 1, 1, 'C');
+            }
+        } else {
+            $pdf->Cell(0, 6, 'Belum ada data untuk tahun ' . $year, 1, 1, 'C');
         }
         
-        // Verify file was created successfully
-        if (!file_exists($filepath)) {
-            throw new Exception('File tidak ditemukan setelah penulisan');
-        }
+        // Signature area
+        $pdf->Ln(10);
+        $pdf->SetFont('Arial', '', 10);
         
-        // Schedule file deletion after 3 hours (longer for better UX)
-        $cleanup_time = time() + 10800; // 3 hours from now
-        $cleanup_file = $temp_dir . '/.cleanup_' . basename($filename, '.html') . '.txt';
-        file_put_contents($cleanup_file, $cleanup_time);
+        // Left signature (Pejabat Penilai)
+        $pdf->Cell(140, 6, 'Pejabat Penilai', 0, 0, 'C');
+        $pdf->Cell(140, 6, 'Cingambul, ' . format_date_indonesia(date('Y-m-d')), 0, 1, 'C');
+        $pdf->Cell(140, 6, '', 0, 0, 'C');
+        $pdf->Cell(140, 6, 'Pegawai Yang Dinilai', 0, 1, 'C');
+        $pdf->Ln(15);
         
-        // Return success with enhanced info
-        echo json_encode([
-            'success' => true,
-            'filename' => $filename,
-            'download_url' => '../generated/temp/' . $filename,
-            'file_size' => filesize($filepath),
-            'created_time' => date('d F Y, H:i:s'),
-            'expires_time' => date('d F Y, H:i:s', $cleanup_time),
-            'message' => 'File berhasil dibuat dan siap didownload'
-        ]);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(140, 6, $emp_data['nama_penilai'] ?? '(.................................)', 0, 0, 'C');
+        $pdf->Cell(140, 6, $nama_pegawai_login, 0, 1, 'C');
+        
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(140, 6, 'NIP. ' . ($emp_data['nip_penilai'] ?? '.................................'), 0, 0, 'C');
+        $pdf->Cell(140, 6, 'NIP. ' . ($emp_data['nip'] ?? ''), 0, 1, 'C');
+        
+        // Generate filename
+        $safe_name = preg_replace('/[^A-Za-z0-9_]/', '_', $nama_pegawai_login);
+        $filename = "Laporan_Tahunan_{$year}_{$safe_name}_" . date('Ymd_His') . ".pdf";
+        
+        // Set headers for PDF download
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: private, max-age=0, must-revalidate');
+        header('Pragma: public');
+        
+        // Output PDF
+        $pdf->Output('D', $filename);
+        exit;
         
     } catch (Exception $e) {
-        // Enhanced error logging
-        $error_details = [
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'user' => $nama_pegawai_login,
-            'year' => $year,
-            'timestamp' => date('Y-m-d H:i:s')
-        ];
-        error_log('Generate file error: ' . json_encode($error_details));
-        
+        // If FPDF fails, return error
+        header('Content-Type: application/json');
         echo json_encode([
             'success' => false,
-            'error' => $e->getMessage(),
-            'debug_info' => [
-                'php_version' => PHP_VERSION,
-                'base_dir' => isset($base_dir) ? $base_dir : 'undefined',
-                'temp_dir' => isset($temp_dir) ? $temp_dir : 'undefined',
-                'temp_dir_exists' => isset($temp_dir) ? file_exists($temp_dir) : false,
-                'temp_dir_writable' => isset($temp_dir) ? is_writable($temp_dir) : false,
-                'disk_free_space' => isset($temp_dir) ? disk_free_space($temp_dir) : 'unknown'
-            ]
+            'error' => 'Gagal membuat PDF: ' . $e->getMessage()
         ]);
-    }
-    exit;
-}
-
-// Enhanced cleanup function
-function cleanupOldFiles($temp_dir) {
-    try {
-        $current_time = time();
-        $files = glob($temp_dir . '/*');
-        $cleaned_count = 0;
-        
-        if ($files === false) {
-            return; // Unable to read directory
-        }
-        
-        foreach ($files as $file) {
-            if (is_file($file)) {
-                $filename = basename($file);
-                
-                // Check for cleanup marker files
-                if (strpos($filename, '.cleanup_') === 0) {
-                    $cleanup_time = (int)file_get_contents($file);
-                    if ($current_time > $cleanup_time) {
-                        $target_file = str_replace('.cleanup_', '', $filename);
-                        $target_file = str_replace('.txt', '.html', $target_file);
-                        $target_path = $temp_dir . '/' . $target_file;
-                        
-                        // Delete the target file and cleanup marker
-                        if (file_exists($target_path)) {
-                            @unlink($target_path);
-                            $cleaned_count++;
-                        }
-                        @unlink($file);
-                    }
-                }
-                // Also clean up files older than 6 hours as fallback
-                else if (filemtime($file) < ($current_time - 21600)) {
-                    @unlink($file);
-                    $cleaned_count++;
-                }
-            }
-        }
-        
-        // Log cleanup activity if files were cleaned
-        if ($cleaned_count > 0) {
-            error_log("Cleaned up {$cleaned_count} old generated files");
-        }
-        
-    } catch (Exception $e) {
-        // Log cleanup errors but don't fail the main operation
-        error_log('Cleanup error: ' . $e->getMessage());
+        exit;
     }
 }
 
-// Simplified PDF handling (keep existing logic)
-if ($is_pdf_download) {
-    ob_start();
-    ?>
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Laporan Tahunan '<?= $year ?>' - '<?= htmlspecialchars($nama_pegawai_login) ?>'</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 15mm; color: #000; background: white; }
-            .mobile-yearly-report { font-size: 10px; line-height: 1.2; }
-            .mobile-yearly-report .table { font-size: 9px; border-collapse: collapse; width: 100%; }
-            .mobile-yearly-report .table th, .mobile-yearly-report .table td { padding: 4px; border: 1px solid #000 !important; vertical-align: middle; word-wrap: break-word; }
-            .mobile-yearly-report .table th { background-color: #e0e0e0 !important; font-weight: bold; text-align: center; }
-            .mobile-yearly-report .employee-info td { padding: 6px 8px; border: 1px solid #000 !important; }
-            .mobile-yearly-report .signature-area { page-break-inside: avoid; margin-top: 30px; display: flex; justify-content: space-between; }
-            .mobile-yearly-report .signature-box { width: 45%; font-size: 10px; }
-            .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
-            .print-header h1 { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-            .print-header h2 { font-size: 16px; margin: 8px 0; font-weight: bold; }
-            .print-header h3 { font-size: 14px; margin: 5px 0; font-weight: normal; }
-        </style>
-    </head>
-    <body>
-        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
-                📄 Cetak
-            </button>
-            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; margin-left: 10px;">
-                ✖ Tutup
-            </button>
-        </div>
-        <div class="mobile-yearly-report">
-            <!-- Employee Information -->
-            <div class="employee-info">
-                <table class="table table-bordered mb-3">
-                    <tbody>
-                        <tr>
-                            <td><strong>Nama Pegawai</strong></td>
-                            <td><?= htmlspecialchars($nama_pegawai_login) ?></td>
-                        </tr>
-                        <tr>
-                            <td><strong>NIP</strong></td>
-                            <td><?= htmlspecialchars($emp_data['nip']) ?></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Jabatan</strong></td>
-                            <td><?= htmlspecialchars($emp_data['jabatan']) ?></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Unit Kerja</strong></td>
-                            <td><?= htmlspecialchars($emp_data['unit_kerja']) ?></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Tahun Laporan</strong></td>
-                            <td><?= $year ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Report Table -->
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th rowspan="2" style="width: 30px;">No</th>
-                            <th rowspan="2" style="width: 60px;">Bulan</th>
-                            <th rowspan="2" style="width: 100px;">RHK Terkait</th>
-                            <th rowspan="2" style="width: 120px;">Uraian Kegiatan RKB</th>
-                            <th colspan="2">Target RKB</th>
-                            <th colspan="4">Realisasi LKH</th>
-                        </tr>
-                        <tr>
-                            <th style="width: 50px;">Kuantitas</th>
-                            <th style="width: 50px;">Satuan</th>
-                            <th style="width: 70px;">Tanggal LKH</th>
-                            <th style="width: 100px;">Nama Kegiatan</th>
-                            <th style="width: 120px;">Uraian LKH</th>
-                            <th style="width: 50px;">Lampiran</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        if (empty($available_years)) {
-                            echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data tersedia</td></tr>';
-                        } elseif (empty($data_for_display)) {
-                            echo '<tr><td colspan="10" class="text-center text-muted">Belum ada data untuk tahun ' . $year . '</td></tr>';
-                        } else {
-                            // Calculate rowspan for grouping
-                            $rowspan_map = [];
-                            $total_rows = count($data_for_display);
-                            
-                            for ($i = 0; $i < $total_rows; $i++) {
-                                $row = $data_for_display[$i];
-                                $bulan = $row['bulan'];
-                                $rhk = $row['rhk_terkait'];
-                                $rkb = $row['uraian_kegiatan_rkb'];
-
-                                // Calculate month rowspan
-                                if (!isset($rowspan_map['bulan'][$bulan])) {
-                                    $rowspan_map['bulan'][$bulan] = 0;
-                                    for ($j = $i; $j < $total_rows; $j++) {
-                                        if ($data_for_display[$j]['bulan'] === $bulan) {
-                                            $rowspan_map['bulan'][$bulan]++;
-                                        }
-                                    }
-                                }
-                                
-                                // Calculate RHK rowspan
-                                $rhk_key = $bulan . '||' . $rhk;
-                                if (!isset($rowspan_map['rhk'][$rhk_key])) {
-                                    $rowspan_map['rhk'][$rhk_key] = 0;
-                                    for ($j = $i; $j < $total_rows; $j++) {
-                                        if ($data_for_display[$j]['bulan'] === $bulan && $data_for_display[$j]['rhk_terkait'] === $rhk) {
-                                            $rowspan_map['rhk'][$rhk_key]++;
-                                        }
-                                    }
-                                }
-                                
-                                // Calculate RKB rowspan
-                                $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
-                                if (!isset($rowspan_map['rkb'][$rkb_key])) {
-                                    $rowspan_map['rkb'][$rkb_key] = 0;
-                                    for ($j = $i; $j < $total_rows; $j++) {
-                                        if (
-                                            $data_for_display[$j]['bulan'] === $bulan &&
-                                            $data_for_display[$j]['rhk_terkait'] === $rhk &&
-                                            $data_for_display[$j]['uraian_kegiatan_rkb'] === $rkb
-                                        ) {
-                                            $rowspan_map['rkb'][$rkb_key]++;
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Display table rows with simple rowspan logic
-                            $no_counter = 1;
-                            $printed_bulan = [];
-                            $printed_rhk = [];
-                            $printed_rkb = [];
-                            
-                            for ($i = 0; $i < $total_rows; $i++) {
-                                $row_html = $data_for_display[$i];
-                                $bulan = $row_html['bulan'];
-                                $rhk = $row_html['rhk_terkait'];
-                                $rkb = $row_html['uraian_kegiatan_rkb'];
-                                $rhk_key = $bulan . '||' . $rhk;
-                                $rkb_key = $bulan . '||' . $rhk . '||' . $rkb;
-                                
-                                echo '<tr>';
-                                echo '<td class="text-center">' . $no_counter++ . '</td>';
-
-                                // Month column with rowspan
-                                if (!isset($printed_bulan[$bulan])) {
-                                    echo '<td rowspan="' . $rowspan_map['bulan'][$bulan] . '" class="text-center align-middle"><small>' . $bulan . '</small></td>';
-                                    $printed_bulan[$bulan] = true;
-                                }
-
-                                // RHK column with rowspan
-                                if (!isset($printed_rhk[$rhk_key])) {
-                                    echo '<td rowspan="' . $rowspan_map['rhk'][$rhk_key] . '" class="align-middle"><small>' . $rhk . '</small></td>';
-                                    $printed_rhk[$rhk_key] = true;
-                                }
-
-                                // RKB columns with rowspan
-                                if (!isset($printed_rkb[$rkb_key])) {
-                                    echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="align-middle"><small>' . $rkb . '</small></td>';
-                                    echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . $row_html['target_kuantitas'] . '</small></td>';
-                                    echo '<td rowspan="' . $rowspan_map['rkb'][$rkb_key] . '" class="text-center align-middle"><small>' . $row_html['target_satuan'] . '</small></td>';
-                                    $printed_rkb[$rkb_key] = true;
-                                }
-
-                                // LKH columns (no rowspan)
-                                echo '<td class="text-center"><small>' . $row_html['tanggal_lkh'] . '</small></td>';
-                                echo '<td class="text-center"><small>' . $row_html['nama_kegiatan_harian'] . '</small></td>';
-                                echo '<td class="text-center"><small>' . $row_html['uraian_kegiatan_lkh'] . '</small></td>';
-                                
-                                // Lampiran
-                                if (!empty($row_html['lampiran_file']) && $row_html['lampiran'] === '1 Dokumen') {
-                                    echo '<td class="text-center"><small><a href="../uploads/lkh/' . $row_html['lampiran_file'] . '" target="_blank" class="btn btn-sm btn-info">👁️ Lihat</a></small></td>';
-                                } else {
-                                    echo '<td class="text-center"><small>' . $row_html['lampiran'] . '</small></td>';
-                                }
-                                echo '</tr>';
-                            }
-                        }
-                        ?>
-                    </tbody>
-                </table>
-                
-                <!-- Signature Area -->
-                <div class="signature-area">
-                    <div class="signature-box">
-                        <p><strong>Pejabat Penilai</strong></p>
-                        <div class="signature-line"></div>
-                        <p><strong><?= htmlspecialchars($emp_data['nama_penilai'] ?: '(..................................)') ?></strong><br>
-                        NIP. <?= htmlspecialchars($emp_data['nip_penilai'] ?: '.................................') ?></p>
-                    </div>
-                    <div class="signature-box">
-                        <p>Cingambul, <?= format_date_indonesia(date('Y-m-d')) ?><br>
-                        <strong>Pegawai Yang Dinilai</strong></p>
-                        <div class="signature-line"></div>
-                        <p><strong><?= htmlspecialchars($nama_pegawai_login) ?></strong><br>
-                        NIP. <?= htmlspecialchars($emp_data['nip'] ?? '') ?></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </body>
-    </html>
-    <?php
-    $html_content = ob_get_clean();
-    
-    // Output the PDF file directly
-    $dompdf = new \Dompdf\Dompdf();
-    $dompdf->loadHtml($html_content);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-    
-    // Output to browser
-    $dompdf->stream('Laporan_Tahunan_' . $year . '_' . htmlspecialchars($nama_pegawai_login) . '.pdf', [
-        'Attachment' => true
-    ]);
+// Update the old file generation to use PDF generation
+if ($is_generate_file && $_GET['generate'] === 'file') {
+    // Redirect to PDF generation instead
+    header('Location: ?year=' . $year . '&generate=pdf');
     exit;
 }
-?>
