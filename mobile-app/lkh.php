@@ -405,7 +405,6 @@ $stmt_previous_lkh = $conn->prepare("
          AND l1.id_lkh = l2.max_id_lkh
     WHERE l1.id_pegawai = ? AND NOT (MONTH(l1.tanggal_lkh) = ? AND YEAR(l1.tanggal_lkh) = ?)
     ORDER BY l1.id_lkh DESC, l1.nama_kegiatan_harian ASC
-    LIMIT 20
 ");
 
 $stmt_previous_lkh->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
@@ -2095,16 +2094,38 @@ ob_clean();
             // Load content based on file type
             setTimeout(() => {
                 if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-                    // Image file
-                    contentDiv.innerHTML = `
-                        <div class="text-center">
-                            <img src="${attachmentPath}" class="img-fluid rounded shadow" 
-                                 style="max-height: 500px; max-width: 100%;" 
-                                 alt="Lampiran ${title}"
-                                 onload="console.log('Image loaded successfully')"
-                                 onerror="this.parentElement.innerHTML='<div class=\\"alert alert-danger\\"><i class=\\"fas fa-exclamation-triangle me-2\\"></i>Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.<br><small class=\\"text-muted\\">Path: ${fileName}</small></div>'">
-                        </div>
-                    `;
+                    // Image file - Create image element properly
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'text-center';
+                    
+                    const img = document.createElement('img');
+                    img.src = attachmentPath;
+                    img.className = 'img-fluid rounded shadow';
+                    img.style.maxHeight = '500px';
+                    img.style.maxWidth = '100%';
+                    img.alt = `Lampiran ${title}`;
+                    
+                    // Handle image load success
+                    img.onload = function() {
+                        console.log('Image loaded successfully');
+                    };
+                    
+                    // Handle image load error
+                    img.onerror = function() {
+                        console.log('Image failed to load:', attachmentPath);
+                        imageContainer.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.
+                                <br><small class="text-muted">Path: ${fileName}</small>
+                            </div>
+                        `;
+                    };
+                    
+                    imageContainer.appendChild(img);
+                    contentDiv.innerHTML = '';
+                    contentDiv.appendChild(imageContainer);
+                    
                 } else if (fileExtension === 'pdf') {
                     // PDF file
                     contentDiv.innerHTML = `
