@@ -2018,7 +2018,6 @@ ob_clean();
                 
                 if (nama.includes(query) || uraian.includes(query)) {
                     item.style.display = 'block';
-
                     hasVisibleItem = true;
                 } else {
                     item.style.display = 'none';
@@ -2033,6 +2032,141 @@ ob_clean();
             }
         });
 
+        // Add attachment function
+        function addAttachment(lkhId) {
+            document.getElementById('attachmentLkhId').value = lkhId;
+            document.getElementById('addAttachmentForm').reset();
+            document.getElementById('attachmentFilePreview').style.display = 'none';
+            new bootstrap.Modal(document.getElementById('addAttachmentModal')).show();
+        }
+
+        // Remove attachment function
+        function removeAttachment(lkhId) {
+            Swal.fire({
+                title: 'Hapus Lampiran',
+                text: "Anda yakin ingin menghapus lampiran ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('removeAttachmentId').value = lkhId;
+                    document.getElementById('removeAttachmentForm').submit();
+                }
+            });
+        }
+
+        // View attachment function - Fixed
+        function viewAttachment(fileName, title) {
+            const attachmentPath = '../uploads/lkh/' + fileName;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            
+            // Set modal title
+            document.getElementById('attachmentTitle').textContent = 'Lampiran: ' + title;
+            
+            // Set download link with proper onclick event
+            const downloadBtn = document.getElementById('downloadAttachment');
+            downloadBtn.href = attachmentPath;
+            downloadBtn.onclick = function(e) {
+                e.preventDefault();
+                downloadFile(attachmentPath, fileName);
+            };
+            
+            // Get attachment content container
+            const contentDiv = document.getElementById('attachmentContent');
+            
+            // Show loading state
+            contentDiv.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Memuat lampiran...</span>
+                </div>
+            `;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('attachmentModal'));
+            modal.show();
+            
+            // Load content based on file type
+            setTimeout(() => {
+                if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                    // Image file
+                    contentDiv.innerHTML = `
+                        <div class="text-center">
+                            <img src="${attachmentPath}" class="img-fluid rounded shadow" 
+                                 style="max-height: 500px; max-width: 100%;" 
+                                 alt="Lampiran ${title}"
+                                 onload="console.log('Image loaded successfully')"
+                                 onerror="this.parentElement.innerHTML='<div class=\\"alert alert-danger\\"><i class=\\"fas fa-exclamation-triangle me-2\\"></i>Gagal memuat gambar. File mungkin tidak ditemukan atau rusak.<br><small class=\\"text-muted\\">Path: ${fileName}</small></div>'">
+                        </div>
+                    `;
+                } else if (fileExtension === 'pdf') {
+                    // PDF file
+                    contentDiv.innerHTML = `
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-file-pdf text-danger" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5>Dokumen PDF</h5>
+                            <p class="text-muted">File: ${fileName}</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <button onclick="window.open('${attachmentPath}', '_blank')" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i>Buka di Tab Baru
+                                </button>
+                                <button onclick="downloadFile('${attachmentPath}', '${fileName}')" class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Other file types
+                    contentDiv.innerHTML = `
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-file text-secondary" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5>File Lampiran</h5>
+                            <p class="text-muted">File: ${fileName}</p>
+                            <p class="text-muted">Tipe: ${fileExtension.toUpperCase()}</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <button onclick="window.open('${attachmentPath}', '_blank')" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i>Buka File
+                                </button>
+                                <button onclick="downloadFile('${attachmentPath}', '${fileName}')" class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+
+        // Download file function
+        function downloadFile(filePath, fileName) {
+            const tempLink = document.createElement('a');
+            tempLink.href = filePath;
+            tempLink.download = fileName;
+            tempLink.style.display = 'none';
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            document.body.removeChild(tempLink);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Download Dimulai',
+                text: 'File sedang didownload...',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
         // Enhanced form interactions
         document.addEventListener('DOMContentLoaded', function() {
             // Add loading state to buttons on form submission
@@ -2046,6 +2180,83 @@ ob_clean();
                     }
                 });
             });
+
+            // Add attachment form validation
+            const attachmentFile = document.getElementById('attachmentFile');
+            if (attachmentFile) {
+                attachmentFile.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    const preview = document.getElementById('attachmentFilePreview');
+                    const fileName = document.getElementById('attachmentFileName');
+                    
+                    if (file) {
+                        fileName.textContent = file.name;
+                        preview.style.display = 'block';
+                        
+                        // File size check
+                        if (file.size > 2 * 1024 * 1024) { // 2MB
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'File Terlalu Besar',
+                                text: 'Ukuran file maksimal 2MB. Silakan pilih file yang lebih kecil.',
+                                confirmButtonText: 'OK'
+                            });
+                            this.value = '';
+                            preview.style.display = 'none';
+                            return;
+                        }
+                        
+                        // File type check
+                        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                        if (!allowedTypes.includes(file.type)) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Format File Tidak Didukung',
+                                text: 'Format file yang diperbolehkan: PDF, JPG, JPEG, PNG.',
+                                confirmButtonText: 'OK'
+                            });
+                            this.value = '';
+                            preview.style.display = 'none';
+                            return;
+                        }
+                        
+                        preview.style.animation = 'fadeInScale 0.3s ease-out';
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                });
+            }
+
+            // Add attachment form submission
+            const addAttachmentForm = document.getElementById('addAttachmentForm');
+            if (addAttachmentForm) {
+                addAttachmentForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const fileInput = document.getElementById('attachmentFile');
+                    if (!fileInput || !fileInput.files.length) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'File Tidak Dipilih',
+                            text: 'Silakan pilih file lampiran terlebih dahulu.',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+                    
+                    const submitBtn = document.getElementById('addAttachmentBtn');
+                    const originalText = submitBtn.innerHTML;
+                    
+                    // Show loading state
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+                    submitBtn.disabled = true;
+                    
+                    // Submit form after short delay
+                    setTimeout(() => {
+                        this.submit();
+                    }, 500);
+                });
+            }
 
             // Add ripple effect to cards
             const cards = document.querySelectorAll('.card');
@@ -2144,6 +2355,53 @@ ob_clean();
                     });
                 }
             });
+
+            // File preview functionality for main LKH form
+            const lampiranInput = document.getElementById('lampiranInput');
+            if (lampiranInput) {
+                lampiranInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    const preview = document.getElementById('filePreview');
+                    const fileName = document.getElementById('fileName');
+                    
+                    if (file) {
+                        fileName.textContent = file.name;
+                        preview.style.display = 'block';
+                        
+                        // File size check
+                        if (file.size > 2 * 1024 * 1024) { // 2MB
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'File Terlalu Besar',
+                                text: 'Ukuran file maksimal 2MB. Silakan pilih file yang lebih kecil.',
+                                confirmButtonText: 'OK'
+                            });
+                            this.value = '';
+                            preview.style.display = 'none';
+                            return;
+                        }
+                        
+                        // File type check
+                        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                        if (!allowedTypes.includes(file.type)) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Format File Tidak Didukung',
+                                text: 'Format file yang diperbolehkan: PDF, JPG, JPEG, PNG.',
+                                confirmButtonText: 'OK'
+                            });
+                            this.value = '';
+                            preview.style.display = 'none';
+                            return;
+                        }
+                        
+                        // Show preview with success animation
+                        preview.style.animation = 'fadeInScale 0.3s ease-out';
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                });
+            }
         });
 
         // Add CSS for ripple effect
@@ -2168,48 +2426,7 @@ ob_clean();
         document.head.appendChild(style);
 
         // File preview functionality
-        document.getElementById('lampiranInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-            
-            if (file) {
-                fileName.textContent = file.name;
-                preview.style.display = 'block';
-                
-                // File size check
-                if (file.size > 2 * 1024 * 1024) { // 2MB
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'File Terlalu Besar',
-                        text: 'Ukuran file maksimal 2MB. Silakan pilih file yang lebih kecil.',
-                        confirmButtonText: 'OK'
-                    });
-                    this.value = '';
-                    preview.style.display = 'none';
-                    return;
-                }
-                
-                // File type check
-                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-                if (!allowedTypes.includes(file.type)) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Format File Tidak Didukung',
-                        text: 'Format file yang diperbolehkan: PDF, JPG, JPEG, PNG.',
-                        confirmButtonText: 'OK'
-                    });
-                    this.value = '';
-                    preview.style.display = 'none';
-                    return;
-                }
-                
-                // Show preview with success animation
-                preview.style.animation = 'fadeInScale 0.3s ease-out';
-            } else {
-                preview.style.display = 'none';
-            }
-        });
+        // ...existing code...
 
         // Form validation enhancements
         function validateForm() {
