@@ -911,36 +911,72 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             this.classList.remove('animate__animated', 'animate__pulse');
         });
 
+        // Global user data for Android app
+        window.ELAPKIN_USER_DATA = {
+            isLoggedIn: <?= $isLoggedIn ? 'true' : 'false' ?>,
+            userId: <?= $isLoggedIn ? $userInfo['id_pegawai'] : 'null' ?>,
+            userName: <?= $isLoggedIn ? '"' . addslashes($userInfo['nama']) . '"' : 'null' ?>,
+            userNip: <?= $isLoggedIn ? '"' . addslashes($userInfo['nip']) . '"' : 'null' ?>,
+            userJabatan: <?= $isLoggedIn ? '"' . addslashes($userInfo['jabatan']) . '"' : 'null' ?>
+        };
+
         // Function to get user ID (called by Android app)
         window.getUserId = function() {
-            <?php if (isset($_SESSION['mobile_id_pegawai'])): ?>
-                return '<?= $_SESSION['mobile_id_pegawai'] ?>';
-            <?php else: ?>
-                return null;
-            <?php endif; ?>
+            console.log('getUserId called, returning:', window.ELAPKIN_USER_DATA.userId);
+            return window.ELAPKIN_USER_DATA.userId ? window.ELAPKIN_USER_DATA.userId.toString() : null;
+        };
+
+        // Function to get user info (called by Android app)
+        window.getUserInfo = function() {
+            console.log('getUserInfo called, returning:', window.ELAPKIN_USER_DATA);
+            return window.ELAPKIN_USER_DATA;
         };
 
         // Function to receive FCM token from Android app
         window.setFCMToken = function(token) {
-            console.log('FCM Token received:', token);
-            // You can store this token in localStorage or send to server
+            console.log('FCM Token received from Android:', token);
             localStorage.setItem('fcm_token', token);
+            
+            // If user is logged in, immediately try to send token to server
+            if (window.ELAPKIN_USER_DATA.isLoggedIn && typeof Android !== 'undefined') {
+                console.log('User is logged in, notifying Android about user ID');
+                if (Android.setUserId) {
+                    Android.setUserId(window.ELAPKIN_USER_DATA.userId.toString());
+                }
+            }
         };
 
-        // Notify Android about user login when page loads
+        // Notify Android app when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            <?php if (isset($_SESSION['mobile_id_pegawai'])): ?>
+            console.log('DOM loaded, user data:', window.ELAPKIN_USER_DATA);
+            
+            if (window.ELAPKIN_USER_DATA.isLoggedIn && typeof Android !== 'undefined') {
+                console.log('Notifying Android about logged in user');
+                
                 // Notify Android app about logged in user
-                if (typeof Android !== 'undefined' && Android.onUserLogin) {
-                    Android.onUserLogin('<?= $_SESSION['mobile_id_pegawai'] ?>', '<?= addslashes($_SESSION['mobile_nama']) ?>');
+                if (Android.onUserLogin) {
+                    Android.onUserLogin(
+                        window.ELAPKIN_USER_DATA.userId.toString(), 
+                        window.ELAPKIN_USER_DATA.userName
+                    );
                 }
                 
                 // Also call setUserId directly
-                if (typeof Android !== 'undefined' && Android.setUserId) {
-                    Android.setUserId('<?= $_SESSION['mobile_id_pegawai'] ?>');
+                if (Android.setUserId) {
+                    Android.setUserId(window.ELAPKIN_USER_DATA.userId.toString());
                 }
-            <?php endif; ?>
+            }
         });
+
+        // Also try after a short delay to ensure Android interface is ready
+        setTimeout(function() {
+            if (window.ELAPKIN_USER_DATA.isLoggedIn && typeof Android !== 'undefined') {
+                console.log('Delayed notification to Android about user ID');
+                if (Android.setUserId) {
+                    Android.setUserId(window.ELAPKIN_USER_DATA.userId.toString());
+                }
+            }
+        }, 1000);
     </script>
 </body>
 </html>
