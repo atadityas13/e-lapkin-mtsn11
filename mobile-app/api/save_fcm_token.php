@@ -23,10 +23,14 @@ function verifyMobileToken($headers) {
 // Get headers
 $headers = getallheaders();
 
+// Pastikan header X-Mobile-Token dan X-App-Package dikirim dengan benar dari Android.
+// Untuk debug, tambahkan log header berikut sebelum verifikasi token:
+file_put_contents(__DIR__ . '/debug_headers.log', json_encode($headers) . PHP_EOL, FILE_APPEND);
+
 // Verify request
 if (!verifyMobileToken($headers)) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'debug_headers' => $headers]);
     exit;
 }
 
