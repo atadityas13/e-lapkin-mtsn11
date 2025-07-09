@@ -860,9 +860,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                     <small class="fw-bold">Cara Akses Manual:</small>
                                     <ol class="small mb-0 mt-1 ps-3">
                                         <li>Buka browser (Chrome, Firefox, dll)</li>
-                                        <li>Ketik alamat: <code>localhost/e-lapkin-mtsn11</code></li>
+                                        <li>Ketik alamat: <code>https://e-lapkin.mtsn11majalengka.sch.id/</code></li>
                                         <li>Login dengan akun yang sama</li>
-                                        <li>Pilih menu "Laporan" → "Laporan Tahunan"</li>
+                                        <li>Pilih menu "Laporan" → "Laporan Kinerja Tahunan"</li>
                                     </ol>
                                 </div>
                             </div>
@@ -1340,7 +1340,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Try to open in same window/tab for better mobile experience
-                    const webUrl = window.location.origin + '/e-lapkin-mtsn11/';
+                    const webUrl = 'https://e-lapkin.mtsn11majalengka.sch.id/';
                     
                     // For mobile WebView, try to open in external browser
                     if (navigator.userAgent.includes('wv')) {
