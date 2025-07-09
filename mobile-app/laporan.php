@@ -488,8 +488,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         <div class="report-actions">
                                             <?php if ($pdf_exists_lkb): ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
-                                                        onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
-                                                    <i class="fas fa-download me-1"></i>Download
+                                                        onclick="previewPDF('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>', 'LKB <?= $months[$bulan] ?> <?= $tahun ?>')">
+                                                    <i class="fas fa-eye me-1"></i>Preview
                                                 </button>
                                                 <button type="button" class="btn btn-regenerate btn-sm" 
                                                         data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
@@ -582,8 +582,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         <div class="report-actions">
                                             <?php if ($pdf_exists_lkh): ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
-                                                        onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
-                                                    <i class="fas fa-download me-1"></i>Download
+                                                        onclick="previewPDF('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>', 'LKH <?= $months[$bulan] ?> <?= $tahun ?>')">
+                                                    <i class="fas fa-eye me-1"></i>Preview
                                                 </button>
                                                 <button type="button" class="btn btn-regenerate btn-sm" 
                                                         data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
@@ -905,6 +905,44 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         </div>
     </div>
 
+    <!-- Modal PDF Preview -->
+    <div class="modal fade" id="pdfPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="pdfPreviewTitle">
+                        <i class="fas fa-file-pdf me-2"></i>Preview Dokumen
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0" style="height: 80vh;">
+                    <div id="pdfPreviewContent" class="h-100 d-flex flex-column">
+                        <!-- PDF will be loaded here -->
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p>Memuat dokumen PDF...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Tutup
+                    </button>
+                    <button type="button" class="btn btn-success" id="downloadFromPreview">
+                        <i class="fas fa-download me-1"></i>Download PDF
+                    </button>
+                    <button type="button" class="btn btn-info" id="printFromPreview">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation -->
     <?php include __DIR__ . '/components/bottom-nav.php'; ?>
 
@@ -1083,321 +1121,253 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             printWindow.document.close();
         });
 
-        // Fixed download function for Android WebView compatibility
-        function downloadFile(url, filename) {
-            console.log('Download initiated:', url, filename);
+        // PDF Preview Functionality
+        let currentPdfUrl = '';
+        let currentPdfFilename = '';
+
+        function previewPDF(url, filename, title) {
+            console.log('Preview PDF called:', url, filename, title);
             
-            try {
-                // Method 1: Try Android interface first
-                if (typeof Android !== 'undefined' && Android.downloadFile) {
-                    console.log('Using Android interface');
-                    Android.downloadFile(url, filename);
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Download Dimulai',
-                        text: 'File sedang diunduh melalui aplikasi Android...',
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
-                    return;
-                }
-                
-                // Method 2: Try window.location for WebView
-                if (navigator.userAgent.includes('wv')) {
-                    console.log('Using WebView window.location method');
-                    window.location.href = url;
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Membuka File',
-                        text: 'File akan dibuka/diunduh...',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    return;
-                }
-                
-                // Method 3: Traditional download link
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                link.target = '_blank';
-                
-                // Add to DOM temporarily
-                document.body.appendChild(link);
-                
-                // Trigger click
-                link.click();
-                
-                // Clean up
+            // Store current PDF info for download
+            currentPdfUrl = url;
+            currentPdfFilename = filename;
+            
+            // Set modal title
+            document.getElementById('pdfPreviewTitle').innerHTML = `<i class="fas fa-file-pdf me-2"></i>${title}`;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+            const contentDiv = document.getElementById('pdfPreviewContent');
+            
+            // Reset content
+            contentDiv.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Memuat dokumen PDF...</p>
+                    </div>
+                </div>
+            `;
+            
+            modal.show();
+            
+            // Add timestamp to prevent caching
+            const pdfUrl = url + '?t=' + new Date().getTime();
+            
+            // Try different methods to display PDF
+            setTimeout(() => {
+                displayPdfContent(pdfUrl, contentDiv);
+            }, 500);
+        }
+
+        function displayPdfContent(url, container) {
+            // Method 1: Try PDF embed
+            const embedHtml = `
+                <div class="h-100 position-relative">
+                    <embed src="${url}" type="application/pdf" width="100%" height="100%" 
+                           onload="console.log('PDF loaded successfully')" 
+                           onerror="handlePdfError()">
+                    <div id="pdfFallback" style="display: none;" class="h-100 d-flex flex-column justify-content-center align-items-center">
+                        <div class="text-center">
+                            <i class="fas fa-file-pdf fa-4x text-danger mb-3"></i>
+                            <h5>PDF tidak dapat ditampilkan</h5>
+                            <p class="text-muted mb-3">Browser Anda tidak mendukung preview PDF atau file tidak dapat dimuat.</p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <button class="btn btn-primary" onclick="downloadFile('${currentPdfUrl}', '${currentPdfFilename}')">
+                                    <i class="fas fa-download me-2"></i>Download PDF
+                                </button>
+                                <button class="btn btn-info" onclick="openInNewTab('${url}')">
+                                    <i class="fas fa-external-link-alt me-2"></i>Buka di Tab Baru
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = embedHtml;
+            
+            // Fallback for mobile/WebView that might not support embed
+            if (navigator.userAgent.includes('wv') || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                 setTimeout(() => {
-                    document.body.removeChild(link);
-                }, 100);
-                
-                console.log('Download link clicked');
-                
-                // Show appropriate message
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Download Diproses',
-                    text: 'Silakan periksa folder Download Anda.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-                
-            } catch (error) {
-                console.error('Download error:', error);
-                
-                // Fallback: Try direct navigation
-                Swal.fire({
-                    icon: 'question',
-                    title: 'Metode Download Alternatif',
-                    text: 'Klik "Buka File" untuk mengunduh atau melihat file.',
-                    showCancelButton: true,
-                    confirmButtonText: 'Buka File',
-                    cancelButtonText: 'Tutup'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.open(url, '_blank');
+                    // Check if PDF loaded, if not show fallback
+                    const embed = container.querySelector('embed');
+                    if (embed && (embed.offsetHeight === 0 || embed.contentDocument === null)) {
+                        handlePdfError();
                     }
-                });
+                }, 2000);
             }
         }
 
-        // Alternative fetch-based download with proper headers
-        async function downloadFileWithFetch(url, filename) {
-            try {
-                console.log('Fetch download started:', url);
-                
-                Swal.fire({
-                    title: 'Mengunduh...',
-                    text: 'Sedang memproses unduhan file',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+        function handlePdfError() {
+            console.log('PDF embed failed, showing fallback');
+            const fallback = document.getElementById('pdfFallback');
+            const embed = document.querySelector('#pdfPreviewContent embed');
+            
+            if (fallback && embed) {
+                embed.style.display = 'none';
+                fallback.style.display = 'flex';
+            }
+        }
 
-                // Add timestamp to prevent caching issues
-                const downloadUrl = url + '?t=' + new Date().getTime();
-                
-                const response = await fetch(downloadUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+        function openInNewTab(url) {
+            window.open(url, '_blank');
+        }
 
-                const blob = await response.blob();
-                console.log('Blob created, size:', blob.size);
+        // Download from preview modal
+        document.getElementById('downloadFromPreview').addEventListener('click', function() {
+            if (currentPdfUrl && currentPdfFilename) {
+                downloadFile(currentPdfUrl, currentPdfFilename);
                 
-                // Check if we're in WebView
-                if (navigator.userAgent.includes('wv')) {
-                    // For WebView, try to trigger native download
-                    const reader = new FileReader();
-                    reader.onload = function() {
-                        const base64data = reader.result.split(',')[1];
-                        
-                        // Try Android interface for base64 download
-                        if (typeof Android !== 'undefined' && Android.downloadBase64) {
-                            Android.downloadBase64(base64data, filename, blob.type);
-                        } else {
-                            // Fallback to blob URL
-                            const downloadUrl = window.URL.createObjectURL(blob);
-                            window.location.href = downloadUrl;
-                        }
-                    };
-                    reader.readAsDataURL(blob);
-                } else {
-                    // Normal browser download
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = filename;
-                    link.style.display = 'none';
-                    
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // Clean up
-                    setTimeout(() => {
-                        window.URL.revokeObjectURL(downloadUrl);
-                    }, 1000);
-                }
-                
+                // Show success message
                 Swal.fire({
                     icon: 'success',
-                    title: 'Download Selesai',
-                    text: 'File berhasil diunduh! Periksa folder Download.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-                
-            } catch (error) {
-                console.error('Fetch download error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Download Gagal',
-                    text: 'Terjadi kesalahan: ' + error.message,
-                    confirmButtonText: 'OK'
-                });
-            }
-        }
-
-        // Main download function with multiple fallbacks - FIXED VERSION
-        function enhancedDownload(url, filename) {
-            console.log('Enhanced download called:', url, filename);
-            
-            // Detect environment
-            const isAndroid = /Android/i.test(navigator.userAgent);
-            const isWebView = navigator.userAgent.includes('wv');
-            
-            console.log('Environment:', { isAndroid, isWebView });
-            
-            // Strategy 1: Android WebView with native interface
-            if (isAndroid && isWebView && typeof Android !== 'undefined') {
-                if (Android.downloadFile) {
-                    console.log('Using Android.downloadFile');
-                    try {
-                        Android.downloadFile(url, filename);
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Download Dimulai',
-                            text: 'File sedang diunduh ke perangkat Anda...',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                        return;
-                    } catch (e) {
-                        console.error('Android download failed:', e);
-                    }
-                }
-            }
-            
-            // Strategy 2: Fetch API for WebView
-            if (isWebView && window.fetch) {
-                console.log('Using fetch download for WebView');
-                downloadFileWithFetch(url, filename);
-                return;
-            }
-            
-            // Strategy 3: Direct URL navigation for WebView
-            if (isWebView) {
-                console.log('Using direct navigation for WebView');
-                window.location.href = url;
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Membuka File',
-                    text: 'File akan dibuka atau diunduh...',
+                    title: 'Download Dimulai',
+                    text: 'File PDF sedang diunduh...',
                     timer: 2000,
                     showConfirmButton: false
                 });
-                return;
             }
-            
-            // Strategy 4: Traditional download for regular browsers
-            console.log('Using traditional download');
-            // Call the original downloadFile function, NOT recursively calling enhancedDownload
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.target = '_blank';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            Swal.fire({
-                icon: 'info',
-                title: 'Download Diproses',
-                text: 'Silakan periksa folder Download Anda.',
-                timer: 3000,
-                showConfirmButton: false
-            });
+        });
+
+        // Print from preview modal
+        document.getElementById('printFromPreview').addEventListener('click', function() {
+            if (currentPdfUrl) {
+                // Try to print the embedded PDF
+                const embed = document.querySelector('#pdfPreviewContent embed');
+                if (embed && embed.contentWindow) {
+                    try {
+                        embed.contentWindow.print();
+                    } catch (e) {
+                        console.log('Direct print failed, opening in new window');
+                        printPdfInNewWindow();
+                    }
+                } else {
+                    printPdfInNewWindow();
+                }
+            }
+        });
+
+        function printPdfInNewWindow() {
+            const printWindow = window.open(currentPdfUrl, '_blank', 'width=800,height=600');
+            if (printWindow) {
+                printWindow.onload = function() {
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 1000);
+                };
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Pop-up Diblokir',
+                    text: 'Silakan izinkan pop-up untuk mencetak dokumen.'
+                });
+            }
         }
 
-        // Set the main download function
-        window.downloadFile = enhancedDownload;
-
-        // Add smooth scroll animation for report items
-        document.addEventListener('DOMContentLoaded', function() {
-            const items = document.querySelectorAll('.report-item');
-            items.forEach((item, index) => {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    item.style.transition = 'all 0.5s ease';
-                    item.style.opacity = '1';
-                    item.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
+        // Handle PDF preview modal close
+        document.getElementById('pdfPreviewModal').addEventListener('hidden.bs.modal', function() {
+            // Clear PDF content to free memory
+            const contentDiv = document.getElementById('pdfPreviewContent');
+            contentDiv.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-file-pdf fa-3x mb-3"></i>
+                        <p>Modal ditutup</p>
+                    </div>
+                </div>
+            `;
+            
+            // Clear current PDF info
+            currentPdfUrl = '';
+            currentPdfFilename = '';
         });
 
-        // Add smooth animation when switching tabs
+        // Enhanced tab switching with proper Bootstrap integration
         document.addEventListener('DOMContentLoaded', function() {
-            const triggerTabList = document.querySelectorAll('#reportTabs button')
-            triggerTabList.forEach(triggerEl => {
+            // Initialize Bootstrap tabs properly
+            const triggerTabList = [].slice.call(document.querySelectorAll('#reportTabs button[data-bs-toggle="tab"]'))
+            
+            triggerTabList.forEach(function (triggerEl) {
                 const tabTrigger = new bootstrap.Tab(triggerEl)
-
-                triggerEl.addEventListener('click', event => {
-                    event.preventDefault()
-                    tabTrigger.show()
+                
+                triggerEl.addEventListener('shown.bs.tab', function (event) {
+                    console.log('Tab shown:', event.target.id); // Debug log
                     
-                    // Re-animate items when tab is shown
-                    setTimeout(() => {
-                        const activePane = document.querySelector('.tab-pane.active');
-                        const items = activePane.querySelectorAll('.report-item');
-                        items.forEach((item, index) => {
-                            item.style.opacity = '0';
-                            item.style.transform = 'translateY(10px)';
-                            setTimeout(() => {
-                                item.style.transition = 'all 0.3s ease';
-                                item.style.opacity = '1';
-                                item.style.transform = 'translateY(0)';
-                            }, index * 50);
-                        });
-                    }, 100);
-                })
-            })
-
-            // Initial animation for LKB tab (active by default)
-            const items = document.querySelectorAll('#lkb-pane .report-item');
-            items.forEach((item, index) => {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    item.style.transition = 'all 0.5s ease';
-                    item.style.opacity = '1';
-                    item.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
-        });
-
-        // Enhanced tab switching with animation
-        document.addEventListener('DOMContentLoaded', function() {
-            // ...existing code...
-
-            // Add smooth animation when switching to yearly tab
-            document.getElementById('tahunan-tab').addEventListener('click', function() {
-                setTimeout(() => {
-                    const yearlyPane = document.getElementById('tahunan-pane');
-                    const cards = yearlyPane.querySelectorAll('.card');
-                    cards.forEach((card, index) => {
-                        card.style.opacity = '0';
-                        card.style.transform = 'translateY(20px)';
+                    // Get the active tab pane
+                    const targetPane = document.querySelector(event.target.getAttribute('data-bs-target'));
+                    
+                    if (targetPane) {
+                        // Animate items in the active pane
                         setTimeout(() => {
-                            card.style.transition = 'all 0.4s ease';
-                            card.style.opacity = '1';
-                            card.style.transform = 'translateY(0)';
+                            const items = targetPane.querySelectorAll('.report-item, .card');
+                            items.forEach((item, index) => {
+                                item.style.opacity = '0';
+                                item.style.transform = 'translateY(10px)';
+                                setTimeout(() => {
+                                    item.style.transition = 'all 0.3s ease';
+                                    item.style.opacity = '1';
+                                    item.style.transform = 'translateY(0)';
+                                }, index * 50);
+                            });
+                        }, 50);
+                    }
+                });
+
+                // Add click event for manual triggering
+                triggerEl.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    console.log('Tab clicked:', this.id); // Debug log
+                    tabTrigger.show();
+                });
+            });
+
+            // Initial animation for the default active tab (LKB)
+            setTimeout(() => {
+                const activePane = document.querySelector('.tab-pane.show.active');
+                if (activePane) {
+                    const items = activePane.querySelectorAll('.report-item');
+                    items.forEach((item, index) => {
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateY(20px)';
+                        setTimeout(() => {
+                            item.style.transition = 'all 0.5s ease';
+                            item.style.opacity = '1';
+                            item.style.transform = 'translateY(0)';
                         }, index * 100);
                     });
-                }, 100);
+                }
+            }, 100);
+
+            // Special handling for yearly tab
+            const yearlyTab = document.getElementById('tahunan-tab');
+            if (yearlyTab) {
+                yearlyTab.addEventListener('shown.bs.tab', function() {
+                    console.log('Yearly tab shown'); // Debug log
+                    setTimeout(() => {
+                        const yearlyPane = document.getElementById('tahunan-pane');
+                        if (yearlyPane) {
+                            const cards = yearlyPane.querySelectorAll('.card');
+                            cards.forEach((card, index) => {
+                                card.style.opacity = '0';
+                                card.style.transform = 'translateY(20px)';
+                                setTimeout(() => {
+                                    card.style.transition = 'all 0.4s ease';
+                                    card.style.opacity = '1';
+                                    card.style.transform = 'translateY(0)';
+                                }, index * 100);
+                            });
+                        }
+                    }, 100);
+                });
+            }
+
+            // Debug: Log all tabs found
+            console.log('Tabs found:', triggerTabList.length);
+            triggerTabList.forEach(tab => {
+                console.log('Tab ID:', tab.id, 'Target:', tab.getAttribute('data-bs-target'));
             });
         });
     </script>
