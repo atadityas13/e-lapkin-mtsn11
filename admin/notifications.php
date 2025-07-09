@@ -20,63 +20,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $targetUsers = $_POST['target_users'] ?? [];
         $topic = $_POST['topic'] ?? '';
         
-        // Save notification to database
-        $stmt = $conn->prepare("
-            INSERT INTO notifications (title, message, type, target_users, topic, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $targetUsersJson = json_encode($targetUsers);
-        $stmt->bind_param("sssssi", $title, $messageText, $type, $targetUsersJson, $topic, $_SESSION['id_pegawai']);
-        
-        if ($stmt->execute()) {
-            $notificationId = $conn->insert_id;
-            $stmt->close();
-            
-            // Send notification
-            try {
-                $result = null;
-                switch ($type) {
-                    case 'all':
-                        $result = $firebaseService->sendToAll($title, $messageText);
-                        break;
-                    case 'specific':
-                        $result = $firebaseService->sendToUsers($targetUsers, $title, $messageText);
-                        break;
-                    case 'topic':
-                        $result = $firebaseService->sendToTopic($topic, $title, $messageText);
-                        break;
-                }
-                
-                // Update notification status
-                $status = $result['success'] ? 'sent' : 'failed';
-                $successCount = $result['total_success'] ?? 0;
-                $failureCount = $result['total_failure'] ?? 0;
-                $fcmResponse = json_encode($result);
-                
-                $updateStmt = $conn->prepare("
-                    UPDATE notifications 
-                    SET status = ?, sent_at = NOW(), success_count = ?, failure_count = ?, fcm_response = ?
-                    WHERE id = ?
-                ");
-                $updateStmt->bind_param("siisi", $status, $successCount, $failureCount, $fcmResponse, $notificationId);
-                $updateStmt->execute();
-                $updateStmt->close();
-                
-                if ($result['success']) {
-                    $message = "Notifikasi berhasil dikirim! Terkirim: {$successCount}, Gagal: {$failureCount}";
-                    $message_type = "success";
-                } else {
-                    $message = "Gagal mengirim notifikasi: " . ($result['error'] ?? 'Unknown error');
-                    $message_type = "danger";
-                }
-            } catch (Exception $e) {
-                $message = "Error: " . $e->getMessage();
-                $message_type = "danger";
-            }
-        } else {
-            $message = "Error saving notification: " . $stmt->error;
+        // Validate inputs
+        if (empty($title) || empty($messageText) || empty($type)) {
+            $message = "Semua field wajib diisi";
             $message_type = "danger";
-            $stmt->close();
+        } else {
+            // Save notification to database
+            $stmt = $conn->prepare("
+                INSERT INTO notifications (title, message, type, target_users, topic, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $targetUsersJson = json_encode($targetUsers);
+            $stmt->bind_param("sssssi", $title, $messageText, $type, $targetUsersJson, $topic, $_SESSION['id_pegawai']);
+            
+            if ($stmt->execute()) {
+                $notificationId = $conn->insert_id;
+                $stmt->close();
+                
+                // Send notification
+                try {
+                    $result = null;
+                    switch ($type) {
+                        case 'all':
+                            $result = $firebaseService->sendToAll($title, $messageText);
+                            break;
+                        case 'specific':
+                            if (empty($targetUsers)) {
+                                throw new Exception("Pilih minimal satu pengguna");
+                            }
+                            $result = $firebaseService->sendToUsers($targetUsers, $title, $messageText);
+                            break;
+                        case 'topic':
+                            if (empty($topic)) {
+                                throw new Exception("Pilih topik terlebih dahulu");
+                            }
+                            $result = $firebaseService->sendToTopic($topic, $title, $messageText);
+                            break;
+                        default:
+                            throw new Exception("Tipe notifikasi tidak valid");
+                    }
+                    
+                    // Update notification status
+                    $status = $result['success'] ? 'sent' : 'failed';
+                    $successCount = $result['total_success'] ?? 0;
+                    $failureCount = $result['total_failure'] ?? 0;
+                    $fcmResponse = json_encode($result);
+                    
+                    $updateStmt = $conn->prepare("
+                        UPDATE notifications 
+                        SET status = ?, sent_at = NOW(), success_count = ?, failure_count = ?, fcm_response = ?
+                        WHERE id = ?
+                    ");
+                    $updateStmt->bind_param("siisi", $status, $successCount, $failureCount, $fcmResponse, $notificationId);
+                    $updateStmt->execute();
+                    $updateStmt->close();
+                    
+                    if ($result['success']) {
+                        $message = "Notifikasi berhasil dikirim! Terkirim: {$successCount}, Gagal: {$failureCount}";
+                        $message_type = "success";
+                    } else {
+                        $errorMsg = $result['error'] ?? 'Unknown error';
+                        if (isset($result['response']['error'])) {
+                            $errorMsg = $result['response']['error'];
+                        }
+                        $message = "Gagal mengirim notifikasi: " . $errorMsg;
+                        $message_type = "danger";
+                        
+                        // Log detailed error for debugging
+                        error_log("FCM Error Details: " . json_encode($result));
+                    }
+                } catch (Exception $e) {
+                    $message = "Error: " . $e->getMessage();
+                    $message_type = "danger";
+                    
+                    // Update notification status to failed
+                    $updateStmt = $conn->prepare("UPDATE notifications SET status = 'failed', fcm_response = ? WHERE id = ?");
+                    $errorResponse = json_encode(['error' => $e->getMessage()]);
+                    $updateStmt->bind_param("si", $errorResponse, $notificationId);
+                    $updateStmt->execute();
+                    $updateStmt->close();
+                }
+            } else {
+                $message = "Error saving notification: " . $stmt->error;
+                $message_type = "danger";
+                $stmt->close();
+            }
         }
     }
 }
