@@ -18,17 +18,22 @@ use Psr\SimpleCache\CacheInterface;
 final class HttpKeyStore implements KeyStore
 {
     /** @deprecated 1.15.0 */
-    public const KEYS_URL = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+    const KEYS_URL = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
 
-    public const KEY_URLS = [
+    const KEY_URLS = [
         'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com',
         'https://www.googleapis.com/oauth2/v1/certs',
     ];
 
-    private ClientInterface $client;
+    /** @var ClientInterface */
+    private $client;
 
-    private CacheInterface $cache;
+    /** @var CacheInterface */
+    private $cache;
 
+    /**
+     * @deprecated 1.9.0
+     */
     public function __construct(ClientInterface $client = null, CacheInterface $cache = null)
     {
         $this->client = $client ?? new Client();
@@ -77,15 +82,15 @@ final class HttpKeyStore implements KeyStore
 
     /**
      * @return array{
-     *                keys: array<string, string>,
-     *                ttl: int
-     *                }
+     *     keys: array<string, string>,
+     *     ttl: int
+     * }
      */
     private function fetchKeysFromUrl(string $url): array
     {
         $response = $this->client->request(RequestMethod::METHOD_GET, $url);
 
-        $ttl = \preg_match('/max-age=(\d+)/i', $response->getHeaderLine('Cache-Control'), $matches)
+        $ttl = \preg_match('/max-age=(\d+)/i', $response->getHeaderLine('Cache-Control') ?? '', $matches)
             ? (int) $matches[1]
             : 0;
 

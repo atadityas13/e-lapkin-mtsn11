@@ -14,7 +14,8 @@ use Kreait\Firebase\JWT\Contract\Token;
  */
 final class WithLcobucciV3JWT implements Handler
 {
-    private WithLcobucciJWT $handler;
+    /** @var Handler */
+    private $handler;
 
     public function __construct(string $clientEmail, string $privateKey, Clock $clock)
     {

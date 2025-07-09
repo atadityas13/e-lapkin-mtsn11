@@ -15,56 +15,27 @@ final class AndroidConfig implements JsonSerializable
     private const PRIORITY_NORMAL = 'normal';
     private const PRIORITY_HIGH = 'high';
 
-    /** @var array{
-     *      collapse_key?: string,
-     *      priority?: self::PRIORITY_*,
-     *      ttl?: string,
-     *      restricted_package_name?: string,
-     *      data?: array<string, string>,
-     *      notification?: array<string, string>,
-     *      fcm_options?: array<string, mixed>,
-     *      direct_boot_ok?: bool
-     * }
-     */
-    private array $config;
+    /** @var array<string, mixed> */
+    private $config;
 
-    /**
-     * @param array{
-     *     collapse_key?: string,
-     *     priority?: self::PRIORITY_*,
-     *     ttl?: string,
-     *     restricted_package_name?: string,
-     *     data?: array<string, string>,
-     *     notification?: array<string, string>,
-     *     fcm_options?: array<string, mixed>,
-     *     direct_boot_ok?: bool
-     * } $config
-     */
-    private function __construct(array $config)
+    private function __construct()
     {
-        $this->config = $config;
     }
 
     public static function new(): self
     {
-        return new self([]);
+        return self::fromArray([]);
     }
 
     /**
-     * @param array{
-     *     collapse_key?: string,
-     *     priority?: self::PRIORITY_*,
-     *     ttl?: string,
-     *     restricted_package_name?: string,
-     *     data?: array<string, string>,
-     *     notification?: array<string, string>,
-     *     fcm_options?: array<string, mixed>,
-     *     direct_boot_ok?: bool
-     * } $config
+     * @param array<string, mixed> $data
      */
-    public static function fromArray(array $config): self
+    public static function fromArray(array $data): self
     {
-        return new self($config);
+        $config = new self();
+        $config->config = $data;
+
+        return $config;
     }
 
     public function withDefaultSound(): self
@@ -79,7 +50,7 @@ final class AndroidConfig implements JsonSerializable
     public function withSound(string $sound): self
     {
         $config = clone $this;
-        $config->config['notification'] ??= [];
+        $config->config['notification'] = $config->config['notification'] ?? [];
         $config->config['notification']['sound'] = $sound;
 
         return $config;
@@ -95,9 +66,6 @@ final class AndroidConfig implements JsonSerializable
         return $this->withPriority(self::PRIORITY_NORMAL);
     }
 
-    /**
-     * @param self::PRIORITY_* $priority
-     */
     public function withPriority(string $priority): self
     {
         $config = clone $this;
@@ -111,6 +79,8 @@ final class AndroidConfig implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return \array_filter($this->config, static fn ($value) => $value !== null && $value !== []);
+        return \array_filter($this->config, static function ($value) {
+            return $value !== null;
+        });
     }
 }

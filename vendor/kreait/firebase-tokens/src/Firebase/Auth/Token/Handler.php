@@ -17,9 +17,11 @@ use Lcobucci\JWT\Token;
  */
 final class Handler implements Domain\Generator, Domain\Verifier
 {
-    private Generator $generator;
+    /** @var Generator */
+    private $generator;
 
-    private Verifier $verifier;
+    /** @var Verifier */
+    private $verifier;
 
     /**
      * @deprecated 1.7.0 Use the Generator and Verifier directly instead

@@ -10,18 +10,22 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Key\InMemory;
-use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token;
 
 final class Generator implements Domain\Generator
 {
     use ConvertsDates;
 
-    private string $clientEmail;
+    /** @var string */
+    private $clientEmail;
 
-    private Configuration $config;
+    /** @var Configuration */
+    private $config;
 
+    /**
+     * @deprecated 1.9.0
+     * @see \Kreait\Firebase\JWT\CustomTokenGenerator
+     */
     public function __construct(
         string $clientEmail,
         string $privateKey,
@@ -30,8 +34,8 @@ final class Generator implements Domain\Generator
         $this->clientEmail = $clientEmail;
 
         $this->config = Configuration::forSymmetricSigner(
-            $signer ?: new Sha256(),
-            InMemory::plainText($privateKey)
+            $signer ?: new Signer\Rsa\Sha256(),
+            Signer\Key\InMemory::plainText($privateKey)
         );
     }
 
@@ -39,6 +43,7 @@ final class Generator implements Domain\Generator
      * Returns a token for the given user and claims.
      *
      * @param mixed $uid
+     * @param DateTimeInterface $expiresAt
      *
      * @throws BadMethodCallException when a claim is invalid
      */
@@ -56,8 +61,7 @@ final class Generator implements Domain\Generator
             ->permittedFor('https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit')
             ->withClaim('uid', (string) $uid)
             ->issuedAt($now)
-            ->expiresAt($expiresAt)
-        ;
+            ->expiresAt($expiresAt);
 
         if (!empty($claims)) {
             $builder->withClaim('claims', $claims);

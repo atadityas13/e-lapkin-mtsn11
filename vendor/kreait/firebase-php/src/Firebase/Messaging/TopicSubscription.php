@@ -9,11 +9,14 @@ use JsonSerializable;
 
 final class TopicSubscription implements JsonSerializable
 {
-    private Topic $topic;
+    /** @var Topic */
+    private $topic;
 
-    private RegistrationToken $registrationToken;
+    /** @var RegistrationToken */
+    private $registrationToken;
 
-    private DateTimeImmutable $subscribedAt;
+    /** @var DateTimeImmutable */
+    private $subscribedAt;
 
     public function __construct(Topic $topic, RegistrationToken $registrationToken, DateTimeImmutable $subscribedAt)
     {
@@ -45,7 +48,7 @@ final class TopicSubscription implements JsonSerializable
         return [
             'topic' => $this->topic->value(),
             'registration_token' => $this->registrationToken->value(),
-            'subscribed_at' => $this->subscribedAt->format(DATE_ATOM),
+            'subscribed_at' => $this->subscribedAt->format(\DATE_ATOM),
         ];
     }
 }

@@ -10,28 +10,33 @@ use Kreait\Firebase\JWT\Value\Duration;
 
 final class CreateCustomToken
 {
-    public const MINIMUM_TTL = 'PT1S';
-    public const MAXIMUM_TTL = 'PT1H';
-    public const DEFAULT_TTL = self::MAXIMUM_TTL;
+    const MINIMUM_TTL = 'PT1S';
+    const MAXIMUM_TTL = 'PT1H';
+    const DEFAULT_TTL = self::MAXIMUM_TTL;
 
-    private string $uid;
+    /** @var string */
+    private $uid;
 
-    private ?string $tenantId = null;
+    /** @var string|null */
+    private $tenantId;
 
     /** @var array<string, mixed> */
-    private array $customClaims = [];
+    private $customClaims = [];
 
-    private Duration $ttl;
+    /** @var Duration */
+    private $ttl;
 
-    private function __construct(string $uid)
+    private function __construct()
     {
-        $this->uid = $uid;
         $this->ttl = Duration::fromDateIntervalSpec(self::DEFAULT_TTL);
     }
 
     public static function forUid(string $uid): self
     {
-        return new self($uid);
+        $action = new self();
+        $action->uid = $uid;
+
+        return $action;
     }
 
     public function withTenantId(string $tenantId): self
@@ -95,7 +100,6 @@ final class CreateCustomToken
 
         if ($ttl->isSmallerThan($minTtl) || $ttl->isLargerThan($maxTtl)) {
             $message = 'The expiration time of a custom token must be between %s and %s, but got %s';
-
             throw new InvalidArgumentException(\sprintf($message, $minTtl, $maxTtl, $ttl));
         }
 
@@ -110,7 +114,10 @@ final class CreateCustomToken
         return $this->uid;
     }
 
-    public function tenantId(): ?string
+    /**
+     * @return string|null
+     */
+    public function tenantId()
     {
         return $this->tenantId;
     }

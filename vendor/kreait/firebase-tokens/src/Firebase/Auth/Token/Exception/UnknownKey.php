@@ -8,7 +8,8 @@ use Lcobucci\JWT\Token;
 
 class UnknownKey extends InvalidToken
 {
-    private string $keyId;
+    /** @var string */
+    private $keyId;
 
     public function __construct(Token $token, string $keyId)
     {

@@ -16,13 +16,13 @@ use Throwable;
  */
 final class Duration
 {
-    public const NONE = 'PT0S';
+    const NONE = 'PT0S';
 
-    private DateInterval $value;
+    /** @var DateInterval */
+    private $value;
 
-    private function __construct(DateInterval $value)
+    private function __construct()
     {
-        $this->value = $value;
     }
 
     /**
@@ -98,7 +98,10 @@ final class Duration
             throw new InvalidArgumentException('A duration can not be negative');
         }
 
-        return new self($interval);
+        $ttl = new self();
+        $ttl->value = $interval;
+
+        return $ttl;
     }
 
     public static function none(): self

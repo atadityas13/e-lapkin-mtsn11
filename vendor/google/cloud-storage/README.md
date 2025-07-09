@@ -17,10 +17,16 @@ scenarios including serving website content, storing data for archival and disas
 
 To begin, install the preferred dependency manager for PHP, [Composer](https://getcomposer.org/).
 
-Now install this component:
+Now to install just this component:
 
 ```sh
 $ composer require google/cloud-storage
+```
+
+Or to install the entire suite of components at once:
+
+```sh
+$ composer require google/cloud
 ```
 
 ### Authentication

@@ -5,45 +5,61 @@ namespace Rize\UriTemplate\Node;
 use Rize\UriTemplate\Parser;
 
 /**
- * Base class for all Nodes.
+ * Base class for all Nodes
  */
 abstract class Abstraction
 {
-    public function __construct(private readonly string $token) {}
+    /**
+     * @var string
+     */
+    private $token;
+
+    public function __construct($token)
+    {
+        $this->token = $token;
+    }
 
     /**
      * Expands URI template
      *
-     * @param array<string, mixed> $params
+     * @param Parser $parser
+     * @param array  $params
+     * @return null|string
      */
-    public function expand(Parser $parser, array $params = []): ?string
+    public function expand(Parser $parser, array $params = array())
     {
         return $this->token;
     }
 
     /**
-     * Matches given URI against current node.
+     * Matches given URI against current node
      *
-     * @param array<string, mixed> $params
-     *
-     * @return null|array{0: string, 1: array<string, mixed>} `uri and params` or `null` if not match and $strict is true
+     * @param Parser $parser
+     * @param string $uri
+     * @param array  $params
+     * @param bool $strict
+     * @return null|array `uri and params` or `null` if not match and $strict is true
      */
-    public function match(Parser $parser, string $uri, array $params = [], bool $strict = false): ?array
+    public function match(Parser $parser, $uri, $params = array(), $strict = false)
     {
         // match literal string from start to end
-        if (str_starts_with($uri, $this->token)) {
-            $uri = substr($uri, strlen($this->token));
+        $length = strlen($this->token);
+        if (substr($uri, 0, $length) === $this->token) {
+            $uri = substr($uri, $length);
         }
 
         // when there's no match, just return null if strict mode is given
-        elseif ($strict) {
+        else if ($strict) {
             return null;
         }
 
-        return [$uri, $params];
+        return array($uri, $params);
     }
 
-    public function getToken(): string
+    /**
+     * @return string
+     */
+    public function getToken()
     {
         return $this->token;
     }

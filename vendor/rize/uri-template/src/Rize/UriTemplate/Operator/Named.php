@@ -10,51 +10,49 @@ use Rize\UriTemplate\Parser;
  * | 2   |    {?list*}   ?list=red&list=green&list=blue       | {name}+=(?:{$value}+(?:{sep}{name}+={$value}*))*
  * | 3   |    {?keys}    ?keys=semi,%3B,dot,.,comma,%2C       | (same as 1)
  * | 4   |    {?keys*}   ?semi=%3B&dot=.&comma=%2C            | (same as 2)
- * | 5   |    {?list*}   ?list[]=red&list[]=green&list[]=blue | {name[]}+=(?:{$value}+(?:{sep}{name[]}+={$value}*))*.
+ * | 5   |    {?list*}   ?list[]=red&list[]=green&list[]=blue | {name[]}+=(?:{$value}+(?:{sep}{name[]}+={$value}*))*
  */
 class Named extends Abstraction
 {
-    public function toRegex(Parser $parser, Node\Variable $var): string
+    public function toRegex(Parser $parser, Node\Variable $var)
     {
+        $regex   = null;
         $name    = $var->name;
         $value   = $this->getRegex();
         $options = $var->options;
 
         if ($options['modifier']) {
-            switch ($options['modifier']) {
+            switch($options['modifier']) {
                 case '*':
                     // 2 | 4
                     $regex = "{$name}+=(?:{$value}+(?:{$this->sep}{$name}+={$value}*)*)"
                            . "|{$value}+=(?:{$value}+(?:{$this->sep}{$value}+={$value}*)*)";
-
                     break;
-
                 case ':':
-                    $regex = "{$value}\\{0,{$options['value']}\\}";
-
+                    $regex = "{$value}\{0,{$options['value']}\}";
                     break;
 
                 case '%':
                     // 5
-                    $name .= '+(?:%5B|\[)[^=]*=';
+                    $name  = $name.'+(?:%5B|\[)[^=]*=';
                     $regex = "{$name}(?:{$value}+(?:{$this->sep}{$name}{$value}*)*)";
-
                     break;
-
                 default:
-                    throw new \InvalidArgumentException("Unknown modifier `{$options['modifier']}`");
+                    throw new \Exception("Unknown modifier `{$options['modifier']}`");
             }
-        } else {
+        }
+
+        else {
             // 1, 3
             $regex = "{$name}=(?:{$value}+(?:,{$value}+)*)*";
         }
 
-        return '(?:&)?' . $regex;
+        return '(?:&)?'.$regex;
     }
 
-    public function expandString(Parser $parser, Node\Variable $var, $val): string
+    public function expandString(Parser $parser, Node\Variable $var, $val)
     {
-        $val     = (string) $val;
+        $val     = (string)$val;
         $options = $var->options;
         $result  = $this->encode($parser, $var, $var->name);
 
@@ -63,42 +61,61 @@ class Named extends Abstraction
             return $result . $this->empty;
         }
 
-        $result .= '=';
+        else {
+            $result .= '=';
+        }
 
         if ($options['modifier'] === ':') {
-            $val = mb_substr($val, 0, (int) $options['value']);
+            $val = mb_substr($val, 0, (int)$options['value']);
         }
 
-        return $result . $this->encode($parser, $var, $val);
+        return $result.$this->encode($parser, $var, $val);
     }
 
-    public function expandNonExplode(Parser $parser, Node\Variable $var, array $val): ?string
+    public function expandNonExplode(Parser $parser, Node\Variable $var, array $val)
     {
         if (empty($val)) {
             return null;
         }
 
-        $result = $this->encode($parser, $var, $var->name);
+        $result  = $this->encode($parser, $var, $var->name);
 
-        $result .= '=';
+        if (empty($val)) {
+            return $result . $this->empty;
+        }
 
-        return $result . $this->encode($parser, $var, $val);
+        else {
+            $result .= '=';
+        }
+
+        return $result.$this->encode($parser, $var, $val);
     }
 
-    public function expandExplode(Parser $parser, Node\Variable $var, array $val): ?string
+    public function expandExplode(Parser $parser, Node\Variable $var, array $val)
     {
         if (empty($val)) {
             return null;
         }
 
-        $list = isset($val[0]);
-        $data = [];
-        foreach ($val as $k => $v) {
+        $result  = $this->encode($parser, $var, $var->name);
+
+        // RFC6570 doesn't specify how to handle empty list/assoc array
+        // for explode modifier
+        if (empty($val)) {
+            return $result . $this->empty;
+        }
+
+        $list  = isset($val[0]);
+        $data  = array();
+        foreach($val as $k => $v) {
+
             // if value is a list, use `varname` as keyname, otherwise use `key` name
             $key = $list ? $var->name : $k;
             if ($list) {
                 $data[$key][] = $v;
-            } else {
+            }
+
+            else {
                 $data[$key] = $v;
             }
         }
@@ -106,14 +123,14 @@ class Named extends Abstraction
         // if it's array modifier, we have to use variable name as index
         // e.g. if variable name is 'query' and value is ['limit' => 1]
         // then we convert it to ['query' => ['limit' => 1]]
-        if (!$list && $var->options['modifier'] === '%') {
-            $data = [$var->name => $data];
+        if (!$list and $var->options['modifier'] === '%') {
+            $data = array($var->name => $data);
         }
 
-        return $this->encodeExplodeVars($var, $data);
+        return $this->encodeExplodeVars($parser, $var, $data);
     }
 
-    public function extract(Parser $parser, Node\Variable $var, $data): array|string
+    public function extract(Parser $parser, Node\Variable $var, $data)
     {
         // get rid of optional `&` at the beginning
         if ($data[0] === '&') {
@@ -126,47 +143,45 @@ class Named extends Abstraction
 
         switch ($options['modifier']) {
             case '%':
-                parse_str($value, $query);
+                parse_str($data, $query);
 
                 return $query[$var->name];
 
             case '*':
-                $value = [];
+                $data = array();
 
-                foreach ($vals as $val) {
-                    [$k, $v] = explode('=', $val);
+                foreach($vals as $val) {
+                    list($k, $v) = explode('=', $val);
 
                     // 2
                     if ($k === $var->getToken()) {
-                        $value[] = $v;
+                        $data[]   = $v;
                     }
 
                     // 4
                     else {
-                        $value[$k] = $v;
+                        $data[$k] = $v;
                     }
                 }
 
                 break;
-
             case ':':
                 break;
-
             default:
                 // 1, 3
                 // remove key from value e.g. 'lang=en,th' becomes 'en,th'
-                $value = str_replace($var->getToken() . '=', '', $value);
-                $value = explode(',', $value);
+                $value = str_replace($var->getToken().'=', '', $value);
+                $data  = explode(',', $value);
 
-                if (count($value) === 1) {
-                    $value = current($value);
+                if (sizeof($data) === 1) {
+                    $data = current($data);
                 }
         }
 
-        return $this->decode($parser, $var, $value);
+        return $this->decode($parser, $var, $data);
     }
 
-    public function encodeExplodeVars(Node\Variable $var, $data): null|array|string
+    public function encodeExplodeVars(Parser $parser, Node\Variable $var, $data)
     {
         // http_build_query uses PHP_QUERY_RFC1738 encoding by default
         // i.e. spaces are encoded as '+' (plus signs) we need to convert
@@ -183,6 +198,7 @@ class Named extends Abstraction
 
         // `:`, `*` modifiers
         else {
+
             // by default, http_build_query will convert array values to `a[]=1&a[]=2`
             // which is different from the spec. It should be `a=1&a=2`
             $query = preg_replace('#%5B\d+%5D#', '', $query);
@@ -190,10 +206,11 @@ class Named extends Abstraction
 
         // handle reserved charset
         if ($this->reserved) {
+
             $query = str_replace(
                 array_keys(static::$reserved_chars),
                 static::$reserved_chars,
-                $query,
+                $query
             );
         }
 

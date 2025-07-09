@@ -7,6 +7,7 @@ namespace Kreait\Firebase\RemoteConfig;
 use GuzzleHttp\ClientInterface;
 use Kreait\Firebase\Exception\RemoteConfigApiExceptionConverter;
 use Kreait\Firebase\Exception\RemoteConfigException;
+use Kreait\Firebase\Http\WrappedGuzzleClient;
 use Kreait\Firebase\Util\JSON;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
@@ -15,10 +16,12 @@ use Throwable;
 /**
  * @internal
  */
-class ApiClient
+class ApiClient implements ClientInterface
 {
-    private ClientInterface $client;
-    private RemoteConfigApiExceptionConverter $errorHandler;
+    use WrappedGuzzleClient;
+
+    /** @var RemoteConfigApiExceptionConverter */
+    private $errorHandler;
 
     /**
      * @internal
@@ -82,9 +85,9 @@ class ApiClient
         $lastVersionNumber = $query->lastVersionNumber();
         $pageSize = $query->pageSize();
 
-        $since = $since !== null ? $since->format('Y-m-d\TH:i:s.v\Z') : null;
-        $until = $until !== null ? $until->format('Y-m-d\TH:i:s.v\Z') : null;
-        $lastVersionNumber = $lastVersionNumber !== null ? (string) $lastVersionNumber : null;
+        $since = $since ? $since->format('Y-m-d\TH:i:s.v\Z') : null;
+        $until = $until ? $until->format('Y-m-d\TH:i:s.v\Z') : null;
+        $lastVersionNumber = $lastVersionNumber ? (string) $lastVersionNumber : null;
         $pageSize = $pageSize ? (string) $pageSize : null;
 
         return $this->requestApi('GET', $uri, [
@@ -112,16 +115,22 @@ class ApiClient
         ]);
     }
 
+    /** @noinspection PhpDocMissingThrowsInspection */
+
     /**
+     * @param string $method
      * @param string|UriInterface $uri
      * @param array<string, mixed>|null $options
      *
      * @throws RemoteConfigException
      */
-    private function requestApi(string $method, $uri, ?array $options = null): ResponseInterface
+    private function requestApi($method, $uri, ?array $options = null): ResponseInterface
     {
-        $options ??= [];
-        $options['decode_content'] = 'gzip';
+        $options = $options ?? [];
+
+        $options = \array_merge($options, [
+            'decode_content' => 'gzip', // sets content-type and deflates response body
+        ]);
 
         try {
             return $this->client->request($method, $uri, $options);

@@ -15,6 +15,7 @@ use Kreait\Firebase\JWT\Error\IdTokenVerificationFailed;
 use Kreait\Firebase\JWT\Token as TokenInstance;
 use Lcobucci\Clock\FrozenClock;
 use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token as JWT;
@@ -28,13 +29,20 @@ use Throwable;
 
 final class WithLcobucciJWT implements Handler
 {
-    private string $projectId;
+    /** @var string */
+    private $projectId;
 
-    private Keys $keys;
+    /** @var Keys */
+    private $keys;
 
-    private Clock $clock;
+    /** @var Clock */
+    private $clock;
 
-    private Configuration $config;
+    /** @var Signer */
+    private $signer;
+
+    /** @var Configuration */
+    private $config;
 
     public function __construct(string $projectId, Keys $keys, Clock $clock)
     {
@@ -42,7 +50,7 @@ final class WithLcobucciJWT implements Handler
         $this->keys = $keys;
         $this->clock = $clock;
 
-        $this->config = Configuration::forSymmetricSigner(new Sha256(), InMemory::empty());
+        $this->config = Configuration::forSymmetricSigner(new Sha256(), InMemory::plainText(''));
     }
 
     public function handle(VerifyIdToken $action): Token
@@ -78,13 +86,19 @@ final class WithLcobucciJWT implements Handler
             }
         } catch (RequiredConstraintsViolated $e) {
             $errors = \array_map(
-                static fn (ConstraintViolation $violation): string => '- '.$violation->getMessage(),
+                static function (ConstraintViolation $violation): string {
+                    return '- '.$violation->getMessage();
+                },
                 $e->violations()
             );
         }
 
         if (!empty($errors)) {
             throw IdTokenVerificationFailed::withTokenAndReasons($tokenString, $errors);
+        }
+
+        if (!($token instanceof JWT\Plain)) {
+            throw IdTokenVerificationFailed::withTokenAndReasons($tokenString, ['The token could not be decrypted']);
         }
 
         $claims = $token->claims()->all();
@@ -122,7 +136,7 @@ final class WithLcobucciJWT implements Handler
         throw IdTokenVerificationFailed::withTokenAndReasons($token->toString(), ["No public key matching the key ID '{$keyId}' was found to verify the signature of this token."]);
     }
 
-    private function assertUserAuthedAt(JWT\Plain $token, DateTimeInterface $now): void
+    private function assertUserAuthedAt(JWT\Plain $token, DateTimeInterface $now)
     {
         /** @var int|DateTimeImmutable $authTime */
         $authTime = $token->claims()->get('auth_time');
@@ -144,13 +158,15 @@ final class WithLcobucciJWT implements Handler
         }
     }
 
-    private function assertTenantId(JWT\Plain $token, string $tenantId): void
+    private function assertTenantId(JWT\Plain $token, string $tenantId)
     {
-        $claim = (array) $token->claims()->get('firebase', []);
+        $claim = $token->claims()->get('firebase');
 
-        $tenant = $claim['tenant'] ?? null;
+        $tenant = \is_object($claim)
+            ? ($claim->tenant ?? null)
+            : ($claim['tenant'] ?? null);
 
-        if (!\is_string($tenant)) {
+        if (!$tenant) {
             throw RequiredConstraintsViolated::fromViolations(
                 new ConstraintViolation('The ID token does not contain a tenant identifier')
             );

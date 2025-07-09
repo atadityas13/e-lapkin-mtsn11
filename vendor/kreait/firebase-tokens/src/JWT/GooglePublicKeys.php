@@ -14,11 +14,14 @@ use Kreait\Firebase\JWT\Contract\Keys;
 
 final class GooglePublicKeys implements Keys
 {
-    private Clock $clock;
+    /** @var Clock */
+    private $clock;
 
-    private Handler $handler;
+    /** @var Handler */
+    private $handler;
 
-    private ?Keys $keys = null;
+    /** @var Keys|null */
+    private $keys;
 
     public function __construct(Handler $handler = null, Clock $clock = null)
     {

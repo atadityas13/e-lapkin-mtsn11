@@ -15,9 +15,11 @@ use Kreait\Firebase\JWT\Keys\ExpiringKeys;
 
 final class WithGuzzle6 implements Handler
 {
-    private ClientInterface $client;
+    /** @var ClientInterface */
+    private $client;
 
-    private Clock $clock;
+    /** @var Clock */
+    private $clock;
 
     public function __construct(ClientInterface $client, Clock $clock)
     {
@@ -50,9 +52,9 @@ final class WithGuzzle6 implements Handler
 
     /**
      * @return array{
-     *                keys: array<string, string>,
-     *                ttl: int
-     *                }
+     *     keys: array<string, string>,
+     *     ttl: int
+     * }
      */
     private function fetchKeysFromUrl(string $url): array
     {
@@ -78,7 +80,7 @@ final class WithGuzzle6 implements Handler
             ],
         ]);
 
-        $ttl = \preg_match('/max-age=(\d+)/i', $response->getHeaderLine('Cache-Control'), $matches)
+        $ttl = \preg_match('/max-age=(\d+)/i', $response->getHeaderLine('Cache-Control') ?? '', $matches)
             ? (int) $matches[1]
             : 0;
 

@@ -6,23 +6,17 @@ namespace Kreait\Firebase\JWT;
 
 final class Token implements Contract\Token
 {
-    private string $encodedString;
+    /** @var string */
+    private $encodedString;
 
     /** @var array<string, mixed> */
-    private array $headers;
+    private $headers;
 
     /** @var array<string, mixed> */
-    private array $payload;
+    private $payload;
 
-    /**
-     * @param array<string, mixed> $headers
-     * @param array<string, mixed> $payload
-     */
-    private function __construct(string $encodedString, array $headers, array $payload)
+    private function __construct()
     {
-        $this->encodedString = $encodedString;
-        $this->headers = $headers;
-        $this->payload = $payload;
     }
 
     /**
@@ -31,7 +25,13 @@ final class Token implements Contract\Token
      */
     public static function withValues(string $encodedString, array $headers, array $payload): self
     {
-        return new self($encodedString, $headers, $payload);
+        $token = new self();
+
+        $token->encodedString = $encodedString;
+        $token->headers = $headers;
+        $token->payload = $payload;
+
+        return $token;
     }
 
     /**

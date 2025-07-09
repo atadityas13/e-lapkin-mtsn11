@@ -7,10 +7,10 @@ namespace Kreait\Firebase\Request;
 use Kreait\Firebase\Exception\InvalidArgumentException;
 use Kreait\Firebase\Request;
 use Kreait\Firebase\Util\JSON;
+use Kreait\Firebase\Value\Provider;
 
 final class UpdateUser implements Request
 {
-    /** @phpstan-use EditUserTrait<self> */
     use EditUserTrait;
 
     public const DISPLAY_NAME = 'DISPLAY_NAME';
@@ -18,13 +18,13 @@ final class UpdateUser implements Request
     public const EMAIL = 'EMAIL';
 
     /** @var array<string> */
-    private array $attributesToDelete = [];
+    private $attributesToDelete = [];
 
-    /** @var string[] */
-    private array $providersToDelete = [];
+    /** @var Provider[] */
+    private $providersToDelete = [];
 
     /** @var array<string, mixed>|null */
-    private ?array $customAttributes = null;
+    private $customAttributes;
 
     private function __construct()
     {
@@ -51,68 +51,56 @@ final class UpdateUser implements Request
                 case 'removephoto':
                 case 'removephotourl':
                     $request = $request->withRemovedPhotoUrl();
-
                     break;
                 case 'deletedisplayname':
                 case 'removedisplayname':
                     $request = $request->withRemovedDisplayName();
-
                     break;
                 case 'deleteemail':
                 case 'removeemail':
                     $request = $request->withRemovedEmail();
-
                     break;
+
                 case 'deleteattribute':
                 case 'deleteattributes':
                     foreach ((array) $value as $deleteAttribute) {
                         switch (\mb_strtolower(\preg_replace('/[^a-z]/i', '', $deleteAttribute))) {
                             case 'displayname':
                                 $request = $request->withRemovedDisplayName();
-
                                 break;
                             case 'photo':
                             case 'photourl':
                                 $request = $request->withRemovedPhotoUrl();
-
                                 break;
                             case 'email':
                                 $request = $request->withRemovedEmail();
-
                                 break;
                         }
                     }
-
                     break;
                 case 'customattributes':
                 case 'customclaims':
                     $request = $request->withCustomAttributes($value);
-
                     break;
                 case 'phonenumber':
                 case 'phone':
                     if (!$value) {
                         $request = $request->withRemovedPhoneNumber();
                     }
-
                     break;
                 case 'deletephone':
                 case 'deletephonenumber':
                 case 'removephone':
                 case 'removephonenumber':
                     $request = $request->withRemovedPhoneNumber();
-
                     break;
                 case 'deleteprovider':
                 case 'deleteproviders':
                 case 'removeprovider':
                 case 'removeproviders':
-                    $request = \array_reduce(
-                        (array) $value,
-                        static fn (self $request, $provider) => $request->withRemovedProvider($provider),
-                        $request
-                    );
-
+                    $request = \array_reduce((array) $value, static function (self $request, $provider) {
+                        return $request->withRemovedProvider($provider);
+                    }, $request);
                     break;
             }
         }
@@ -129,12 +117,14 @@ final class UpdateUser implements Request
     }
 
     /**
-     * @param \Stringable|string $provider
+     * @param Provider|string $provider
      */
     public function withRemovedProvider($provider): self
     {
+        $provider = $provider instanceof Provider ? $provider : new Provider($provider);
+
         $request = clone $this;
-        $request->providersToDelete[] = (string) $provider;
+        $request->providersToDelete[] = $provider;
 
         return $request;
     }

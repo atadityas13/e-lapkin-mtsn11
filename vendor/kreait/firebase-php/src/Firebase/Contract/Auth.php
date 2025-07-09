@@ -4,17 +4,13 @@ declare(strict_types=1);
 
 namespace Kreait\Firebase\Contract;
 
-use DateInterval;
 use Firebase\Auth\Token\Exception\ExpiredToken;
 use Firebase\Auth\Token\Exception\InvalidSignature;
 use Firebase\Auth\Token\Exception\InvalidToken;
 use Firebase\Auth\Token\Exception\IssuedInTheFuture;
 use Firebase\Auth\Token\Exception\UnknownKey;
-use InvalidArgumentException;
 use Kreait\Firebase\Auth\ActionCodeSettings;
 use Kreait\Firebase\Auth\CreateActionLink\FailedToCreateActionLink;
-use Kreait\Firebase\Auth\CreateSessionCookie\FailedToCreateSessionCookie;
-use Kreait\Firebase\Auth\DeleteUsersResult;
 use Kreait\Firebase\Auth\SendActionLink\FailedToSendActionLink;
 use Kreait\Firebase\Auth\SignIn\FailedToSignIn;
 use Kreait\Firebase\Auth\SignInResult;
@@ -30,6 +26,7 @@ use Kreait\Firebase\Request;
 use Kreait\Firebase\Value\ClearTextPassword;
 use Kreait\Firebase\Value\Email;
 use Kreait\Firebase\Value\PhoneNumber;
+use Kreait\Firebase\Value\Provider;
 use Kreait\Firebase\Value\Uid;
 use Lcobucci\JWT\Token;
 use Psr\Http\Message\UriInterface;
@@ -161,20 +158,12 @@ interface Auth
     public function deleteUser($uid): void;
 
     /**
-     * @param iterable<Uid|string> $uids
-     * @param bool $forceDeleteEnabledUsers Whether to force deleting accounts that are not in disabled state. If false, only disabled accounts will be deleted, and accounts that are not disabled will be added to the errors.
-     *
-     * @throws Exception\AuthException
-     */
-    public function deleteUsers(iterable $uids, bool $forceDeleteEnabledUsers = false): DeleteUsersResult;
-
-    /**
      * @param Email|string $email
      * @param ActionCodeSettings|array<string, mixed>|null $actionCodeSettings
      *
      * @throws FailedToCreateActionLink
      */
-    public function getEmailActionLink(string $type, $email, $actionCodeSettings = null, ?string $locale = null): string;
+    public function getEmailActionLink(string $type, $email, $actionCodeSettings = null): string;
 
     /**
      * @param Email|string $email
@@ -191,7 +180,7 @@ interface Auth
      *
      * @throws FailedToCreateActionLink
      */
-    public function getEmailVerificationLink($email, $actionCodeSettings = null, ?string $locale = null): string;
+    public function getEmailVerificationLink($email, $actionCodeSettings = null): string;
 
     /**
      * @param Email|string $email
@@ -207,7 +196,7 @@ interface Auth
      *
      * @throws FailedToCreateActionLink
      */
-    public function getPasswordResetLink($email, $actionCodeSettings = null, ?string $locale = null): string;
+    public function getPasswordResetLink($email, $actionCodeSettings = null): string;
 
     /**
      * @param Email|string $email
@@ -223,7 +212,7 @@ interface Auth
      *
      * @throws FailedToCreateActionLink
      */
-    public function getSignInWithEmailLink($email, $actionCodeSettings = null, ?string $locale = null): string;
+    public function getSignInWithEmailLink($email, $actionCodeSettings = null): string;
 
     /**
      * @param Email|string $email
@@ -279,19 +268,6 @@ interface Auth
     public function parseToken(string $tokenString): Token;
 
     /**
-     * Creates a new Firebase session cookie with the given lifetime.
-     *
-     * The session cookie JWT will have the same payload claims as the provided ID token.
-     *
-     * @param Token|string $idToken The Firebase ID token to exchange for a session cookie
-     * @param DateInterval|int $ttl
-     *
-     * @throws InvalidArgumentException if the token or TTL is invalid
-     * @throws FailedToCreateSessionCookie
-     */
-    public function createSessionCookie($idToken, $ttl): string;
-
-    /**
      * Verifies a JWT auth token. Returns a Promise with the tokens claims. Rejects the promise if the token
      * could not be verified. If checkRevoked is set to true, verifies if the session corresponding to the
      * ID token was revoked. If the corresponding user's session was invalidated, a RevokedToken
@@ -305,7 +281,7 @@ interface Auth
      * @param Token|string $idToken the JWT to verify
      * @param bool $checkIfRevoked whether to check if the ID token is revoked
      *
-     * @throws InvalidArgumentException if the token could not be parsed
+     * @throws \InvalidArgumentException if the token could not be parsed
      * @throws InvalidToken if the token could be parsed, but is invalid for any reason (invalid signature, expired, time errors)
      * @throws InvalidSignature if the signature doesn't match
      * @throws ExpiredToken if the token is expired
@@ -392,7 +368,7 @@ interface Auth
 
     /**
      * @param Uid|string $uid
-     * @param \Stringable[]|string[]|\Stringable|string $provider
+     * @param Provider[]|string[]|string $provider
      *
      * @throws Exception\AuthException
      * @throws Exception\FirebaseException
@@ -429,52 +405,39 @@ interface Auth
 
     /**
      * @param string|Email $email
+     * @param string $oobCode
      *
      * @throws FailedToSignIn
      */
-    public function signInWithEmailAndOobCode($email, string $oobCode): SignInResult;
+    public function signInWithEmailAndOobCode($email, $oobCode): SignInResult;
 
     /**
      * @throws FailedToSignIn
      */
     public function signInAnonymously(): SignInResult;
 
-    /**
-     * @deprecated 5.26.0 Use {@see signInWithIdpAccessToken()} with 'twitter.com' instead.
-     */
-    public function signInWithTwitterOauthCredential(string $accessToken, string $oauthTokenSecret, ?string $redirectUrl = null, ?string $linkingIdToken = null): SignInResult;
+    public function signInWithTwitterOauthCredential(string $accessToken, string $oauthTokenSecret, ?string $redirectUrl = null): SignInResult;
 
-    /**
-     * @deprecated 5.26.0 Use {@see signInWithIdpIdToken()} with 'google.com' instead.
-     */
-    public function signInWithGoogleIdToken(string $idToken, ?string $redirectUrl = null, ?string $linkingIdToken = null): SignInResult;
+    public function signInWithGoogleIdToken(string $idToken, ?string $redirectUrl = null): SignInResult;
 
-    /**
-     * @deprecated 5.26.0 Use {@see signInWithIdpAccessToken()} with 'facebook.com' instead.
-     */
-    public function signInWithFacebookAccessToken(string $accessToken, ?string $redirectUrl = null, ?string $linkingIdToken = null): SignInResult;
-
-    /**
-     * @deprecated 5.26.0 Use {@see signInWithIdpIdToken()} with 'apple.com' instead.
-     */
-    public function signInWithAppleIdToken(string $idToken, ?string $rawNonce = null, ?string $redirectUrl = null, ?string $linkingIdToken = null): SignInResult;
+    public function signInWithFacebookAccessToken(string $accessToken, ?string $redirectUrl = null): SignInResult;
 
     /**
      * @see https://cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/signInWithIdp
      *
-     * @param \Stringable|string $provider
+     * @param Provider|string $provider
      * @param UriInterface|string|null $redirectUrl
      *
      * @throws FailedToSignIn
      */
-    public function signInWithIdpAccessToken($provider, string $accessToken, $redirectUrl = null, ?string $oauthTokenSecret = null, ?string $linkingIdToken = null, ?string $rawNonce = null): SignInResult;
+    public function signInWithIdpAccessToken($provider, string $accessToken, $redirectUrl = null, ?string $oauthTokenSecret = null): SignInResult;
 
     /**
-     * @param \Stringable|string $provider
+     * @param Provider|string $provider
      * @param Token|string $idToken
      * @param UriInterface|string|null $redirectUrl
      *
      * @throws FailedToSignIn
      */
-    public function signInWithIdpIdToken($provider, $idToken, $redirectUrl = null, ?string $linkingIdToken = null, ?string $rawNonce = null): SignInResult;
+    public function signInWithIdpIdToken($provider, $idToken, $redirectUrl = null): SignInResult;
 }

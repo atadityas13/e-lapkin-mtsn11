@@ -8,12 +8,14 @@ use InvalidArgumentException;
 
 final class VerifyIdToken
 {
-    private string $token = '';
+    /** @var string */
+    private $token = '';
 
     /** @var int */
     private $leewayInSeconds = 0;
 
-    private ?string $expectedTenantId = null;
+    /** @var string|null */
+    private $expectedTenantId;
 
     private function __construct()
     {

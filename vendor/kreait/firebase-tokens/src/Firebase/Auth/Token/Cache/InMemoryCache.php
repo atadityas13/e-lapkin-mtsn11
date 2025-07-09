@@ -11,7 +11,7 @@ use Psr\SimpleCache\CacheInterface;
 final class InMemoryCache implements CacheInterface
 {
     /** @var array<string, mixed> */
-    private array $items;
+    private $items;
 
     /**
      * @param array<string, mixed> $items

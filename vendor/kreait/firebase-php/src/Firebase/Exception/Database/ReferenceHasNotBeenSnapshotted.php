@@ -11,13 +11,12 @@ use Throwable;
 
 final class ReferenceHasNotBeenSnapshotted extends RuntimeException implements DatabaseException
 {
-    private Reference $reference;
+    /** @var Reference */
+    private $reference;
 
     public function __construct(Reference $query, string $message = '', int $code = 0, ?Throwable $previous = null)
     {
-        $message = \trim($message);
-
-        if ($message === '') {
+        if (!$message) {
             $message = "The reference {$query->getPath()} has not been snapshotted.";
         }
 

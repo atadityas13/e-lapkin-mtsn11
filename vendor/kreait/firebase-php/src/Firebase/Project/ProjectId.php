@@ -6,7 +6,8 @@ namespace Kreait\Firebase\Project;
 
 final class ProjectId
 {
-    private string $value = '';
+    /** @var string */
+    private $value = '';
 
     private function __construct()
     {
@@ -27,7 +28,7 @@ final class ProjectId
 
     public function sanitizedValue(): string
     {
-        if ($sanitizedValue = \preg_replace('/[^A-Za-z0-9\-\.:]/', '-', $this->value)) {
+        if ($sanitizedValue = \preg_replace('/[^A-Za-z0-9\-]/', '-', $this->value)) {
             return $sanitizedValue;
         }
 

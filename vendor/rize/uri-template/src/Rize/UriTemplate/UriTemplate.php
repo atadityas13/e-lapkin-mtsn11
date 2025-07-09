@@ -5,6 +5,8 @@ namespace Rize\UriTemplate;
 use Rize\UriTemplate as Template;
 
 /**
- * Future compatibility.
+ * Future compatibility
  */
-class UriTemplate extends Template {}
+class UriTemplate extends Template
+{
+}

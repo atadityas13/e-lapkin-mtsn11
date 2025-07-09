@@ -53,11 +53,13 @@ trait EncryptionTrait
     public function formatEncryptionHeaders(array $options)
     {
         $encryptionHeaders = [];
-        $useCopySourceHeaders = $options['useCopySourceHeaders'] ?? false;
-        $key = $options['encryptionKey'] ?? null;
-        $keySHA256 = $options['encryptionKeySHA256'] ?? null;
-        $destinationKey = $options['destinationEncryptionKey'] ?? null;
-        $destinationKeySHA256 = $options['destinationEncryptionKeySHA256'] ?? null;
+        $useCopySourceHeaders = isset($options['useCopySourceHeaders']) ? $options['useCopySourceHeaders'] : false;
+        $key = isset($options['encryptionKey']) ? $options['encryptionKey'] : null;
+        $keySHA256 = isset($options['encryptionKeySHA256']) ? $options['encryptionKeySHA256'] : null;
+        $destinationKey = isset($options['destinationEncryptionKey']) ? $options['destinationEncryptionKey'] : null;
+        $destinationKeySHA256 = isset($options['destinationEncryptionKeySHA256'])
+            ? $options['destinationEncryptionKeySHA256']
+            : null;
 
         unset($options['useCopySourceHeaders']);
         unset($options['encryptionKey']);

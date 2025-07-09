@@ -6,6 +6,9 @@ namespace Firebase\Auth\Token\Domain;
 
 use OutOfBoundsException;
 
+/**
+ * @deprecated 1.9.0
+ */
 interface KeyStore
 {
     /**

@@ -13,11 +13,14 @@ use Psr\SimpleCache\CacheInterface;
 
 final class WithPsr16SimpleCache implements Handler
 {
-    private Handler $handler;
+    /** @var Handler */
+    private $handler;
 
-    private CacheInterface $cache;
+    /** @var CacheInterface */
+    private $cache;
 
-    private Clock $clock;
+    /** @var Clock */
+    private $clock;
 
     public function __construct(Handler $handler, CacheInterface $cache, Clock $clock)
     {
@@ -49,9 +52,7 @@ final class WithPsr16SimpleCache implements Handler
         } catch (FetchingGooglePublicKeysFailed $e) {
             $reason = \sprintf(
                 'The inner handler of %s (%s) failed in fetching keys: %s',
-                __CLASS__,
-                \get_class($this->handler),
-                $e->getMessage()
+                __CLASS__, \get_class($this->handler), $e->getMessage()
             );
 
             throw FetchingGooglePublicKeysFailed::because($reason, $e->getCode(), $e);

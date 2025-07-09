@@ -60,7 +60,7 @@ class WriteStream implements StreamInterface
     /**
      * Close the stream. Uploads any remaining data.
      */
-    public function close(): void
+    public function close()
     {
         if ($this->uploader && $this->hasWritten) {
             $this->uploader->upload();
@@ -75,7 +75,7 @@ class WriteStream implements StreamInterface
      * @return int The number of bytes written
      * @throws \RuntimeException
      */
-    public function write($data): int
+    public function write($data)
     {
         if (!isset($this->uploader)) {
             throw new \RuntimeException("No uploader set.");
@@ -98,12 +98,12 @@ class WriteStream implements StreamInterface
      *
      * @param AbstractUploader $uploader The new uploader to use.
      */
-    public function setUploader($uploader): void
+    public function setUploader($uploader)
     {
         $this->uploader = $uploader;
     }
 
-    private function getChunkedWriteSize(): int
+    private function getChunkedWriteSize()
     {
         return (int) floor($this->getSize() / $this->chunkSize) * $this->chunkSize;
     }

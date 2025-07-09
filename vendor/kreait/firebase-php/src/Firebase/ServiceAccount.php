@@ -13,15 +13,8 @@ use Throwable;
  */
 class ServiceAccount
 {
-    /**
-     * @var array{
-     *     project_id: string|null,
-     *     client_email: string|null,
-     *     private_key: string|null,
-     *     type?: string|null
-     * }|array<string, string|null> $data
-     */
-    private array $data = [];
+    /** @var array<string, string> */
+    private $data = [];
 
     public function getProjectId(): string
     {
@@ -39,25 +32,22 @@ class ServiceAccount
     }
 
     /**
-     * @return array{
-     *     project_id: string|null,
-     *     client_email: string|null,
-     *     private_key: string|null,
-     *     type: string|null
-     * }|array<string, string|null>
+     * @return array<string, string>
      */
     public function asArray(): array
     {
         $array = $this->data;
-        $array['type'] ??= 'service_account';
+        $array['type'] = $array['type'] ?? 'service_account';
 
         return $array;
     }
 
     /**
-     * @param self|string|array|mixed $value
+     * @param self|string|array<mixed>|mixed $value
      *
      * @throws InvalidArgumentException
+     *
+     * @return ServiceAccount
      */
     public static function fromValue($value): self
     {
@@ -67,7 +57,7 @@ class ServiceAccount
 
         if (\is_string($value)) {
             try {
-                if (\str_starts_with($value, '{')) {
+                if (\mb_strpos($value, '{') === 0) {
                     return self::fromJson($value);
                 }
 

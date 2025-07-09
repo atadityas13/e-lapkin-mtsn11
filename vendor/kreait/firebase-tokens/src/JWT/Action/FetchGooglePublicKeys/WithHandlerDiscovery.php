@@ -13,7 +13,8 @@ use Kreait\Firebase\JWT\Error\DiscoveryFailed;
 
 final class WithHandlerDiscovery implements Handler
 {
-    private Handler $handler;
+    /** @var Handler */
+    private $handler;
 
     public function __construct(Clock $clock)
     {
@@ -28,11 +29,11 @@ final class WithHandlerDiscovery implements Handler
     private static function discover(Clock $clock): Handler
     {
         if (\filter_var(\ini_get('allow_url_fopen'), \FILTER_VALIDATE_BOOLEAN)) {
-            return new WithStreamContext($clock);
+            return new FetchGooglePublicKeys\WithStreamContext($clock);
         }
 
         if (\interface_exists(ClientInterface::class)) {
-            return new WithGuzzle6(new Client(['http_errors' => false]), $clock);
+            return new FetchGooglePublicKeys\WithGuzzle6(new Client(['http_errors' => false]), $clock);
         }
 
         throw DiscoveryFailed::noHttpLibraryFound();

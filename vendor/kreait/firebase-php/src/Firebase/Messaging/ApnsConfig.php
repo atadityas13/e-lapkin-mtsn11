@@ -9,57 +9,33 @@ use JsonSerializable;
 /**
  * @see https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
  * @see https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/sending_notification_requests_to_apns
- * @see https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#apnsconfig
  */
 final class ApnsConfig implements JsonSerializable
 {
     private const PRIORITY_CONSERVE_POWER = '5';
     private const PRIORITY_IMMEDIATE = '10';
 
-    /** @var array{
-     *      headers?: array<string, string>,
-     *      payload?: array<string, mixed>,
-     *      fcm_options?: array{
-     *          analytics_label?: string,
-     *          image?: string
-     *      }
-     * }
-     */
-    private array $config;
+    /** @var array<string, mixed> */
+    private $config;
 
-    /**
-     * @param array{
-     *      headers?: array<string, string>,
-     *      payload?: array<string, mixed>,
-     *      fcm_options?: array{
-     *          analytics_label?: string,
-     *          image?: string
-     *      }
-     * } $config
-     */
-    private function __construct(array $config)
+    private function __construct()
     {
-        $this->config = $config;
     }
 
     public static function new(): self
     {
-        return new self([]);
+        return self::fromArray([]);
     }
 
     /**
-     * @param array{
-     *      headers?: array<string, string>,
-     *      payload?: array<string, mixed>,
-     *      fcm_options?: array{
-     *          analytics_label?: string,
-     *          image?: string
-     *      }
-     * } $data
+     * @param array<string, mixed> $data
      */
     public static function fromArray(array $data): self
     {
-        return new self($data);
+        $config = new self();
+        $config->config = $data;
+
+        return $config;
     }
 
     public function withDefaultSound(): self
@@ -75,8 +51,8 @@ final class ApnsConfig implements JsonSerializable
     {
         $config = clone $this;
 
-        $config->config['payload'] ??= [];
-        $config->config['payload']['aps'] ??= [];
+        $config->config['payload'] = $config->config['payload'] ?? [];
+        $config->config['payload']['aps'] = $config->config['payload']['aps'] ?? [];
         $config->config['payload']['aps']['sound'] = $sound;
 
         return $config;
@@ -88,8 +64,8 @@ final class ApnsConfig implements JsonSerializable
     public function withBadge(int $number): self
     {
         $config = clone $this;
-        $config->config['payload'] ??= [];
-        $config->config['payload']['aps'] ??= [];
+        $config->config['payload'] = $config->config['payload'] ?? [];
+        $config->config['payload']['aps'] = $config->config['payload']['aps'] ?? [];
         $config->config['payload']['aps']['badge'] = $number;
 
         return $config;
@@ -108,7 +84,7 @@ final class ApnsConfig implements JsonSerializable
     public function withPriority(string $priority): self
     {
         $config = clone $this;
-        $config->config['headers'] ??= [];
+        $config->config['headers'] = $config->config['headers'] ?? [];
         $config->config['headers']['apns-priority'] = $priority;
 
         return $config;
@@ -119,6 +95,8 @@ final class ApnsConfig implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return \array_filter($this->config, static fn ($value) => $value !== null && $value !== []);
+        return \array_filter($this->config, static function ($value) {
+            return $value !== null;
+        });
     }
 }

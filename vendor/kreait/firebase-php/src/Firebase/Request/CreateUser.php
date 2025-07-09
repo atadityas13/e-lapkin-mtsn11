@@ -9,7 +9,6 @@ use Kreait\Firebase\Request;
 
 final class CreateUser implements Request
 {
-    /** @phpstan-use EditUserTrait<self> */
     use EditUserTrait;
 
     private function __construct()

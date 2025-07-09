@@ -21,8 +21,6 @@ use Google\Cloud\Core\Iam\IamConnectionInterface;
 
 /**
  * IAM Implementation for GCS Buckets
- *
- * @internal
  */
 class IamBucket implements IamConnectionInterface
 {

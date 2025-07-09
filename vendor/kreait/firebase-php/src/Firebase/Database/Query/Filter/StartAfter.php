@@ -18,7 +18,7 @@ final class StartAfter implements Filter
     private $value;
 
     /**
-     * @param scalar $value
+     * @param int|float|string|bool $value
      */
     public function __construct($value)
     {
