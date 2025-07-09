@@ -4,7 +4,7 @@
  * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE APP VERSION
  * ========================================================
  * 
- * Annual Report Redirect - Now integrated in laporan.php
+ * Annual Report List - Mobile Optimized View
  * 
  * @package    E-Lapkin-MTSN11
  * @version    1.0.0
@@ -48,6 +48,47 @@ $result_check = $stmt_check->get_result();
 $data_count = $result_check->fetch_assoc()['total'];
 $stmt_check->close();
 
+// Get monthly data for the year
+function get_monthly_data($conn, $id_pegawai, $tahun) {
+    $monthly_data = [];
+    $bulan_names = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    
+    $stmt = $conn->prepare("
+        SELECT 
+            MONTH(l.tanggal) as bulan,
+            COUNT(DISTINCT l.id_lkh) as total_lkh,
+            COUNT(DISTINCT rkb.id_rkb) as total_rkb
+        FROM lkh l
+        JOIN rkb ON l.id_rkb = rkb.id_rkb  
+        JOIN rhk ON rkb.id_rhk = rhk.id_rhk
+        WHERE rhk.id_pegawai = ? AND rkb.tahun = ?
+        GROUP BY MONTH(l.tanggal)
+        ORDER BY MONTH(l.tanggal)
+    ");
+    
+    $stmt->bind_param("ii", $id_pegawai, $tahun);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    while ($row = $result->fetch_assoc()) {
+        $monthly_data[$row['bulan']] = [
+            'nama_bulan' => $bulan_names[$row['bulan']],
+            'total_lkh' => $row['total_lkh'],
+            'total_rkb' => $row['total_rkb'],
+            'bulan_number' => $row['bulan']
+        ];
+    }
+    
+    $stmt->close();
+    return $monthly_data;
+}
+
+$monthly_data = get_monthly_data($conn, $id_pegawai_login, $periode_tahun);
+
 $page_title = "Laporan Tahunan - Mobile App";
 include __DIR__ . '/template/header.php';
 ?>
@@ -89,39 +130,6 @@ include __DIR__ . '/template/header.php';
     color: white;
 }
 
-.download-section {
-    background: white;
-    border-radius: 20px;
-    padding: 30px;
-    margin: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-
-.download-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 30px;
-    padding: 18px 35px;
-    color: white;
-    font-weight: 600;
-    font-size: 16px;
-    width: 100%;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-}
-
-.download-btn:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
-}
-
-.download-btn:disabled {
-    background: linear-gradient(135deg, #6c757d, #5a6268);
-    transform: none;
-    box-shadow: 0 4px 10px rgba(108, 117, 125, 0.3);
-    cursor: not-allowed;
-}
-
 .mobile-header {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -131,78 +139,65 @@ include __DIR__ . '/template/header.php';
     color: white;
 }
 
-.progress-container {
-    background: #f8f9fa;
+.month-card {
+    background: white;
     border-radius: 15px;
     padding: 20px;
-    margin: 20px 0;
-    display: none;
+    margin-bottom: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-left: 4px solid #667eea;
+    transition: all 0.3s ease;
 }
 
-.progress {
-    height: 12px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #e9ecef;
+.month-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 
-.progress-bar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    height: 100%;
-    border-radius: 6px;
-    transition: width 0.4s ease;
-    position: relative;
-    overflow: hidden;
+.month-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-.progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    background: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0.2) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, 0.2) 50%,
-        rgba(255, 255, 255, 0.2) 75%,
-        transparent 75%,
-        transparent
-    );
-    background-size: 15px 15px;
-    animation: progress-animation 1s linear infinite;
-}
-
-@keyframes progress-animation {
-    0% { transform: translateX(-15px); }
-    100% { transform: translateX(15px); }
-}
-
-.loading-spinner {
-    display: none;
+.month-stats {
+    display: flex;
+    justify-content: space-around;
     text-align: center;
-    padding: 25px;
 }
 
-.feature-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin: 20px 0;
+.stat-item {
+    flex: 1;
 }
 
-.feature-item {
-    background: rgba(102, 126, 234, 0.1);
-    border-radius: 12px;
-    padding: 15px;
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.development-notice {
+    background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px;
     text-align: center;
-    border: 1px solid rgba(102, 126, 234, 0.2);
+    border: none;
 }
 
-/* Add enhanced back navigation for better UX */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
 .enhanced-back-btn {
     position: fixed;
     top: 20px;
@@ -228,14 +223,14 @@ include __DIR__ . '/template/header.php';
         padding: 0;
     }
     
-    .report-card, .download-section {
+    .report-card {
         margin: 10px;
         padding: 20px;
     }
     
-    .feature-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
+    .month-card {
+        margin: 10px;
+        padding: 15px;
     }
     
     .enhanced-back-btn {
@@ -248,7 +243,7 @@ include __DIR__ . '/template/header.php';
 </style>
 
 <div class="mobile-app-container">
-    <!-- Enhanced Mobile Header with better navigation -->
+    <!-- Enhanced Mobile Header -->
     <div class="mobile-header">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
@@ -272,11 +267,11 @@ include __DIR__ . '/template/header.php';
             </div>
             
             <div class="row text-center">
-                <div class="col-6">
+                <div class="col-4">
                     <div class="h3 mb-1"><?php echo $data_count; ?></div>
                     <small>Total RKB</small>
                 </div>
-                <div class="col-6">
+                <div class="col-4">
                     <?php
                     $stmt_lkh = $conn->prepare("SELECT COUNT(*) as total FROM lkh l 
                         JOIN rkb ON l.id_rkb = rkb.id_rkb 
@@ -291,6 +286,10 @@ include __DIR__ . '/template/header.php';
                     <div class="h3 mb-1"><?php echo $lkh_count; ?></div>
                     <small>Total LKH</small>
                 </div>
+                <div class="col-4">
+                    <div class="h3 mb-1"><?php echo count($monthly_data); ?></div>
+                    <small>Bulan Aktif</small>
+                </div>
             </div>
             
             <div class="text-center mt-3">
@@ -300,99 +299,70 @@ include __DIR__ . '/template/header.php';
                 </small>
             </div>
         </div>
-
-        <!-- Feature Grid -->
-        <div class="feature-grid">
-            <div class="feature-item">
-                <i class="fas fa-file-pdf text-danger fa-2x mb-2"></i>
-                <h6>Format PDF</h6>
-                <small class="text-muted">Siap cetak</small>
-            </div>
-            <div class="feature-item">
-                <i class="fas fa-table text-primary fa-2x mb-2"></i>
-                <h6>Tabel Lengkap</h6>
-                <small class="text-muted">RKB & LKH</small>
-            </div>
-            <div class="feature-item">
-                <i class="fas fa-signature text-success fa-2x mb-2"></i>
-                <h6>Tanda Tangan</h6>
-                <small class="text-muted">Digital</small>
-            </div>
-            <div class="feature-item">
-                <i class="fas fa-mobile-alt text-warning fa-2x mb-2"></i>
-                <h6>Mobile App</h6>
-                <small class="text-muted">Optimized</small>
-            </div>
-        </div>
     </div>
 
-    <!-- Download Section -->
-    <div class="download-section">
-        <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 80px; height: 80px;">
-                <i class="fas fa-download fa-2x text-primary"></i>
-            </div>
-            <h5>Download Laporan PDF</h5>
-            <p class="text-muted">Unduh laporan tahunan dalam format PDF yang dapat dicetak dan dibagikan</p>
+    <!-- Development Notice -->
+    <div class="development-notice">
+        <i class="fas fa-tools fa-2x mb-3 text-warning"></i>
+        <h5 class="text-dark mb-2">Fitur Download Sedang Dikembangkan</h5>
+        <p class="mb-0 text-dark">
+            Saat ini Anda dapat melihat daftar laporan bulanan. 
+            Fitur download PDF akan segera tersedia.
+        </p>
+    </div>
+
+    <!-- Monthly Reports List -->
+    <div class="report-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">📅 Laporan Bulanan</h5>
+            <small class="text-muted"><?php echo count($monthly_data); ?> bulan</small>
         </div>
 
-        <!-- Progress Container -->
-        <div class="progress-container" id="progressContainer">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fw-bold text-primary">
-                    <i class="fas fa-cog fa-spin me-2"></i>
-                    Generating PDF...
-                </span>
-                <span class="badge bg-primary" id="progressText">0%</span>
-            </div>
-            <div class="progress">
-                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-            </div>
-            <small class="text-muted mt-2 d-block">
-                <i class="fas fa-info-circle me-1"></i>
-                Mohon tunggu, sedang menyiapkan laporan PDF Anda...
-            </small>
-        </div>
-
-        <!-- Loading Spinner -->
-        <div class="loading-spinner" id="loadingSpinner">
-            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <h6 class="text-primary">Menyiapkan Laporan PDF</h6>
-            <p class="text-muted mb-0">Mohon tunggu beberapa saat...</p>
-        </div>
-
-        <?php if ($data_count > 0): ?>
-            <button class="download-btn" id="downloadBtn" onclick="downloadPDF()">
-                <i class="fas fa-download me-2"></i>
-                Download Laporan Tahunan PDF
-            </button>
+        <?php if (!empty($monthly_data)): ?>
+            <?php foreach ($monthly_data as $bulan => $data): ?>
+                <div class="month-card">
+                    <div class="month-header">
+                        <h6 class="mb-0 fw-bold text-primary">
+                            <i class="fas fa-calendar me-2"></i>
+                            <?php echo $data['nama_bulan']; ?> <?php echo $periode_tahun; ?>
+                        </h6>
+                        <span class="badge bg-success">
+                            <i class="fas fa-check me-1"></i>Terisi
+                        </span>
+                    </div>
+                    
+                    <div class="month-stats">
+                        <div class="stat-item">
+                            <div class="stat-number"><?php echo $data['total_rkb']; ?></div>
+                            <div class="stat-label">RKB</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number"><?php echo $data['total_lkh']; ?></div>
+                            <div class="stat-label">LKH</div>
+                        </div>
+                        <div class="stat-item">
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewMonthDetail(<?php echo $bulan; ?>)">
+                                <i class="fas fa-eye me-1"></i>Detail
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         <?php else: ?>
-            <div class="alert alert-warning text-center border-0" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e);">
-                <i class="fas fa-exclamation-triangle fa-2x mb-2 text-warning"></i>
-                <h6 class="text-dark">Belum Ada Data</h6>
-                <p class="mb-0 text-dark">Belum ada RKB atau LKH untuk tahun <?php echo $periode_tahun; ?></p>
+            <div class="empty-state">
+                <i class="fas fa-calendar-times fa-3x mb-3 text-muted"></i>
+                <h5 class="text-muted">Belum Ada Data</h5>
+                <p class="text-muted">
+                    Belum ada laporan yang tersedia untuk tahun <?php echo $periode_tahun; ?>
+                </p>
+                <a href="laporan.php" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Buat Laporan
+                </a>
             </div>
-            <button class="download-btn" disabled>
-                <i class="fas fa-ban me-2"></i>
-                Tidak Ada Data untuk Diunduh
-            </button>
         <?php endif; ?>
-
-        <div class="mt-4 p-3 bg-light rounded-3">
-            <small class="text-muted d-block">
-                <i class="fas fa-shield-alt text-success me-1"></i>
-                <strong>Keamanan:</strong> File PDF akan dihapus otomatis setelah 3 menit untuk melindungi data pribadi Anda.
-            </small>
-            <small class="text-muted d-block mt-1">
-                <i class="fas fa-mobile-alt text-primary me-1"></i>
-                <strong>Mobile App:</strong> Optimized untuk pengalaman mobile yang lebih baik.
-            </small>
-        </div>
     </div>
 
-    <!-- Add integration notice -->
+    <!-- Integration Notice -->
     <div class="report-card">
         <div class="d-flex align-items-center p-3 bg-light rounded-3">
             <i class="fas fa-link text-primary fa-2x me-3"></i>
@@ -418,50 +388,80 @@ function goBackToReports() {
     }
 }
 
-function downloadPDF() {
-    const downloadBtn = document.getElementById('downloadBtn');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
+function viewMonthDetail(bulan) {
+    // Navigate to monthly report detail
+    window.location.href = `laporan.php?tab=bulanan&bulan=${bulan}&tahun=<?php echo $periode_tahun; ?>`;
+}
+
+// Add mobile app specific enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    // Add touch feedback for mobile
+    const monthCards = document.querySelectorAll('.month-card');
+    monthCards.forEach(card => {
+        card.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.98)';
+        });
+        
+        card.addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
     
-    // Disable button and show loading
-    downloadBtn.disabled = true;
-    downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyiapkan PDF...';
-    loadingSpinner.style.display = 'block';
-    progressContainer.style.display = 'block';
+    // Enhanced back button behavior
+    const backBtn = document.getElementById('backToReportsBtn');
+    if (backBtn) {
+        backBtn.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        backBtn.addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+        });
+    }
     
-    // Enhanced progress simulation
-    let progress = 0;
-    const progressSteps = [
-        { value: 15, message: 'Mengumpulkan data...' },
-        { value: 35, message: 'Memproses RKB...' },
-        { value: 55, message: 'Memproses LKH...' },
-        { value: 75, message: 'Generating PDF...' },
-        { value: 90, message: 'Finalizing...' }
-    ];
+    // Add swipe gesture for going back (mobile enhancement)
+    let startX = 0;
+    let startY = 0;
     
-    let stepIndex = 0;
-    const progressInterval = setInterval(() => {
-        if (stepIndex < progressSteps.length) {
-            const step = progressSteps[stepIndex];
-            progress = step.value;
-            progressBar.style.width = progress + '%';
-            progressText.textContent = Math.round(progress) + '%';
-            
-            // Update loading message
-            const loadingElement = document.querySelector('#loadingSpinner p');
-            if (loadingElement) {
-                loadingElement.textContent = step.message;
-            }
-            
-            stepIndex++;
-        } else {
-            clearInterval(progressInterval);
+    document.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    });
+    
+    document.addEventListener('touchend', function(e) {
+        if (!startX || !startY) return;
+        
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        
+        const diffX = startX - endX;
+        const diffY = startY - endY;
+        
+        // Detect right swipe (back gesture)
+        if (Math.abs(diffX) > Math.abs(diffY) && diffX < -100 && startX < 50) {
+            goBackToReports();
         }
-    }, 500);
+        
+        startX = 0;
+        startY = 0;
+    });
     
-    // Create form for download
+    // Animate cards on load
+    const cards = document.querySelectorAll('.month-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+
+<?php include __DIR__ . '/template/footer.php'; ?>
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = 'generate_pdf_tahunan.php';
