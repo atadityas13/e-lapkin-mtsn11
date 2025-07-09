@@ -4,7 +4,8 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type, X-Mobile-Token, X-App-Package');
 
-require_once '../config/database.php';
+// Perbaiki path ke database.php agar sesuai struktur hosting/produksi
+require_once __DIR__ . '/../config/database.php';
 
 // Verify mobile token
 function verifyMobileToken($headers) {
