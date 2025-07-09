@@ -758,12 +758,23 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 </div>
                 
                 <div class="p-3">
-                    <!-- Year Selection -->
+                    <!-- Development Notice -->
+                    <div class="report-item" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e); border: none; text-align: center; padding: 30px 20px;">
+                        <div class="mb-3">
+                            <i class="fas fa-tools fa-3x text-warning mb-3"></i>
+                            <h5 class="text-dark mb-2">Fitur Sedang Dikembangkan</h5>
+                            <p class="text-dark mb-0">
+                                Laporan Tahunan saat ini masih dalam tahap pengembangan untuk versi mobile. 
+                                Untuk mengakses laporan tahunan, silakan gunakan aplikasi web utama melalui browser.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Year Selection (for display only) -->
                     <div class="mb-3">
-                        <form method="GET" class="d-flex align-items-center gap-2" id="yearSelectionForm">
-                            <input type="hidden" name="tab" value="tahunan">
-                            <label for="year" class="form-label mb-0 text-nowrap">Pilih Tahun:</label>
-                            <select name="year" id="year" class="form-select form-select-sm" style="max-width: 120px;" onchange="updateAnnualData()">
+                        <div class="d-flex align-items-center gap-2 justify-content-center">
+                            <label class="form-label mb-0 text-nowrap">Tahun Aktif:</label>
+                            <select class="form-select form-select-sm" style="max-width: 120px;" disabled>
                                 <?php
                                 $current_year = (int)date('Y');
                                 $selected_year = isset($_GET['year']) ? (int)$_GET['year'] : $current_year;
@@ -773,13 +784,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                 }
                                 ?>
                             </select>
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </form>
+                        </div>
                     </div>
 
-                    <!-- Annual Report Stats -->
+                    <!-- Annual Report Stats (Read-only) -->
                     <?php
                     // Get annual data count for selected year
                     $stmt_annual_check = $conn->prepare("SELECT COUNT(*) as total FROM rhk r 
@@ -800,10 +808,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     $stmt_annual_lkh_check->close();
                     ?>
 
-                    <!-- Annual Statistics Card -->
+                    <!-- Annual Statistics Card (Read-only) -->
                     <div class="report-item" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0">📈 Statistik Tahun <?php echo $selected_year; ?></h6>
+                            <h6 class="mb-0">📊 Data Tahun <?php echo $selected_year; ?></h6>
                             <i class="fas fa-chart-bar fa-2x opacity-75"></i>
                         </div>
                         
@@ -821,89 +829,100 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                         <div class="text-center mt-3">
                             <small class="opacity-75">
                                 <i class="fas fa-calendar-alt me-1"></i>
-                                Periode: Januari - Desember <?php echo $selected_year; ?>
+                                Data tersedia untuk tahun <?php echo $selected_year; ?>
                             </small>
                         </div>
                     </div>
 
-                    <!-- Feature Highlights -->
-                    <div class="report-item" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e); border: none;">
-                        <div class="row text-center">
-                            <div class="col-6">
-                                <i class="fas fa-file-pdf text-danger fa-2x mb-2"></i>
-                                <h6>Format PDF</h6>
-                                <small>Siap cetak & bagikan</small>
-                            </div>
-                            <div class="col-6">
-                                <i class="fas fa-table text-primary fa-2x mb-2"></i>
-                                <h6>Komprehensif</h6>
-                                <small>Semua data tahun ini</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Download Section -->
+                    <!-- Web Access Instructions -->
                     <div class="report-item">
                         <div class="text-center mb-3">
                             <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 60px; height: 60px;">
-                                <i class="fas fa-download fa-2x text-primary"></i>
+                                <i class="fas fa-globe fa-2x text-primary"></i>
                             </div>
-                            <h6>Download Laporan Tahunan PDF</h6>
-                            <p class="text-muted small mb-0">Unduh laporan lengkap dalam format PDF yang dapat dicetak</p>
+                            <h6>Akses Melalui Aplikasi Web</h6>
+                            <p class="text-muted small mb-3">
+                                Untuk mengakses laporan tahunan, silakan buka aplikasi web E-Lapkin melalui browser
+                            </p>
                         </div>
 
-                        <!-- Progress Container -->
-                        <div class="progress-container" id="annualProgressContainer" style="display: none; background: #f8f9fa; border-radius: 15px; padding: 15px; margin: 15px 0;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold text-primary small">
-                                    <i class="fas fa-cog fa-spin me-2"></i>
-                                    Generating PDF...
-                                </span>
-                                <span class="badge bg-primary" id="annualProgressText">0%</span>
+                        <!-- Web Access Button -->
+                        <button class="btn btn-primary w-100 mb-3" onclick="openWebApplication()">
+                            <i class="fas fa-external-link-alt me-2"></i>
+                            Buka Aplikasi Web E-Lapkin
+                        </button>
+
+                        <!-- Alternative Manual Access -->
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-info-circle text-info me-2 mt-1"></i>
+                                <div>
+                                    <small class="fw-bold">Cara Akses Manual:</small>
+                                    <ol class="small mb-0 mt-1 ps-3">
+                                        <li>Buka browser (Chrome, Firefox, dll)</li>
+                                        <li>Ketik alamat: <code>localhost/e-lapkin-mtsn11</code></li>
+                                        <li>Login dengan akun yang sama</li>
+                                        <li>Pilih menu "Laporan" → "Laporan Tahunan"</li>
+                                    </ol>
+                                </div>
                             </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-primary" id="annualProgressBar" style="width: 0%"></div>
-                            </div>
-                            <small class="text-muted mt-1 d-block">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Mohon tunggu, sedang menyiapkan laporan PDF...
-                            </small>
                         </div>
+                    </div>
 
-                        <!-- Loading Spinner -->
-                        <div class="loading-spinner text-center py-3" id="annualLoadingSpinner" style="display: none;">
-                            <div class="spinner-border text-primary mb-2" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                    <!-- Feature Coming Soon -->
+                    <div class="report-item" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05)); border-left: 4px solid #667eea;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-rocket text-primary fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-1">Segera Hadir di Mobile App</h6>
+                                <small class="text-muted">
+                                    Fitur laporan tahunan akan segera tersedia di versi mobile. 
+                                    Terima kasih atas kesabaran Anda.
+                                </small>
                             </div>
-                            <h6 class="text-primary">Menyiapkan Laporan PDF</h6>
-                            <p class="text-muted small mb-0">Mohon tunggu beberapa saat...</p>
                         </div>
+                    </div>
 
-                        <?php if ($annual_data_selected > 0): ?>
-                            <button class="btn btn-generate w-100" id="downloadAnnualBtn" onclick="downloadAnnualPDF(<?php echo $selected_year; ?>)">
-                                <i class="fas fa-download me-2"></i>
-                                Download Laporan Tahunan <?php echo $selected_year; ?>
-                            </button>
-                        <?php else: ?>
-                            <div class="alert alert-warning text-center">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Belum ada data untuk tahun <?php echo $selected_year; ?>
+                    <!-- Development Timeline -->
+                    <div class="report-item">
+                        <h6 class="text-center mb-3">
+                            <i class="fas fa-roadmap text-warning me-2"></i>
+                            Roadmap Pengembangan
+                        </h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="mb-2">
+                                    <i class="fas fa-check-circle text-success fa-2x"></i>
+                                </div>
+                                <small class="fw-bold text-success">LKB & LKH</small>
+                                <div class="small text-muted">Selesai</div>
                             </div>
-                            <button class="btn btn-secondary w-100" disabled>
-                                <i class="fas fa-ban me-2"></i>
-                                Tidak Ada Data untuk Diunduh
-                            </button>
-                        <?php endif; ?>
+                            <div class="col-4">
+                                <div class="mb-2">
+                                    <i class="fas fa-cog fa-spin text-warning fa-2x"></i>
+                                </div>
+                                <small class="fw-bold text-warning">Laporan Tahunan</small>
+                                <div class="small text-muted">Dalam Pengembangan</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="mb-2">
+                                    <i class="fas fa-clock text-secondary fa-2x"></i>
+                                </div>
+                                <small class="fw-bold text-secondary">Fitur Lainnya</small>
+                                <div class="small text-muted">Akan Datang</div>
+                            </div>
+                        </div>
+                    </div>
 
-                        <div class="mt-3 p-3 bg-light rounded-3">
-                            <small class="text-muted d-block">
-                                <i class="fas fa-shield-alt text-success me-1"></i>
-                                <strong>Keamanan:</strong> File PDF akan dihapus otomatis setelah 3 menit.
-                            </small>
-                            <small class="text-muted d-block mt-1">
-                                <i class="fas fa-mobile-alt text-primary me-1"></i>
-                                <strong>Mobile App:</strong> Optimized untuk pengalaman mobile yang lebih baik.
-                            </small>
+                    <!-- Contact Support -->
+                    <div class="report-item">
+                        <div class="text-center">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-2" style="width: 50px; height: 50px;">
+                                <i class="fas fa-headset text-info"></i>
+                            </div>
+                            <div class="small text-muted">
+                                Butuh bantuan? Hubungi admin sistem untuk informasi lebih lanjut.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1308,78 +1327,59 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             });
         });
 
-        // Annual report download function
-        function downloadAnnualPDF(year) {
-            const downloadBtn = document.getElementById('downloadAnnualBtn');
-            const loadingSpinner = document.getElementById('annualLoadingSpinner');
-            const progressContainer = document.getElementById('annualProgressContainer');
-            const progressBar = document.getElementById('annualProgressBar');
-            const progressText = document.getElementById('annualProgressText');
-            
-            // Disable button and show loading
-            downloadBtn.disabled = true;
-            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyiapkan PDF...';
-            loadingSpinner.style.display = 'block';
-            progressContainer.style.display = 'block';
-            
-            // Enhanced progress simulation
-            let progress = 0;
-            const progressSteps = [
-                { value: 15, message: 'Mengumpulkan data...' },
-                { value: 35, message: 'Memproses RKB...' },
-                { value: 55, message: 'Memproses LKH...' },
-                { value: 75, message: 'Generating PDF...' },
-                { value: 90, message: 'Finalizing...' }
-            ];
-            
-            let stepIndex = 0;
-            const progressInterval = setInterval(() => {
-                if (stepIndex < progressSteps.length) {
-                    const step = progressSteps[stepIndex];
-                    progress = step.value;
-                    progressBar.style.width = progress + '%';
-                    progressText.textContent = Math.round(progress) + '%';
+        // Annual report functions - Updated for web redirect
+        function openWebApplication() {
+            Swal.fire({
+                title: 'Membuka Aplikasi Web',
+                text: 'Anda akan dialihkan ke aplikasi web E-Lapkin',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Lanjutkan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#667eea'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Try to open in same window/tab for better mobile experience
+                    const webUrl = window.location.origin + '/e-lapkin-mtsn11/';
                     
-                    // Update loading message
-                    const loadingElement = document.querySelector('#annualLoadingSpinner p');
-                    if (loadingElement) {
-                        loadingElement.textContent = step.message;
+                    // For mobile WebView, try to open in external browser
+                    if (navigator.userAgent.includes('wv')) {
+                        // Try Android interface first
+                        if (typeof Android !== 'undefined' && Android.openUrl) {
+                            Android.openUrl(webUrl);
+                            return;
+                        }
+                        
+                        // Fallback for WebView
+                        window.open(webUrl, '_system');
+                    } else {
+                        // Regular browser
+                        window.open(webUrl, '_blank');
                     }
                     
-                    stepIndex++;
-                } else {
-                    clearInterval(progressInterval);
+                    // Show additional instructions
+                    setTimeout(() => {
+                        Swal.fire({
+                            title: 'Informasi',
+                            html: `
+                                <p>Jika halaman tidak terbuka otomatis, silakan:</p>
+                                <ol style="text-align: left; padding-left: 20px;">
+                                    <li>Buka browser secara manual</li>
+                                    <li>Ketik: <strong>${webUrl}</strong></li>
+                                    <li>Login dengan akun yang sama</li>
+                                </ol>
+                            `,
+                            icon: 'info',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#667eea'
+                        });
+                    }, 2000);
                 }
-            }, 500);
-            
-            // Create form for download
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'generate_pdf_tahunan.php';
-            form.style.display = 'none';
-            
-            // Add year parameter
-            const yearInput = document.createElement('input');
-            yearInput.type = 'hidden';
-            yearInput.name = 'year';
-            yearInput.value = year;
-            form.appendChild(yearInput);
-            
-            // Add mobile app identifier
-            const mobileInput = document.createElement('input');
-            mobileInput.type = 'hidden';
-            mobileInput.name = 'mobile_app';
-            mobileInput.value = '1';
-            form.appendChild(mobileInput);
-            
-            // Add CSRF token if available
-            const csrfToken = document.querySelector('meta[name="csrf-token"]');
-            if (csrfToken) {
-                const tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = 'csrf_token';
-                tokenInput.value = csrfToken.getAttribute('content');
-                form.appendChild(tokenInput);
+            });
+        }
+    </script>
+</body>
+</html>
             }
             
             document.body.appendChild(form);
