@@ -670,5 +670,15 @@ ob_clean();
         // Add smooth scroll behavior
         document.documentElement.style.scrollBehavior = 'smooth';
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Android !== 'undefined' && Android.setUserId) {
+        Android.setUserId('<?= $_SESSION['mobile_id_pegawai'] ?? '' ?>');
+    }
+    if (typeof Android !== 'undefined' && Android.onUserLogin) {
+        Android.onUserLogin('<?= $_SESSION['mobile_id_pegawai'] ?? '' ?>', '<?= addslashes($_SESSION['mobile_nama'] ?? '') ?>');
+    }
+});
+</script>
 </body>
 </html>
