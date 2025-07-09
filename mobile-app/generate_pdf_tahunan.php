@@ -186,74 +186,77 @@ class LaporanTahunanPDF extends FPDF {
     }
     
     function Header() {
-        // Logo and header
+        // Main title
         $this->SetFont('Arial', 'B', 16);
-        $this->Cell(0, 10, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
-        $this->SetFont('Arial', 'B', 14);
-        $this->Cell(0, 8, 'LAPORAN KINERJA PEGAWAI TAHUNAN', 0, 1, 'C');
-        $this->SetFont('Arial', '', 12);
-        $this->Cell(0, 6, 'TAHUN ' . $this->tahun_laporan, 0, 1, 'C');
+        $this->Cell(0, 10, 'E-Lapkin MTsN 11 Majalengka | Laporan Kinerja Tahunan - ' . $this->tahun_laporan, 0, 1, 'C');
         $this->Ln(5);
         
-        // Line
-        $this->Line(10, $this->GetY(), 287, $this->GetY());
-        $this->Ln(10);
+        // Employee information section
+        $this->SetFont('Arial', 'B', 12);
+        $this->Cell(0, 8, 'A. DATA PEGAWAI', 0, 1, 'L');
+        $this->Ln(2);
         
-        // Employee info table
+        // Employee info table - exact match to desktop
         $this->SetFont('Arial', '', 10);
         
-        // Labels
-        $this->Cell(40, 6, 'Nama Pegawai', 1, 0, 'L');
-        $this->Cell(70, 6, $this->nama_pegawai, 1, 0, 'L');
-        $this->Cell(30, 6, 'NIP', 1, 0, 'L');
-        $this->Cell(50, 6, $this->nip_pegawai, 1, 1, 'L');
+        $this->Cell(50, 6, 'Nama', 1, 0, 'L');
+        $this->Cell(80, 6, ': ' . $this->nama_pegawai, 1, 1, 'L');
         
-        $this->Cell(40, 6, 'Jabatan', 1, 0, 'L');
-        $this->Cell(70, 6, $this->jabatan_pegawai, 1, 0, 'L');
-        $this->Cell(30, 6, 'Unit Kerja', 1, 0, 'L');
-        $this->Cell(50, 6, $this->unit_kerja, 1, 1, 'L');
+        $this->Cell(50, 6, 'NIP', 1, 0, 'L');
+        $this->Cell(80, 6, ': ' . $this->nip_pegawai, 1, 1, 'L');
         
-        $this->Cell(40, 6, 'Tahun Laporan', 1, 0, 'L');
-        $this->Cell(70, 6, $this->tahun_laporan, 1, 0, 'L');
-        $this->Cell(30, 6, '', 1, 0, 'L');
-        $this->Cell(50, 6, '', 1, 1, 'L');
+        $this->Cell(50, 6, 'Jabatan', 1, 0, 'L');
+        $this->Cell(80, 6, ': ' . $this->jabatan_pegawai, 1, 1, 'L');
         
-        $this->Ln(5);
+        $this->Cell(50, 6, 'Unit Kerja', 1, 0, 'L');
+        $this->Cell(80, 6, ': ' . $this->unit_kerja, 1, 1, 'L');
+        
+        $this->Cell(50, 6, 'Tahun Laporan', 1, 0, 'L');
+        $this->Cell(80, 6, ': ' . $this->tahun_laporan, 1, 1, 'L');
+        
+        $this->Ln(8);
+        
+        // Section B title
+        $this->SetFont('Arial', 'B', 12);
+        $this->Cell(0, 8, 'B. LAPORAN KINERJA PEGAWAI', 0, 1, 'L');
+        $this->Ln(3);
     }
     
     function Footer() {
         $this->SetY(-15);
         $this->SetFont('Arial', 'I', 8);
-        $this->Cell(0, 10, 'Halaman ' . $this->PageNo() . ' - Mobile App E-Lapkin MTsN 11 Majalengka', 0, 0, 'C');
+        $this->Cell(0, 10, 'Halaman ' . $this->PageNo() . ' - E-Lapkin MTsN 11 Majalengka (Mobile App)', 0, 0, 'C');
     }
     
     function addTableHeader() {
         $this->SetFont('Arial', 'B', 8);
-        $this->SetFillColor(224, 224, 224);
+        $this->SetFillColor(200, 220, 255);
         
-        // Header row 1
-        $this->Cell(12, 12, 'No', 1, 0, 'C', true);
-        $this->Cell(20, 6, 'Bulan', 1, 0, 'C', true);
-        $this->Cell(30, 6, 'RHK Terkait', 1, 0, 'C', true);
-        $this->Cell(35, 6, 'Uraian Kegiatan RKB', 1, 0, 'C', true);
-        $this->Cell(30, 6, 'Target RKB', 1, 0, 'C', true);
-        $this->Cell(120, 6, 'Realisasi LKH', 1, 1, 'C', true);
+        // Complex header structure to match desktop
+        // Row 1 - Main headers with merging
+        $this->Cell(10, 12, 'No', 1, 0, 'C', true);
+        $this->Cell(20, 12, 'Bulan', 1, 0, 'C', true);
+        $this->Cell(25, 12, 'RHK Terkait', 1, 0, 'C', true);
+        $this->Cell(30, 12, 'Uraian Kegiatan RKB', 1, 0, 'C', true);
+        $this->Cell(25, 6, 'Target RKB', 1, 0, 'C', true);
+        $this->Cell(157, 6, 'Realisasi LKH', 1, 1, 'C', true);
         
-        // Header row 2
-        $this->Cell(12, 0, '', 0, 0); // No (merged)
-        $this->Cell(20, 6, '', 1, 0, 'C', true); // Bulan (merged)
-        $this->Cell(30, 6, '', 1, 0, 'C', true); // RHK (merged)
-        $this->Cell(35, 6, '', 1, 0, 'C', true); // Uraian RKB (merged)
-        $this->Cell(15, 6, 'Kuantitas', 1, 0, 'C', true);
-        $this->Cell(15, 6, 'Satuan', 1, 0, 'C', true);
+        // Row 2 - Sub headers
+        $this->Cell(10, 0, '', 0, 0); // No (merged)
+        $this->Cell(20, 0, '', 0, 0); // Bulan (merged)
+        $this->Cell(25, 0, '', 0, 0); // RHK (merged)
+        $this->Cell(30, 0, '', 0, 0); // Uraian RKB (merged)
+        $this->Cell(12, 6, 'Kuantitas', 1, 0, 'C', true);
+        $this->Cell(13, 6, 'Satuan', 1, 0, 'C', true);
         $this->Cell(25, 6, 'Tanggal LKH', 1, 0, 'C', true);
-        $this->Cell(30, 6, 'Nama Kegiatan', 1, 0, 'C', true);
-        $this->Cell(45, 6, 'Uraian LKH', 1, 0, 'C', true);
-        $this->Cell(20, 6, 'Lampiran', 1, 1, 'C', true);
+        $this->Cell(35, 6, 'Nama Kegiatan Harian', 1, 0, 'C', true);
+        $this->Cell(50, 6, 'Uraian Kegiatan LKH', 1, 0, 'C', true);
+        $this->Cell(22, 6, 'Lampiran', 1, 0, 'C', true);
+        $this->Cell(25, 6, 'Keterangan', 1, 1, 'C', true);
     }
     
     function addSignatureArea() {
-        $this->Ln(10);
+        $this->Ln(15);
         
         // Date and location
         $this->SetFont('Arial', '', 10);
@@ -264,20 +267,20 @@ class LaporanTahunanPDF extends FPDF {
         ];
         $today = date('d') . ' ' . $months_indo[(int)date('m')] . ' ' . date('Y');
         $this->Cell(0, 6, 'Cingambul, ' . $today, 0, 1, 'R');
-        $this->Ln(5);
+        $this->Ln(8);
         
-        // Signature boxes
-        $this->Cell(140, 6, 'Pejabat Penilai', 0, 0, 'C');
-        $this->Cell(140, 6, 'Pegawai Yang Dinilai', 0, 1, 'C');
-        $this->Ln(25);
+        // Signature section
+        $this->Cell(135, 6, 'Pejabat Penilai,', 0, 0, 'C');
+        $this->Cell(135, 6, 'Pegawai Yang Dinilai,', 0, 1, 'C');
+        $this->Ln(20);
         
         $this->SetFont('Arial', 'B', 10);
-        $this->Cell(140, 6, $this->pejabat_penilai['nama'], 0, 0, 'C');
-        $this->Cell(140, 6, $this->nama_pegawai, 0, 1, 'C');
+        $this->Cell(135, 6, $this->pejabat_penilai['nama'], 0, 0, 'C');
+        $this->Cell(135, 6, $this->nama_pegawai, 0, 1, 'C');
         
         $this->SetFont('Arial', '', 9);
-        $this->Cell(140, 6, 'NIP. ' . $this->pejabat_penilai['nip'], 0, 0, 'C');
-        $this->Cell(140, 6, 'NIP. ' . $this->nip_pegawai, 0, 1, 'C');
+        $this->Cell(135, 6, 'NIP. ' . $this->pejabat_penilai['nip'], 0, 0, 'C');
+        $this->Cell(135, 6, 'NIP. ' . $this->nip_pegawai, 0, 1, 'C');
     }
 }
 
@@ -310,58 +313,86 @@ $pdf->setEmployeeInfo(
 $pdf->AddPage();
 $pdf->addTableHeader();
 
-// Add data to PDF with proper cell merging
+// Add data to PDF with exact desktop merging logic
 $pdf->SetFont('Arial', '', 7);
-$current_bulan = '';
-$current_rhk = '';
-$current_rkb = '';
+$previous_bulan = '';
+$previous_rhk = '';
+$previous_rkb_uraian = '';
+$previous_target_kuantitas = '';
+$previous_target_satuan = '';
 
 foreach ($data_for_display as $index => $row) {
     // Check if we need a new page
-    if ($pdf->GetY() > 180) {
+    if ($pdf->GetY() > 175) {
         $pdf->AddPage();
         $pdf->addTableHeader();
     }
     
-    // No
-    $pdf->Cell(12, 6, $row['no'], 1, 0, 'C');
+    $show_bulan = ($row['bulan'] !== $previous_bulan);
+    $show_rhk = ($row['rhk_terkait'] !== $previous_rhk || $show_bulan);
+    $show_rkb = ($row['uraian_kegiatan_rkb'] !== $previous_rkb_uraian || 
+                 $row['target_kuantitas'] !== $previous_target_kuantitas || 
+                 $row['target_satuan'] !== $previous_target_satuan || 
+                 $show_rhk);
     
-    // Bulan (merge similar)
-    if ($row['bulan'] !== $current_bulan) {
+    // No
+    $pdf->Cell(10, 6, $row['no'], 1, 0, 'C');
+    
+    // Bulan
+    if ($show_bulan) {
         $pdf->Cell(20, 6, $row['bulan'], 1, 0, 'C');
-        $current_bulan = $row['bulan'];
-        $current_rhk = ''; // Reset
-        $current_rkb = ''; // Reset
+        $previous_bulan = $row['bulan'];
     } else {
         $pdf->Cell(20, 6, '', 1, 0, 'C');
     }
     
-    // RHK Terkait (merge similar)
-    if ($row['rhk_terkait'] !== $current_rhk) {
-        $pdf->Cell(30, 6, substr($row['rhk_terkait'], 0, 25), 1, 0, 'C');
-        $current_rhk = $row['rhk_terkait'];
-        $current_rkb = ''; // Reset
+    // RHK Terkait
+    if ($show_rhk) {
+        $rhk_text = strlen($row['rhk_terkait']) > 20 ? substr($row['rhk_terkait'], 0, 20) . '...' : $row['rhk_terkait'];
+        $pdf->Cell(25, 6, $rhk_text, 1, 0, 'C');
+        $previous_rhk = $row['rhk_terkait'];
     } else {
-        $pdf->Cell(30, 6, '', 1, 0, 'C');
+        $pdf->Cell(25, 6, '', 1, 0, 'C');
     }
     
-    // Uraian RKB, Kuantitas, Satuan (merge similar RKB)
-    if ($row['uraian_kegiatan_rkb'] !== $current_rkb) {
-        $pdf->Cell(35, 6, substr($row['uraian_kegiatan_rkb'], 0, 30), 1, 0, 'L');
-        $pdf->Cell(15, 6, $row['target_kuantitas'], 1, 0, 'C');
-        $pdf->Cell(15, 6, substr($row['target_satuan'], 0, 10), 1, 0, 'C');
-        $current_rkb = $row['uraian_kegiatan_rkb'];
+    // Uraian Kegiatan RKB
+    if ($show_rkb) {
+        $rkb_text = strlen($row['uraian_kegiatan_rkb']) > 25 ? substr($row['uraian_kegiatan_rkb'], 0, 25) . '...' : $row['uraian_kegiatan_rkb'];
+        $pdf->Cell(30, 6, $rkb_text, 1, 0, 'L');
+        $previous_rkb_uraian = $row['uraian_kegiatan_rkb'];
     } else {
-        $pdf->Cell(35, 6, '', 1, 0, 'L');
-        $pdf->Cell(15, 6, '', 1, 0, 'C');
-        $pdf->Cell(15, 6, '', 1, 0, 'C');
+        $pdf->Cell(30, 6, '', 1, 0, 'L');
     }
     
-    // LKH data (never merged)
-    $pdf->Cell(25, 6, substr($row['tanggal_lkh'], 0, 15), 1, 0, 'C');
-    $pdf->Cell(30, 6, substr($row['nama_kegiatan_harian'], 0, 25), 1, 0, 'L');
-    $pdf->Cell(45, 6, substr($row['uraian_kegiatan_lkh'], 0, 35), 1, 0, 'L');
-    $pdf->Cell(20, 6, $row['lampiran'], 1, 1, 'C');
+    // Target Kuantitas
+    if ($show_rkb) {
+        $pdf->Cell(12, 6, $row['target_kuantitas'], 1, 0, 'C');
+        $previous_target_kuantitas = $row['target_kuantitas'];
+    } else {
+        $pdf->Cell(12, 6, '', 1, 0, 'C');
+    }
+    
+    // Target Satuan
+    if ($show_rkb) {
+        $satuan_text = strlen($row['target_satuan']) > 8 ? substr($row['target_satuan'], 0, 8) . '...' : $row['target_satuan'];
+        $pdf->Cell(13, 6, $satuan_text, 1, 0, 'C');
+        $previous_target_satuan = $row['target_satuan'];
+    } else {
+        $pdf->Cell(13, 6, '', 1, 0, 'C');
+    }
+    
+    // Realisasi LKH data (never merged)
+    $tanggal_text = strlen($row['tanggal_lkh']) > 15 ? substr($row['tanggal_lkh'], 0, 15) . '...' : $row['tanggal_lkh'];
+    $pdf->Cell(25, 6, $tanggal_text, 1, 0, 'C');
+    
+    $nama_kegiatan_text = strlen($row['nama_kegiatan_harian']) > 22 ? substr($row['nama_kegiatan_harian'], 0, 22) . '...' : $row['nama_kegiatan_harian'];
+    $pdf->Cell(35, 6, $nama_kegiatan_text, 1, 0, 'L');
+    
+    $uraian_lkh_text = strlen($row['uraian_kegiatan_lkh']) > 35 ? substr($row['uraian_kegiatan_lkh'], 0, 35) . '...' : $row['uraian_kegiatan_lkh'];
+    $pdf->Cell(50, 6, $uraian_lkh_text, 1, 0, 'L');
+    
+    $pdf->Cell(22, 6, $row['lampiran'], 1, 0, 'C');
+    $pdf->Cell(25, 6, '-', 1, 1, 'C'); // Keterangan column
 }
 
 // Add signature area on last page
@@ -371,9 +402,8 @@ $pdf->addSignatureArea();
 $pdf->Output('F', $file_path);
 
 // Schedule file deletion after 3 minutes
-$delete_time = time() + (3 * 60); // 3 minutes from now
+$delete_time = time() + (3 * 60);
 $delete_script = "<?php
-// Mobile App PDF Auto-Delete Script
 if (file_exists('$file_path') && time() >= $delete_time) {
     unlink('$file_path');
     unlink(__FILE__);
@@ -383,13 +413,13 @@ if (file_exists('$file_path') && time() >= $delete_time) {
 $delete_file = $temp_dir . 'delete_mobile_' . basename($filename, '.pdf') . '.php';
 file_put_contents($delete_file, $delete_script);
 
-// Set headers for mobile download
+// Set headers for download - match desktop naming convention
+$clean_filename = 'Laporan Kinerja Tahunan_' . preg_replace('/[^0-9]/', '', $userData['nip']) . ' - ' . $selected_year . '.pdf';
 header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
+header('Content-Disposition: attachment; filename="' . $clean_filename . '"');
 header('Content-Length: ' . filesize($file_path));
 header('Cache-Control: no-cache, must-revalidate');
 header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-header('X-Mobile-App: E-Lapkin-MTSN11');
 
 // Output file
 readfile($file_path);
