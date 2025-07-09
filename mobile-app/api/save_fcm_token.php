@@ -8,6 +8,9 @@ header('Access-Control-Allow-Headers: Content-Type, X-Mobile-Token, X-App-Packag
 // Jika folder config ada di root project, gunakan path berikut:
 require_once __DIR__ . '/../../config/database.php';
 
+// Set timezone ke Asia/Jakarta (WIB) agar validasi token sama dengan Android
+date_default_timezone_set('Asia/Jakarta');
+
 // Perbaiki key header agar case-insensitive (beberapa server mengubah header menjadi lowercase)
 function getHeaderValue($headers, $key) {
     foreach ($headers as $k => $v) {
