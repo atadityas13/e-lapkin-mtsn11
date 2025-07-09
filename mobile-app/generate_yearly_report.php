@@ -256,17 +256,58 @@ if ($is_pdf_download) {
     border-color: #28a745;
 }
 
+/* Print-specific styles matching main web application */
 @media print {
     .year-controls, .no-print {
         display: none !important;
     }
     
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        color: #000;
+    }
+    
     .mobile-yearly-report {
-        font-size: 8px;
+        font-size: 9px;
+        line-height: 1.2;
     }
     
     .mobile-yearly-report .table {
-        font-size: 7px;
+        font-size: 8px;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    
+    .mobile-yearly-report .table th,
+    .mobile-yearly-report .table td {
+        padding: 2px;
+        border: 1px solid #000 !important;
+        vertical-align: middle;
+    }
+    
+    .mobile-yearly-report .table th {
+        background-color: #f0f0f0 !important;
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    .mobile-yearly-report .employee-info td {
+        padding: 4px;
+        border: 1px solid #000 !important;
+    }
+    
+    .mobile-yearly-report .signature-area {
+        page-break-inside: avoid;
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .mobile-yearly-report .signature-box {
+        width: 45%;
+        font-size: 9px;
     }
 }
 
@@ -321,11 +362,11 @@ if ($is_pdf_download) {
     <?php if (!empty($available_years) && !empty($data_for_display)): ?>
     <div class="btn-group-mobile">
         <button onclick="printReport()" class="btn-mobile">
-            📄 Print
+            📄 Cetak
         </button>
-        <a href="?year=<?= $year ?>&download=pdf" class="btn-mobile btn-success" target="_blank">
+        <button onclick="openPrintWindow()" class="btn-mobile btn-success">
             📥 Download PDF
-        </a>
+        </button>
     </div>
     <?php endif; ?>
 </div>
@@ -340,18 +381,45 @@ function changeYear() {
 }
 
 function printReport() {
-    // Hide controls and optimize for printing
+    // Hide controls temporarily
     const controls = document.querySelector('.year-controls');
-    if (controls) controls.style.display = 'none';
+    if (controls) {
+        controls.style.display = 'none';
+    }
+    
+    // Add print class to body for additional styling
+    document.body.classList.add('printing');
     
     // Trigger print
     window.print();
     
-    // Restore controls after print dialog
+    // Restore controls after print dialog closes
     setTimeout(() => {
-        if (controls) controls.style.display = 'flex';
-    }, 100);
+        if (controls) {
+            controls.style.display = 'flex';
+        }
+        document.body.classList.remove('printing');
+    }, 500);
 }
+
+function openPrintWindow() {
+    // Create a new window with the current report for PDF generation
+    const printUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'download=pdf';
+    const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+        alert('Pop-up diblokir! Silakan aktifkan pop-up untuk browser ini.');
+    }
+}
+
+// Handle print event cleanup
+window.addEventListener('afterprint', function() {
+    const controls = document.querySelector('.year-controls');
+    if (controls) {
+        controls.style.display = 'flex';
+    }
+    document.body.classList.remove('printing');
+});
 </script>
 <?php endif; ?>
 
@@ -531,43 +599,136 @@ function printReport() {
 if ($is_pdf_download) {
     $html_content = ob_get_clean();
     
-    // Simple PDF generation using browser's print-to-PDF capability
-    // For mobile compatibility, we'll use a JavaScript approach
-    echo '
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Laporan Tahunan ' . $year . ' - ' . htmlspecialchars($nama_pegawai_login) . '</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            @media print {
-                body { margin: 10px; }
-                .no-print { display: none !important; }
+    // Generate clean HTML for PDF/Print
+    echo '<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Tahunan ' . $year . ' - ' . htmlspecialchars($nama_pegawai_login) . '</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            background: white;
+            color: #000;
+        }
+        
+        .print-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+        }
+        
+        .print-header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .print-header h2 {
+            margin: 5px 0 0 0;
+            font-size: 16px;
+            font-weight: normal;
+        }
+        
+        .control-buttons {
+            text-align: center;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .control-buttons button {
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        
+        .btn-print {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-close {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-print:hover {
+            background: #0056b3;
+        }
+        
+        .btn-close:hover {
+            background: #545b62;
+        }
+        
+        @media print {
+            .control-buttons, .no-print {
+                display: none !important;
             }
-        </style>
-    </head>
-    <body>
-        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                📄 Print / Save as PDF
-            </button>
-            <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
-                ✖ Tutup
-            </button>
-        </div>
-        ' . $html_content . '
-        <script>
-            // Auto-trigger print dialog on mobile
-            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                setTimeout(() => {
-                    window.print();
-                }, 1000);
+            
+            body {
+                margin: 0;
+                padding: 15px;
             }
-        </script>
-    </body>
-    </html>';
+            
+            .print-header {
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <h1>LAPORAN TAHUNAN KEGIATAN PEGAWAI</h1>
+        <h2>TAHUN ' . $year . '</h2>
+    </div>
+    
+    <div class="control-buttons no-print">
+        <button onclick="window.print()" class="btn-print">
+            🖨️ Cetak / Simpan sebagai PDF
+        </button>
+        <button onclick="window.close()" class="btn-close">
+            ✖️ Tutup
+        </button>
+    </div>
+    
+    ' . $html_content . '
+    
+    <script>
+        // Auto-open print dialog on mobile devices
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Delay for mobile devices to ensure page is fully loaded
+            setTimeout(() => {
+                window.print();
+            }, 1500);
+        }
+        
+        // Handle browser back button
+        window.addEventListener("beforeunload", function() {
+            if (window.opener) {
+                window.opener.focus();
+            }
+        });
+        
+        // Handle print completion
+        window.addEventListener("afterprint", function() {
+            // Optional: Auto-close after printing (uncomment if desired)
+            // setTimeout(() => window.close(), 2000);
+        });
+    </script>
+</body>
+</html>';
     exit;
 }
 ?>
