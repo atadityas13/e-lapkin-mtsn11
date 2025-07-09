@@ -160,11 +160,7 @@ class FirebaseNotificationService
             'Content-Type: application/json'
         ];
 
-        // Debug log
-        error_log("FCM DEBUG URL: " . $this->fcmUrl);
-        error_log("FCM DEBUG HEADERS: " . json_encode($headers));
-        error_log("FCM DEBUG PAYLOAD: " . json_encode($payload));
-
+        // Pastikan cURL menggunakan IPv4 (hindari masalah DNS/IPv6 di shared hosting)
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->fcmUrl);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -172,6 +168,7 @@ class FirebaseNotificationService
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4); // <--- Tambahkan baris ini
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -281,6 +278,9 @@ class FirebaseNotificationService
             return $result;
         }
         
+        return false;
+    }
+}
         return false;
     }
 }
