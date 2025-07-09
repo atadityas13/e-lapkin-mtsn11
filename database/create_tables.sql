@@ -22,12 +22,13 @@ CREATE TABLE IF NOT EXISTS user_fcm_tokens (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     fcm_token VARCHAR(500) NOT NULL,
+    device_id VARCHAR(100) NOT NULL,
     device_type VARCHAR(20) DEFAULT 'android',
     app_version VARCHAR(20) NULL,
-    last_used_at TIMESTAMP NULL,
+    last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES pegawai(id_pegawai),
-    UNIQUE KEY unique_user_token (user_id, fcm_token)
+    UNIQUE KEY unique_user_device (user_id, device_id)
 );

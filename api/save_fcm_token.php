@@ -37,12 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Get POST data
 $fcmToken = $_POST['fcm_token'] ?? null;
 $userId = $_POST['user_id'] ?? null;
+$deviceId = $_POST['device_id'] ?? null;
 $deviceType = $_POST['device_type'] ?? 'android';
 $appVersion = $_POST['app_version'] ?? null;
 
-if (!$fcmToken || !$userId) {
+if (!$fcmToken || !$userId || !$deviceId) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing required fields: fcm_token and user_id']);
+    echo json_encode(['success' => false, 'message' => 'Missing required fields: fcm_token, user_id, device_id']);
     exit;
 }
 
@@ -68,6 +69,7 @@ try {
             id INT PRIMARY KEY AUTO_INCREMENT,
             user_id INT NOT NULL,
             fcm_token VARCHAR(500) NOT NULL,
+            device_id VARCHAR(100) NOT NULL,
             device_type VARCHAR(20) DEFAULT 'android',
             app_version VARCHAR(20) NULL,
             last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -75,29 +77,27 @@ try {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES pegawai(id_pegawai),
-            UNIQUE KEY unique_user_token (user_id, fcm_token)
+            UNIQUE KEY unique_user_device (user_id, device_id)
         )
     ";
     $conn->query($createTableQuery);
 
-    // First, deactivate old tokens for this user
-    $deactivateStmt = $conn->prepare("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = ?");
-    $deactivateStmt->bind_param("i", $userId);
-    $deactivateStmt->execute();
-    $deactivateStmt->close();
+    // Nonaktifkan token lama user di device ini
+    $conn->query("UPDATE user_fcm_tokens SET is_active = 0 WHERE user_id = '$userId' AND device_id = '$deviceId'");
 
     // Insert or update the new token
     $stmt = $conn->prepare("
-        INSERT INTO user_fcm_tokens (user_id, fcm_token, device_type, app_version, last_used_at, is_active) 
-        VALUES (?, ?, ?, ?, NOW(), 1)
+        INSERT INTO user_fcm_tokens (user_id, fcm_token, device_id, device_type, app_version, last_used_at, is_active) 
+        VALUES (?, ?, ?, ?, ?, NOW(), 1)
         ON DUPLICATE KEY UPDATE 
-        device_type = VALUES(device_type),
-        app_version = VALUES(app_version),
-        last_used_at = NOW(),
-        is_active = 1
+            fcm_token = VALUES(fcm_token),
+            device_type = VALUES(device_type),
+            app_version = VALUES(appVersion),
+            last_used_at = NOW(),
+            is_active = 1
     ");
     
-    $stmt->bind_param("isss", $userId, $fcmToken, $deviceType, $appVersion);
+    $stmt->bind_param("issss", $userId, $fcmToken, $deviceId, $deviceType, $appVersion);
     
     if ($stmt->execute()) {
         $stmt->close();
