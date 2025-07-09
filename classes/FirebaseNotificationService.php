@@ -195,7 +195,7 @@ class FirebaseNotificationService
                 'success' => $successCount > 0,
                 'total_success' => $successCount,
                 'total_failure' => $failureCount,
-                'responses' => $report->getResults() // Detail respon untuk setiap token
+                'responses' => $report->getResults()
             ];
 
         } catch (MessagingException $e) {
@@ -205,13 +205,16 @@ class FirebaseNotificationService
                 error_log("=== PENTING: Error 'invalid_grant' biasanya disebabkan oleh waktu server yang tidak sinkron, kredensial service account salah/expired, atau environment variable GOOGLE_APPLICATION_CREDENTIALS tidak sesuai. ===");
                 error_log("=== Saran: Cek waktu server (date -u), cek file service-account.json, dan pastikan environment variable sudah benar. ===");
             }
-            return [
+            // Log JSON error detail agar mudah dicek di log file
+            $errorDetails = [
                 'success' => false,
                 'error' => $e->getMessage(),
                 'total_success' => 0,
                 'total_failure' => count($tokens),
                 'response' => null
             ];
+            error_log("FCM Error Details: " . json_encode($errorDetails));
+            return $errorDetails;
         }
     }
 
