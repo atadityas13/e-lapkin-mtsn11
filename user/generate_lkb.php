@@ -101,7 +101,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->SetAutoPageBreak(false); // No auto page break for cover
 
     // If you have a background image for the cover, uncomment and adjust path:
-    // $pdf->Image('../assets/images/cover_background.jpg', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
+    $pdf->Image('../assets/img/cover_background.png', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
 
     // LAPORAN KINERJA HARIAN
     $pdf->SetFont('Arial', 'B', 24);
