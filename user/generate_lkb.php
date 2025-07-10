@@ -95,6 +95,8 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // --- COVER PAGE ---
     $pdf->AddPage();
+    // For cover, we might temporarily set different margins, but keep auto page break off.
+    // We will reset margins and turn auto page break ON for content pages.
     $pdf->SetMargins(20, 20, 20); // Adjust margins for cover if needed, example wider margins
     $pdf->SetAutoPageBreak(false); // No auto page break for cover
 
@@ -141,17 +143,15 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->SetFont('Arial', '', 12);
     $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
 
-    // Reset auto page break for subsequent pages
-    $pdf->SetAutoPageBreak(true, 15);
-
     // --- END OF COVER PAGE ---
 
     // Now, add the content pages (your original LKB content)
     $pdf->AddPage();
 
-    // Set margins for content pages
+    // Reset margins and set auto page break for subsequent pages (content pages)
+    $bottom_margin_for_content = 15; // Define your desired bottom margin for content pages
     $pdf->SetMargins(15, 15, 15);
-    $pdf->SetAutoPageBreak(true, 15);
+    $pdf->SetAutoPageBreak(true, $bottom_margin_for_content); // This is key!
 
     // Header
     $pdf->SetFont('Arial', 'B', 13);
@@ -205,6 +205,8 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $line_height = 4;
 
         // Calculate lines needed for text wrapping
+        // Note: For MultiCell, FPDF automatically handles page breaks if SetAutoPageBreak is true
+        // We only need to calculate the height for the current row to draw the borders correctly.
         $uraian_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['uraian_kegiatan']) / ($cell_widths[1] - 4)));
         $kuantitas_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['kuantitas']) / ($cell_widths[2] - 4)));
         $satuan_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['satuan']) / ($cell_widths[3] - 4)));
@@ -212,9 +214,29 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $max_lines = max($uraian_lines, $kuantitas_lines, $satuan_lines, 1);
         $row_height = $line_height * $max_lines + 2;
 
-        // Check if we need a new page (optimize threshold to better utilize page space)
-        // PERBAIKAN: Menggunakan GetBMargin()
-        if ($pdf->GetY() + $row_height > ($pdf->GetPageHeight() - $pdf->GetBMargin())) { // Dynamic page break calculation
+        // Store current Y position before drawing MultiCells
+        $current_y = $pdf->GetY();
+
+        // Check if adding this row would exceed the page break trigger
+        // FPDF's internal mechanism for page breaks when AutoPageBreak is ON
+        // will trigger before the content is drawn if it will overflow.
+        // We ensure there's enough space for the _next_ row, or that the current row fits.
+        // If the current MultiCell operations trigger a page break, FPDF will handle it.
+        // We mainly need to draw the cells and borders.
+
+        // Draw cells with consistent height for borders
+        // Start X and Y for the row
+        $start_x = $pdf->GetX();
+        $start_y = $pdf->GetY();
+
+        // Check if there is enough space for the full row, including borders and content, before drawing.
+        // This is a more proactive check for tables with variable row heights.
+        // If not enough space, add a new page.
+        // This effectively simulates the old check but without relying on protected members.
+        // This check is often omitted if you trust FPDF's auto page break with MultiCell.
+        // However, for complex tables where you draw borders *before* MultiCells, this can be useful.
+        $page_break_trigger = $pdf->GetPageHeight() - $bottom_margin_for_content; // FPDF's internal page break trigger calculation
+        if ($current_y + $row_height > $page_break_trigger) {
             $pdf->AddPage();
             // Redraw table header on new page
             $pdf->SetFont('Arial', 'B', 9);
@@ -224,12 +246,11 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
             $pdf->Cell(25, 10, 'Jumlah', 1, 0, 'C', true);
             $pdf->Cell(30, 10, 'Satuan', 1, 1, 'C', true);
             $pdf->SetFont('Arial', '', 9);
+            $start_x = $pdf->GetX(); // Reset start_x and start_y for new page
+            $start_y = $pdf->GetY();
         }
 
-        $start_x = $pdf->GetX();
-        $start_y = $pdf->GetY();
-
-        // Draw cells with consistent height
+        // Draw fixed-height cell for 'No'
         $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 1, 0, 'C');
 
         // Draw borders for MultiCell areas
@@ -237,23 +258,32 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1], $start_y, $cell_widths[2], $row_height);
         $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $start_y, $cell_widths[3], $row_height);
 
-        // Add content with padding
+        // Add content with padding using MultiCell. FPDF will handle page breaks for MultiCell.
+        // We set the Y position back to where the row started for the MultiCells.
         $pdf->SetXY($start_x + $cell_widths[0] + 1, $start_y + 1);
-        $pdf->MultiCell($cell_widths[1] - 2, 4, $row_rkb['uraian_kegiatan'], 0, 'L');
+        $pdf->MultiCell($cell_widths[1] - 2, $line_height, $row_rkb['uraian_kegiatan'], 0, 'L');
 
+        // Capture Y after first MultiCell to align next MultiCells
+        $y_after_first_mc = $pdf->GetY();
+
+        // For the other cells, we need to go back to the starting Y of the row
+        // and adjust X. Then after drawing, set Y to the max Y of the row.
         $pdf->SetXY($start_x + $cell_widths[0] + $cell_widths[1] + 1, $start_y + 1);
-        $pdf->MultiCell($cell_widths[2] - 2, 4, $row_rkb['kuantitas'], 0, 'C');
+        $pdf->MultiCell($cell_widths[2] - 2, $line_height, $row_rkb['kuantitas'], 0, 'C');
+
+        $y_after_second_mc = $pdf->GetY();
 
         $pdf->SetXY($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + 1, $start_y + 1);
-        $pdf->MultiCell($cell_widths[3] - 2, 4, $row_rkb['satuan'], 0, 'C');
+        $pdf->MultiCell($cell_widths[3] - 2, $line_height, $row_rkb['satuan'], 0, 'C');
 
-        // Move to next row
-        $pdf->SetXY($start_x, $start_y + $row_height);
+        // After drawing all MultiCells for the row, set the cursor to the maximum Y reached by any MultiCell
+        // This ensures the next row starts correctly below the tallest cell.
+        $pdf->SetY(max($y_after_first_mc, $y_after_second_mc, $pdf->GetY()));
     }
 
-    // Check if we need a new page for signature (optimize for better space usage)
-    // PERBAIKAN: Menggunakan GetBMargin()
-    if ($pdf->GetY() > ($pdf->GetPageHeight() - $pdf->GetBMargin() - 50)) { // Adjusted for signature block height
+    // Check if we need a new page for signature block
+    // We assume the signature block needs about 50mm height.
+    if ($pdf->GetY() > ($pdf->GetPageHeight() - $bottom_margin_for_content - 50)) {
         $pdf->AddPage();
     }
 
