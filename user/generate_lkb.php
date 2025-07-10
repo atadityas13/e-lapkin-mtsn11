@@ -104,7 +104,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Image('../assets/img/cover_background.png', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
 
     // LAPORAN KINERJA HARIAN
-    $pdf->SetFont('Times', 'B', 24);
+    $pdf->SetFont('Arial', 'B', 24);
     $pdf->SetY(40); // Adjust Y position
     $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
 
@@ -114,7 +114,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // TAHUN [YEAR]
     $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
-    $pdf->Ln(30); // Space after title
+    $pdf->Ln(20); // Space after title
 
     // Logo (adjust path and position as needed)
     $logo_path = '../assets/img/logo_kemenag.png'; // Make sure this path is correct
@@ -122,10 +122,10 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50); // Centered, 50x50mm
     } else {
         // Fallback if logo not found (e.g., text placeholder)
-        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetFont('Times', 'B', 12);
         $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
     }
-    $pdf->Ln(20); // Space after logo
+    $pdf->Ln(30); // Space after logo
 
     // Nama dan NIP Pegawai
     $pdf->SetFont('Times', 'B', 14);
@@ -251,7 +251,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         }
 
         // Draw fixed-height cell for 'No'
-        $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 0, 0, 'C');
+        $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 1, 0, 'C');
 
         // Draw borders for MultiCell areas
         $pdf->Rect($start_x + $cell_widths[0], $start_y, $cell_widths[1], $row_height);
