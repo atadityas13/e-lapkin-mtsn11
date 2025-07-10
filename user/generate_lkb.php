@@ -520,25 +520,4 @@ include '../template/topbar.php';
   </div>
 </div>
 
-<!-- Loader Overlay -->
-<div id="loader-overlay" style="display:none;position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.7);text-align:center;">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
-    <div class="spinner-border text-success" style="width:4rem;height:4rem;" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <div style="margin-top:16px;font-size:1.2rem;color:#333;">Sedang memproses, mohon tunggu...</div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-// Tampilkan loader saat submit form generate/regenerate
-document.addEventListener('DOMContentLoaded', function() {
-  var forms = document.querySelectorAll('#generateModal form, #regenerateModal form');
-  forms.forEach(function(form) {
-    form.addEventListener('submit', function() {
-      document.getElementById('loader-overlay').style.display = 'block';
-    });
-  });
-});
-</script>
