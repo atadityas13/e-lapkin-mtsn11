@@ -3,13 +3,13 @@
  * ========================================================
  * E-LAPKIN MTSN 11 MAJALENGKA
  * ========================================================
- * 
+ *
  * Sistem Elektronik Laporan Kinerja Harian
  * MTsN 11 Majalengka, Kabupaten Majalengka, Jawa Barat
- * 
+ *
  * File: Main Entry Point
  * Deskripsi: Halaman utama aplikasi - redirect ke login atau dashboard
- * 
+ *
  * @package    E-Lapkin-MTSN11
  * @author     MTsN 11 Majalengka Development Team
  * @copyright  2025 MTsN 11 Majalengka. All rights reserved.
@@ -18,18 +18,18 @@
  * @since      2025-01-01
  * @created    2025-06-25
  * @modified   2025-06-25
- * 
+ *
  * DISCLAIMER:
  * Software ini dikembangkan khusus untuk MTsN 11 Majalengka.
  * Dilarang keras menyalin, memodifikasi, atau mendistribusikan
  * tanpa izin tertulis dari MTsN 11 Majalengka.
- * 
+ *
  * CONTACT:
  * Website: https://mtsn11majalengka.sch.id
  * Email: mtsn11majalengka@gmail.com
  * Phone: (0233) 8319182
  * Address: Kp. Sindanghurip Desa Maniis Kec. Cingambul, Majalengka, Jawa Barat
- * 
+ *
  * ========================================================
  */
 session_start();
@@ -57,12 +57,12 @@ $months = [
 
 function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null) {
     global $conn, $months;
-    
+
     // Set default date if not provided
     if (!$tanggal_cetak) {
         $tanggal_cetak = date('Y-m-d');
     }
-    
+
     // Format tanggal cetak - Use different variable name to avoid conflict
     $tanggal_signature = date('d', strtotime($tanggal_cetak)) . " " . $months[(int)date('m', strtotime($tanggal_cetak))] . " " . date('Y', strtotime($tanggal_cetak));
 
@@ -93,49 +93,69 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     $pdf = new FPDF('P', 'mm', 'A4');
 
-    // COVER PAGE
+    // --- COVER PAGE ---
     $pdf->AddPage();
-    // Judul
-    $pdf->SetFont('Arial', 'B', 16);
-    $pdf->SetTextColor(30, 30, 30);
-    $pdf->Cell(0, 40, '', 0, 1, 'C'); // Spacer
+    $pdf->SetMargins(20, 20, 20); // Adjust margins for cover if needed, example wider margins
+    $pdf->SetAutoPageBreak(false); // No auto page break for cover
+
+    // If you have a background image for the cover, uncomment and adjust path:
+    // $pdf->Image('../assets/images/cover_background.jpg', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
+
+    // LAPORAN KINERJA HARIAN
+    $pdf->SetFont('Arial', 'B', 24);
+    $pdf->SetY(70); // Adjust Y position
     $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
-    $pdf->SetFont('Arial', '', 14);
+
+    // BULAN [MONTH]
+    $pdf->SetFont('Arial', 'B', 20);
     $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
+
+    // TAHUN [YEAR]
     $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
-    $pdf->Ln(10);
+    $pdf->Ln(20); // Space after title
 
-    // Logo
-    $logo_path = '../assets/logo-mtsn11.png'; // Pastikan file logo ada di path ini
-    // Gunakan lebar halaman manual jika FPDF Anda tidak punya GetPageWidth()
-    $page_width = 210; // A4 portrait width in mm
-    $logo_width = 40;
-    $logo_x = ($page_width - $logo_width) / 2;
+    // Logo (adjust path and position as needed)
+    $logo_path = '../assets/img/logo_kemenag.png'; // Make sure this path is correct
     if (file_exists($logo_path)) {
-        $pdf->Image($logo_path, $logo_x, $pdf->GetY(), $logo_width, $logo_width);
-        $pdf->Ln(45);
+        $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50); // Centered, 50x50mm
     } else {
-        $pdf->Ln(45);
+        // Fallback if logo not found (e.g., text placeholder)
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
     }
+    $pdf->Ln(20); // Space after logo
 
-    // Nama dan NIP
-    $pdf->SetFont('Arial', '', 12);
+    // Nama dan NIP Pegawai
+    $pdf->SetFont('Arial', 'B', 14);
+    $pdf->SetY($pdf->GetPageHeight() - 100); // Position relative to bottom
     $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
+    $pdf->SetFont('Arial', '', 12);
     $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
-    $pdf->Ln(10);
+    $pdf->Ln(30);
 
-    // Madrasah & Kementerian
-    $pdf->SetFont('Arial', 'B', 12);
+    // MTSN 11 MAJALENGKA
+    $pdf->SetFont('Arial', 'B', 16);
     $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+
+    // KEMENTERIAN AGAMA KABUPATEN MAJALENGKA
     $pdf->SetFont('Arial', '', 12);
     $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
 
-    // End of cover page
+    // Reset auto page break for subsequent pages
+    $pdf->SetAutoPageBreak(true, 15);
+
+    // --- END OF COVER PAGE ---
+
+    // Now, add the content pages (your original LKB content)
     $pdf->AddPage();
+
+    // Set margins for content pages
+    $pdf->SetMargins(15, 15, 15);
+    $pdf->SetAutoPageBreak(true, 15);
 
     // Header
     $pdf->SetFont('Arial', 'B', 13);
-    $pdf->Cell(0, 8, '    LAPORAN KINERJA BULANAN', 0, 1, 'C');
+    $pdf->Cell(0, 8, '     LAPORAN KINERJA BULANAN', 0, 1, 'C');
     $pdf->Cell(0, 8, 'SASARAN KINERJA PEGAWAI', 0, 1, 'C');
     $pdf->Ln(4);
 
@@ -183,17 +203,17 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     foreach ($rkb_data as $row_rkb) {
         $cell_widths = [10, 115, 25, 30];
         $line_height = 4;
-        
+
         // Calculate lines needed for text wrapping
         $uraian_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['uraian_kegiatan']) / ($cell_widths[1] - 4)));
         $kuantitas_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['kuantitas']) / ($cell_widths[2] - 4)));
         $satuan_lines = max(1, ceil($pdf->GetStringWidth($row_rkb['satuan']) / ($cell_widths[3] - 4)));
-        
+
         $max_lines = max($uraian_lines, $kuantitas_lines, $satuan_lines, 1);
         $row_height = $line_height * $max_lines + 2;
 
         // Check if we need a new page (optimize threshold to better utilize page space)
-        if ($pdf->GetY() + $row_height > 267) {
+        if ($pdf->GetY() + $row_height > ($pdf->GetPageHeight() - $pdf->bMargin)) { // Dynamic page break calculation
             $pdf->AddPage();
             // Redraw table header on new page
             $pdf->SetFont('Arial', 'B', 9);
@@ -210,28 +230,28 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
         // Draw cells with consistent height
         $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 1, 0, 'C');
-        
+
         // Draw borders for MultiCell areas
         $pdf->Rect($start_x + $cell_widths[0], $start_y, $cell_widths[1], $row_height);
         $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1], $start_y, $cell_widths[2], $row_height);
         $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $start_y, $cell_widths[3], $row_height);
-        
+
         // Add content with padding
         $pdf->SetXY($start_x + $cell_widths[0] + 1, $start_y + 1);
         $pdf->MultiCell($cell_widths[1] - 2, 4, $row_rkb['uraian_kegiatan'], 0, 'L');
-        
+
         $pdf->SetXY($start_x + $cell_widths[0] + $cell_widths[1] + 1, $start_y + 1);
         $pdf->MultiCell($cell_widths[2] - 2, 4, $row_rkb['kuantitas'], 0, 'C');
-        
+
         $pdf->SetXY($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2] + 1, $start_y + 1);
         $pdf->MultiCell($cell_widths[3] - 2, 4, $row_rkb['satuan'], 0, 'C');
-        
+
         // Move to next row
         $pdf->SetXY($start_x, $start_y + $row_height);
     }
 
     // Check if we need a new page for signature (optimize for better space usage)
-    if ($pdf->GetY() > 267) {
+    if ($pdf->GetY() > ($pdf->GetPageHeight() - $pdf->bMargin - 50)) { // Adjusted for signature block height
         $pdf->AddPage();
     }
 
@@ -414,7 +434,6 @@ include '../template/topbar.php';
     <?php include __DIR__ . '/../template/footer.php'; ?>
 </div>
 
-<!-- Modal Generate -->
 <div class="modal fade" id="generateModal" tabindex="-1" aria-labelledby="generateModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -442,7 +461,6 @@ include '../template/topbar.php';
   </div>
 </div>
 
-<!-- Modal Regenerate -->
 <div class="modal fade" id="regenerateModal" tabindex="-1" aria-labelledby="regenerateModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
