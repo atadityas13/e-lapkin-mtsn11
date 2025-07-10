@@ -95,9 +95,6 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // COVER PAGE
     $pdf->AddPage();
-    // Background motif (optional, simple color blocks)
-    // $pdf->SetFillColor(255,255,255); $pdf->Rect(0,0,210,297,'F'); // white bg
-
     // Judul
     $pdf->SetFont('Arial', 'B', 16);
     $pdf->SetTextColor(30, 30, 30);
@@ -110,8 +107,12 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // Logo
     $logo_path = '../assets/logo-mtsn11.png'; // Pastikan file logo ada di path ini
+    // Gunakan lebar halaman manual jika FPDF Anda tidak punya GetPageWidth()
+    $page_width = 210; // A4 portrait width in mm
+    $logo_width = 40;
+    $logo_x = ($page_width - $logo_width) / 2;
     if (file_exists($logo_path)) {
-        $pdf->Image($logo_path, ($pdf->GetPageWidth()-40)/2, $pdf->GetY(), 40, 40);
+        $pdf->Image($logo_path, $logo_x, $pdf->GetY(), $logo_width, $logo_width);
         $pdf->Ln(45);
     } else {
         $pdf->Ln(45);
