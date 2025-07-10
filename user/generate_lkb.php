@@ -104,12 +104,12 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Image('../assets/img/cover_background.png', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
 
     // LAPORAN KINERJA HARIAN
-    $pdf->SetFont('Arial', 'B', 24);
+    $pdf->SetFont('Times', 'B', 24);
     $pdf->SetY(40); // Adjust Y position
     $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
 
     // BULAN [MONTH]
-    $pdf->SetFont('Arial', 'B', 20);
+    $pdf->SetFont('Times', 'B', 20);
     $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
 
     // TAHUN [YEAR]
@@ -128,19 +128,19 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Ln(20); // Space after logo
 
     // Nama dan NIP Pegawai
-    $pdf->SetFont('Arial', 'B', 14);
+    $pdf->SetFont('Times', 'B', 14);
     $pdf->SetY($pdf->GetPageHeight() - 100); // Position relative to bottom
     $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
-    $pdf->SetFont('Arial', '', 12);
+    $pdf->SetFont('Times', '', 12);
     $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
     $pdf->Ln(30);
 
     // MTSN 11 MAJALENGKA
-    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->SetFont('Times', 'B', 16);
     $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
 
     // KEMENTERIAN AGAMA KABUPATEN MAJALENGKA
-    $pdf->SetFont('Arial', '', 12);
+    $pdf->SetFont('Times', 'B', 14);
     $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
 
     // --- END OF COVER PAGE ---
@@ -251,7 +251,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         }
 
         // Draw fixed-height cell for 'No'
-        $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 1, 0, 'C');
+        $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 0, 0, 'C');
 
         // Draw borders for MultiCell areas
         $pdf->Rect($start_x + $cell_widths[0], $start_y, $cell_widths[1], $row_height);
