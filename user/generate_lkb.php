@@ -105,7 +105,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // LAPORAN KINERJA HARIAN
     $pdf->SetFont('Arial', 'B', 24);
-    $pdf->SetY(70); // Adjust Y position
+    $pdf->SetY(40); // Adjust Y position
     $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
 
     // BULAN [MONTH]
@@ -117,7 +117,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Ln(20); // Space after title
 
     // Logo (adjust path and position as needed)
-    $logo_path = '../assets/images/logo_kemenag.png'; // Make sure this path is correct
+    $logo_path = '../assets/img/logo_kemenag.png'; // Make sure this path is correct
     if (file_exists($logo_path)) {
         $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50); // Centered, 50x50mm
     } else {
