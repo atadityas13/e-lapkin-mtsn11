@@ -92,11 +92,45 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $stmt->close();
 
     $pdf = new FPDF('P', 'mm', 'A4');
-    $pdf->AddPage();
 
-    // Set margins
-    $pdf->SetMargins(15, 15, 15);
-    $pdf->SetAutoPageBreak(true, 15);
+    // COVER PAGE
+    $pdf->AddPage();
+    // Background motif (optional, simple color blocks)
+    // $pdf->SetFillColor(255,255,255); $pdf->Rect(0,0,210,297,'F'); // white bg
+
+    // Judul
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->SetTextColor(30, 30, 30);
+    $pdf->Cell(0, 40, '', 0, 1, 'C'); // Spacer
+    $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
+    $pdf->SetFont('Arial', '', 14);
+    $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
+    $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
+    $pdf->Ln(10);
+
+    // Logo
+    $logo_path = '../assets/logo-mtsn11.png'; // Pastikan file logo ada di path ini
+    if (file_exists($logo_path)) {
+        $pdf->Image($logo_path, ($pdf->GetPageWidth()-40)/2, $pdf->GetY(), 40, 40);
+        $pdf->Ln(45);
+    } else {
+        $pdf->Ln(45);
+    }
+
+    // Nama dan NIP
+    $pdf->SetFont('Arial', '', 12);
+    $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
+    $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
+    $pdf->Ln(10);
+
+    // Madrasah & Kementerian
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+    $pdf->SetFont('Arial', '', 12);
+    $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
+
+    // End of cover page
+    $pdf->AddPage();
 
     // Header
     $pdf->SetFont('Arial', 'B', 13);
