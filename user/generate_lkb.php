@@ -104,17 +104,17 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Image('../assets/img/cover_background.png', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
 
     // LAPORAN KINERJA HARIAN
-    $pdf->SetFont('Arial', 'B', 24);
+    $pdf->SetFont('Times', 'B', 24);
     $pdf->SetY(40); // Adjust Y position
     $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
 
     // BULAN [MONTH]
-    $pdf->SetFont('Times', 'B', 20);
+    $pdf->SetFont('Times', 'B', 22);
     $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
 
     // TAHUN [YEAR]
     $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
-    $pdf->Ln(20); // Space after title
+    $pdf->Ln(30); // Space after title
 
     // Logo (adjust path and position as needed)
     $logo_path = '../assets/img/logo_kemenag.png'; // Make sure this path is correct
@@ -125,7 +125,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $pdf->SetFont('Times', 'B', 12);
         $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
     }
-    $pdf->Ln(30); // Space after logo
+    $pdf->Ln(20); // Space after logo
 
     // Nama dan NIP Pegawai
     $pdf->SetFont('Times', 'B', 14);
