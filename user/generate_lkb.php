@@ -115,7 +115,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Ln(20); // Space after title
 
     // Logo (adjust path and position as needed)
-    $logo_path = '../assets/img/logo_kemenag.png'; // Make sure this path is correct
+    $logo_path = '../assets/images/logo_kemenag.png'; // Make sure this path is correct
     if (file_exists($logo_path)) {
         $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50); // Centered, 50x50mm
     } else {
@@ -213,7 +213,8 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $row_height = $line_height * $max_lines + 2;
 
         // Check if we need a new page (optimize threshold to better utilize page space)
-        if ($pdf->GetY() + $row_height > ($pdf->GetPageHeight() - $pdf->bMargin)) { // Dynamic page break calculation
+        // PERBAIKAN: Menggunakan GetBMargin()
+        if ($pdf->GetY() + $row_height > ($pdf->GetPageHeight() - $pdf->GetBMargin())) { // Dynamic page break calculation
             $pdf->AddPage();
             // Redraw table header on new page
             $pdf->SetFont('Arial', 'B', 9);
@@ -251,7 +252,8 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     }
 
     // Check if we need a new page for signature (optimize for better space usage)
-    if ($pdf->GetY() > ($pdf->GetPageHeight() - $pdf->bMargin - 50)) { // Adjusted for signature block height
+    // PERBAIKAN: Menggunakan GetBMargin()
+    if ($pdf->GetY() > ($pdf->GetPageHeight() - $pdf->GetBMargin() - 50)) { // Adjusted for signature block height
         $pdf->AddPage();
     }
 
