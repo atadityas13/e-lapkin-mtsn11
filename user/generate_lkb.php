@@ -10,14 +10,14 @@
  * File: Main Entry Point
  * Deskripsi: Halaman utama aplikasi - redirect ke login atau dashboard
  *
- * @package     E-Lapkin-MTSN11
- * @author      MTsN 11 Majalengka Development Team
- * @copyright   2025 MTsN 11 Majalengka. All rights reserved.
- * @license     Proprietary License
- * @version     1.0.0
- * @since       2025-01-01
- * @created     2025-06-25
- * @modified    2025-07-10
+ * @package    E-Lapkin-MTSN11
+ * @author     MTsN 11 Majalengka Development Team
+ * @copyright  2025 MTsN 11 Majalengka. All rights reserved.
+ * @license    Proprietary License
+ * @version    1.0.0
+ * @since      2025-01-01
+ * @created    2025-06-25
+ * @modified   2025-06-25
  *
  * DISCLAIMER:
  * Software ini dikembangkan khusus untuk MTsN 11 Majalengka.
@@ -104,12 +104,12 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Image('../assets/img/cover_background.png', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
 
     // LAPORAN KINERJA HARIAN
-    $pdf->SetFont('Times', 'B', 24); // Menggunakan Times
+    $pdf->SetFont('Times', 'B', 24);
     $pdf->SetY(40); // Adjust Y position
     $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
 
     // BULAN [MONTH]
-    $pdf->SetFont('Times', 'B', 20); // Menggunakan Times
+    $pdf->SetFont('Times', 'B', 20);
     $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
 
     // TAHUN [YEAR]
@@ -122,25 +122,25 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50); // Centered, 50x50mm
     } else {
         // Fallback if logo not found (e.g., text placeholder)
-        $pdf->SetFont('Times', 'B', 12); // Menggunakan Times
+        $pdf->SetFont('Arial', 'B', 12);
         $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
     }
     $pdf->Ln(20); // Space after logo
 
     // Nama dan NIP Pegawai
-    $pdf->SetFont('Times', 'B', 14); // Menggunakan Times
+    $pdf->SetFont('Times', 'B', 14);
     $pdf->SetY($pdf->GetPageHeight() - 100); // Position relative to bottom
     $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
-    $pdf->SetFont('Times', '', 12); // Menggunakan Times
+    $pdf->SetFont('Times', '', 12);
     $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
     $pdf->Ln(30);
 
     // MTSN 11 MAJALENGKA
-    $pdf->SetFont('Times', 'B', 16); // Menggunakan Times
+    $pdf->SetFont('Times', 'B', 16);
     $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
 
     // KEMENTERIAN AGAMA KABUPATEN MAJALENGKA
-    $pdf->SetFont('Times', 'B', 14); // Menggunakan Times
+    $pdf->SetFont('Times', 'B', 14);
     $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
 
     // --- END OF COVER PAGE ---
@@ -154,51 +154,51 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->SetAutoPageBreak(true, $bottom_margin_for_content); // This is key!
 
     // Header
-    $pdf->SetFont('Times', 'B', 13); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 13);
     $pdf->Cell(0, 8, '     LAPORAN KINERJA BULANAN', 0, 1, 'C');
     $pdf->Cell(0, 8, 'SASARAN KINERJA PEGAWAI', 0, 1, 'C');
     $pdf->Ln(4);
 
     // Biodata Pegawai dalam bentuk tabel
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
     $pdf->SetFillColor(240, 240, 240);
-    $pdf->SetFont('Times', 'B', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(40, 8, ' Nama', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
     // Cetak Nama Pegawai tebal
-    $pdf->SetFont('Times', 'B', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(0, 8, ' ' . $nama_pegawai, 1, 1, 'L');
-    $pdf->SetFont('Times', 'B', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(40, 8, ' NIP', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
     $pdf->Cell(0, 8, ' ' . $nip, 1, 1, 'L');
-    $pdf->SetFont('Times', 'B', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(40, 8, ' Jabatan', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
     $pdf->Cell(0, 8, ' ' . $jabatan, 1, 1, 'L');
-    $pdf->SetFont('Times', 'B', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(40, 8, ' Unit Kerja', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
     $pdf->Cell(0, 8, ' ' . $unit_kerja, 1, 1, 'L');
-    $pdf->SetFont('Times', 'B', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(40, 8, ' Bulan', 1, 0, 'L', true);
     $pdf->Cell(5, 8, ':', 1, 0, 'C', true);
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
     $pdf->Cell(0, 8, ' ' . $months[$bulan] . " " . $tahun, 1, 1, 'L');
     $pdf->Ln(6);
 
     // Tabel Sasaran Kinerja Pegawai (RKB)
-    $pdf->SetFont('Times', 'B', 9); // Menggunakan Times
+    $pdf->SetFont('Arial', 'B', 9);
     $pdf->SetFillColor(240, 240, 240);
     $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
     $pdf->Cell(115, 10, 'Uraian Kegiatan', 1, 0, 'C', true);
     $pdf->Cell(25, 10, 'Jumlah', 1, 0, 'C', true);
     $pdf->Cell(30, 10, 'Satuan', 1, 1, 'C', true);
 
-    $pdf->SetFont('Times', '', 9); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 9);
     $no_rkb = 1;
     foreach ($rkb_data as $row_rkb) {
         $cell_widths = [10, 115, 25, 30];
@@ -214,38 +214,52 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
         $max_lines = max($uraian_lines, $kuantitas_lines, $satuan_lines, 1);
         $row_height = $line_height * $max_lines + 2;
 
-        // Store current Y position before drawing anything for the row
+        // Store current Y position before drawing MultiCells
+        $current_y = $pdf->GetY();
+
+        // Check if adding this row would exceed the page break trigger
+        // FPDF's internal mechanism for page breaks when AutoPageBreak is ON
+        // will trigger before the content is drawn if it will overflow.
+        // We ensure there's enough space for the _next_ row, or that the current row fits.
+        // If the current MultiCell operations trigger a page break, FPDF will handle it.
+        // We mainly need to draw the cells and borders.
+
+        // Draw cells with consistent height for borders
+        // Start X and Y for the row
         $start_x = $pdf->GetX();
         $start_y = $pdf->GetY();
 
         // Check if there is enough space for the full row, including borders and content, before drawing.
-        $page_break_trigger = $pdf->GetPageHeight() - $bottom_margin_for_content;
-        if ($start_y + $row_height > $page_break_trigger) {
+        // This is a more proactive check for tables with variable row heights.
+        // If not enough space, add a new page.
+        // This effectively simulates the old check but without relying on protected members.
+        // This check is often omitted if you trust FPDF's auto page break with MultiCell.
+        // However, for complex tables where you draw borders *before* MultiCells, this can be useful.
+        $page_break_trigger = $pdf->GetPageHeight() - $bottom_margin_for_content; // FPDF's internal page break trigger calculation
+        if ($current_y + $row_height > $page_break_trigger) {
             $pdf->AddPage();
             // Redraw table header on new page
-            $pdf->SetFont('Times', 'B', 9); // Menggunakan Times
+            $pdf->SetFont('Arial', 'B', 9);
             $pdf->SetFillColor(240, 240, 240);
             $pdf->Cell(10, 10, 'No', 1, 0, 'C', true);
             $pdf->Cell(115, 10, 'Uraian Kegiatan', 1, 0, 'C', true);
             $pdf->Cell(25, 10, 'Jumlah', 1, 0, 'C', true);
             $pdf->Cell(30, 10, 'Satuan', 1, 1, 'C', true);
-            $pdf->SetFont('Times', '', 9); // Menggunakan Times
+            $pdf->SetFont('Arial', '', 9);
             $start_x = $pdf->GetX(); // Reset start_x and start_y for new page
             $start_y = $pdf->GetY();
         }
 
-        // --- PERBAIKAN GARIS DOUBLE DI SINI ---
-        // 1. Gambar cell 'No' TANPA border (parameter border diubah dari 1 ke 0)
+        // Draw fixed-height cell for 'No'
         $pdf->Cell($cell_widths[0], $row_height, $no_rkb++, 0, 0, 'C');
 
-        // 2. Gambar semua border kolom menggunakan Rect() untuk seluruh tinggi baris
-        $pdf->Rect($start_x, $start_y, $cell_widths[0], $row_height); // Border untuk kolom No
-        $pdf->Rect($start_x + $cell_widths[0], $start_y, $cell_widths[1], $row_height); // Border untuk kolom Uraian Kegiatan
-        $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1], $start_y, $cell_widths[2], $row_height); // Border untuk kolom Jumlah
-        $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $start_y, $cell_widths[3], $row_height); // Border untuk kolom Satuan
+        // Draw borders for MultiCell areas
+        $pdf->Rect($start_x + $cell_widths[0], $start_y, $cell_widths[1], $row_height);
+        $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1], $start_y, $cell_widths[2], $row_height);
+        $pdf->Rect($start_x + $cell_widths[0] + $cell_widths[1] + $cell_widths[2], $start_y, $cell_widths[3], $row_height);
 
         // Add content with padding using MultiCell. FPDF will handle page breaks for MultiCell.
-        // We set the Y position back to where the row started for the MultiCells to ensure alignment.
+        // We set the Y position back to where the row started for the MultiCells.
         $pdf->SetXY($start_x + $cell_widths[0] + 1, $start_y + 1);
         $pdf->MultiCell($cell_widths[1] - 2, $line_height, $row_rkb['uraian_kegiatan'], 0, 'L');
 
@@ -275,7 +289,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // Footer Signatures - more compact layout
     $pdf->Ln(10); // Minimal spacing at top of signature block
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
 
     // Tanda tangan dengan layout yang lebih kompak
     $left_margin = 25;
@@ -296,13 +310,13 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     $pdf->Ln(20); // Reduced signature space for compactness
 
-    $pdf->SetFont('Times', 'BU', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', 'BU', 10);
     $pdf->SetX($left_margin);
     $pdf->Cell($col_width, 4, $nama_penilai, 0, 0, 'L'); // Nama Penilai
     $pdf->Cell($gap); // Jarak antar kolom
     $pdf->Cell($col_width, 4, $nama_pegawai, 0, 1, 'L'); // Nama Pegawai
 
-    $pdf->SetFont('Times', '', 10); // Menggunakan Times
+    $pdf->SetFont('Arial', '', 10);
     $pdf->SetX($left_margin);
     $pdf->Cell($col_width, 4, 'NIP. ' . $nip_penilai, 0, 0, 'L'); // NIP Penilai
     $pdf->Cell($gap); // Jarak antar kolom
@@ -325,36 +339,6 @@ include '../template/header.php';
 include '../template/menu_user.php';
 include '../template/topbar.php';
 ?>
-
-<style>
-    #loadingOverlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
-        display: none; /* Hidden by default */
-        justify-content: center;
-        align-items: center;
-        z-index: 9999; /* Ensure it's on top of everything */
-    }
-
-    .loader {
-        border: 8px solid #f3f3f3; /* Light grey */
-        border-top: 8px solid #3498db; /* Blue */
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-</style>
-
 <div id="layoutSidenav_content">
     <main>
         <div class="container-fluid px-4">
@@ -381,6 +365,18 @@ include '../template/topbar.php';
                             }
                             $stmt_rkb_status->close();
 
+                            // Pengecekan LKH tidak lagi diperlukan untuk generate LKB
+                            // Karena LKB tidak lagi menampilkan data dari LKH
+                            // Namun, jika Anda tetap ingin user harus menyelesaikan LKH sebelum generate LKB,
+                            // Anda bisa uncomment bagian ini dan tambahkan ke kondisi if.
+                            /*
+                            $stmt_lkh_status = $conn->prepare("SELECT COUNT(*) FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=? AND status_verval != 'disetujui'");
+                            $stmt_lkh_status->bind_param("iii", $id_pegawai, $bulan, $tahun);
+                            $stmt_lkh_status->execute();
+                            $stmt_lkh_status->bind_result($unapproved_lkh_count);
+                            $stmt_lkh_status->fetch();
+                            $stmt_lkh_status->close();
+                            */
                             $unapproved_lkh_count = 0; // Set 0 karena tidak ada dependency lagi secara tampilan PDF
 
                             // Ambil NIP untuk nama file
@@ -400,7 +396,12 @@ include '../template/topbar.php';
                                 echo '<div class="alert alert-danger">Data RKB bulan ini belum ada. Mohon input RKB terlebih dahulu.</div>';
                             } elseif ($status_verval_rkb !== 'disetujui') {
                                 echo '<div class="alert alert-warning">RKB bulan ini belum disetujui. Silakan ajukan dan tunggu approval.</div>';
-                            } else {
+                            }
+                            // Kondisi ini dihapus karena LKH tidak lagi jadi bagian dari tampilan LKB
+                            /* elseif ($unapproved_lkh_count > 0) {
+                                echo '<div class="alert alert-warning">Masih ada LKH bulan ini yang belum disetujui. Pastikan semua LKH sudah disetujui sebelum membuat LKB.</div>';
+                            } */
+                            else {
                                 // Sudah ada data RKB dan disetujui
                                 if ($aksi === 'generate' && isset($_POST['tempat_cetak']) && isset($_POST['tanggal_cetak'])) {
                                     // Hapus file lama jika ada
@@ -412,8 +413,6 @@ include '../template/topbar.php';
                                     // SweetAlert success
                                     echo "
                                         <script>
-                                            // Hide loader if it was active and PHP has finished processing
-                                            document.getElementById('loadingOverlay').style.display = 'none';
                                             document.addEventListener('DOMContentLoaded', function() {
                                                 Swal.fire({
                                                     icon: 'success',
@@ -467,10 +466,6 @@ include '../template/topbar.php';
     <?php include __DIR__ . '/../template/footer.php'; ?>
 </div>
 
-<div id="loadingOverlay">
-    <div class="loader"></div>
-</div>
-
 <div class="modal fade" id="generateModal" tabindex="-1" aria-labelledby="generateModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -478,7 +473,7 @@ include '../template/topbar.php';
         <h5 class="modal-title" id="generateModalLabel">Tentukan Tempat dan Tanggal Cetak</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="generateForm" method="POST" action="?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate">
+      <form method="POST" action="?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate">
         <div class="modal-body">
           <div class="mb-3">
             <label for="tempat_cetak" class="form-label">Tempat Cetak</label>
@@ -491,7 +486,7 @@ include '../template/topbar.php';
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-primary" id="submitGenerate">Generate LKB</button>
+          <button type="submit" class="btn btn-primary">Generate LKB</button>
         </div>
       </form>
     </div>
@@ -505,7 +500,7 @@ include '../template/topbar.php';
         <h5 class="modal-title" id="regenerateModalLabel">Tentukan Tempat dan Tanggal Cetak</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="regenerateForm" method="POST" action="?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate">
+      <form method="POST" action="?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&aksi=generate">
         <div class="modal-body">
           <div class="mb-3">
             <label for="tempat_cetak_regen" class="form-label">Tempat Cetak</label>
@@ -518,60 +513,32 @@ include '../template/topbar.php';
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-warning" id="submitRegenerate">Regenerate LKB</button>
+          <button type="submit" class="btn btn-warning">Regenerate LKB</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
+<!-- Loader Overlay -->
+<div id="loader-overlay" style="display:none;position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.7);text-align:center;">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+    <div class="spinner-border text-success" style="width:4rem;height:4rem;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div style="margin-top:16px;font-size:1.2rem;color:#333;">Sedang memproses, mohon tunggu...</div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Get the forms
-    const generateForm = document.getElementById('generateForm');
-    const regenerateForm = document.getElementById('regenerateForm');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-
-    // Function to show the loader
-    function showLoader() {
-        loadingOverlay.style.display = 'flex'; // Use flex to center the loader
-    }
-
-    // Function to hide the loader
-    function hideLoader() {
-        loadingOverlay.style.display = 'none';
-    }
-
-    // Add event listener to generate form submission
-    if (generateForm) {
-        generateForm.addEventListener('submit', function() {
-            // Hide the modal manually just before showing loader
-            const generateModal = bootstrap.Modal.getInstance(document.getElementById('generateModal'));
-            if (generateModal) {
-                generateModal.hide();
-            }
-            showLoader();
-        });
-    }
-
-    // Add event listener to regenerate form submission
-    if (regenerateForm) {
-        regenerateForm.addEventListener('submit', function() {
-            // Hide the modal manually just before showing loader
-            const regenerateModal = bootstrap.Modal.getInstance(document.getElementById('regenerateModal'));
-            if (regenerateModal) {
-                regenerateModal.hide();
-            }
-            showLoader();
-        });
-    }
-
-    // This part runs after the PHP script has executed and the page is rendered
-    // It's placed inside a DOMContentLoaded listener to ensure all elements are there.
-    document.addEventListener('DOMContentLoaded', function() {
-        // Ensure loader is hidden on initial page load or if no action was performed
-        // This also acts as a fallback to hide loader if the server-side script failed without showing SweetAlert
-        hideLoader();
+// Tampilkan loader saat submit form generate/regenerate
+document.addEventListener('DOMContentLoaded', function() {
+  var forms = document.querySelectorAll('#generateModal form, #regenerateModal form');
+  forms.forEach(function(form) {
+    form.addEventListener('submit', function() {
+      document.getElementById('loader-overlay').style.display = 'block';
     });
-
+  });
+});
 </script>
