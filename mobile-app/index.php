@@ -1,4 +1,5 @@
 <?php
+ob_start();
 /**
  * ========================================================
  * E-LAPKIN MTSN 11 MAJALENGKA - MOBILE APP
@@ -994,3 +995,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
 </body>
 </html>
+<?php
+ob_end_flush();
+?>
