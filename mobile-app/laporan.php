@@ -1048,6 +1048,49 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
         });
 
+        // Loader on form submit for Generate LKB
+        document.getElementById('generateLkbForm').addEventListener('submit', function(e) {
+            Swal.fire({
+                title: 'Tunggu sebentar...',
+                text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            // Form will submit normally after showing loader
+        });
+
+        // Loader on form submit for Generate LKH
+        document.getElementById('generateLkhForm').addEventListener('submit', function(e) {
+            Swal.fire({
+                title: 'Tunggu sebentar...',
+                text: 'LKH sedang diproses. Mohon tunggu hingga selesai.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        });
+
+        // Loader if session mobile_loader is set (server-side)
+        <?php if (isset($_SESSION['mobile_loader']) && $_SESSION['mobile_loader']): ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    title: 'Tunggu sebentar...',
+                    text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            });
+            <?php unset($_SESSION['mobile_loader']); ?>
+        <?php endif; ?>
+
         // Fixed download function for Android WebView compatibility
         function downloadFile(url, filename) {
             console.log('Download initiated:', url, filename);
