@@ -516,6 +516,23 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 </head>
 <body>
     <div class="mobile-container">
+        <!-- Loader "Tunggu sebentar..." jika proses generate sedang berlangsung -->
+        <?php if (isset($_SESSION['mobile_loader']) && $_SESSION['mobile_loader']): ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        title: 'Tunggu sebentar...',
+                        text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                });
+            </script>
+            <?php unset($_SESSION['mobile_loader']); ?>
+        <?php endif; ?>
         <!-- Header -->
         <?php renderMobileHeader('Laporan Kinerja', 'Generate & Unduh', 'dashboard.php', $userData, $activePeriod); ?>
 

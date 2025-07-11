@@ -245,6 +245,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
+    // Set loader flag for laporan.php
+    $_SESSION['mobile_loader'] = true;
+
     $stmt_check = $conn->prepare("SELECT COUNT(*) FROM rkb WHERE id_pegawai = ? AND bulan = ? AND tahun = ? AND status_verval = 'disetujui'");
     $stmt_check->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
     $stmt_check->execute();
@@ -253,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt_check->close();
 
     if ($count_approved == 0) {
+        unset($_SESSION['mobile_loader']);
         set_mobile_notification('error', 'Gagal', 'RKB belum disetujui untuk periode tersebut.');
         header('Location: laporan.php');
         exit();
@@ -260,10 +264,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $pdf_file = generate_lkb_pdf($id_pegawai_login, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
+        unset($_SESSION['mobile_loader']);
         set_mobile_notification('success', 'Berhasil', 'LKB berhasil digenerate dan dapat diunduh.');
         header('Location: laporan.php');
         exit();
     } catch (Exception $e) {
+        unset($_SESSION['mobile_loader']);
         error_log("LKB Generation Error: " . $e->getMessage());
         set_mobile_notification('error', 'Gagal', 'Terjadi kesalahan saat generate LKB. Silakan coba lagi.');
         header('Location: laporan.php');
