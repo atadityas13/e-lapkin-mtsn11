@@ -349,6 +349,7 @@ include '../template/topbar.php';
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 // Script untuk mengisi data bulan dan tahun ke modal sebelum ditampilkan
 var generateLkbModal = document.getElementById('generateLkbModal');
@@ -379,5 +380,32 @@ document.getElementById('generateLkhModal').addEventListener('show.bs.modal', fu
     var tahun = button.getAttribute('data-tahun');
     var form = document.getElementById('generateLkhForm');
     form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+});
+
+// Loader on form submit for Generate LKB
+document.getElementById('generateLkbForm').addEventListener('submit', function(e) {
+    Swal.fire({
+        title: 'Tunggu sebentar...',
+        text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    // Form will submit normally after showing loader
+});
+
+// Loader on form submit for Generate LKH
+document.getElementById('generateLkhForm').addEventListener('submit', function(e) {
+    Swal.fire({
+        title: 'Tunggu sebentar...',
+        text: 'LKH sedang diproses. Mohon tunggu hingga selesai.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 });
 </script>
