@@ -500,3 +500,30 @@ include '../template/topbar.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+// Loader on form submit for Generate LKB
+document.querySelector('#generateModal form').addEventListener('submit', function(e) {
+    Swal.fire({
+        title: 'Tunggu sebentar...',
+        text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+});
+
+// Loader on form submit for Regenerate LKB
+document.querySelector('#regenerateModal form').addEventListener('submit', function(e) {
+    Swal.fire({
+        title: 'Tunggu sebentar...',
+        text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+});
+</script>
