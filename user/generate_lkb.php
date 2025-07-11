@@ -503,6 +503,7 @@ include '../template/topbar.php';
 <script>
 // Loader on form submit for Generate LKB
 document.querySelector('#generateModal form').addEventListener('submit', function(e) {
+    e.preventDefault();
     Swal.fire({
         title: 'Tunggu sebentar...',
         text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
@@ -512,10 +513,14 @@ document.querySelector('#generateModal form').addEventListener('submit', functio
             Swal.showLoading();
         }
     });
+    setTimeout(() => {
+        e.target.submit();
+    }, 300);
 });
 
 // Loader on form submit for Regenerate LKB
 document.querySelector('#regenerateModal form').addEventListener('submit', function(e) {
+    e.preventDefault();
     Swal.fire({
         title: 'Tunggu sebentar...',
         text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
@@ -525,5 +530,8 @@ document.querySelector('#regenerateModal form').addEventListener('submit', funct
             Swal.showLoading();
         }
     });
+    setTimeout(() => {
+        e.target.submit();
+    }, 300);
 });
 </script>

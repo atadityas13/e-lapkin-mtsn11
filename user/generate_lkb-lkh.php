@@ -384,6 +384,8 @@ document.getElementById('generateLkhModal').addEventListener('show.bs.modal', fu
 
 // Loader on form submit for Generate LKB
 document.getElementById('generateLkbForm').addEventListener('submit', function(e) {
+    // Prevent default submit
+    e.preventDefault();
     Swal.fire({
         title: 'Tunggu sebentar...',
         text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
@@ -393,11 +395,15 @@ document.getElementById('generateLkbForm').addEventListener('submit', function(e
             Swal.showLoading();
         }
     });
-    // Form will submit normally after showing loader
+    // Submit form after short delay to ensure loader stays until server responds
+    setTimeout(() => {
+        e.target.submit();
+    }, 300);
 });
 
 // Loader on form submit for Generate LKH
 document.getElementById('generateLkhForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     Swal.fire({
         title: 'Tunggu sebentar...',
         text: 'LKH sedang diproses. Mohon tunggu hingga selesai.',
@@ -407,5 +413,8 @@ document.getElementById('generateLkhForm').addEventListener('submit', function(e
             Swal.showLoading();
         }
     });
+    setTimeout(() => {
+        e.target.submit();
+    }, 300);
 });
 </script>
