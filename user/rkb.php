@@ -160,12 +160,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 try {
                     if ($action == 'add') {
+                        // Kuantitas default 0, akan otomatis terupdate saat LKH ditambahkan
+                        $kuantitas_default = 0;
                         $stmt = $conn->prepare("INSERT INTO rkb (id_pegawai, id_rhk, bulan, tahun, uraian_kegiatan, kuantitas, satuan) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->bind_param("iiissss", $id_pegawai_login, $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan);
+                        $stmt->bind_param("iiissis", $id_pegawai_login, $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas_default, $satuan);
                     } else { // action == 'edit'
                         $id_rkb = (int)$_POST['id_rkb'];
-                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, bulan = ?, tahun = ?, uraian_kegiatan = ?, kuantitas = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
-                        $stmt->bind_param("iissssii", $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan, $id_rkb, $id_pegawai_login);
+                        // Tidak update kuantitas karena akan otomatis dihitung dari LKH
+                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, bulan = ?, tahun = ?, uraian_kegiatan = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
+                        $stmt->bind_param("iisssii", $id_rhk, $bulan, $tahun, $uraian_kegiatan, $satuan, $id_rkb, $id_pegawai_login);
                     }
 
                     if ($stmt->execute()) {
@@ -640,10 +643,7 @@ include __DIR__ . '/../template/topbar.php';
                 </div>
                 <textarea class="form-control" id="uraian_kegiatan_modal" name="uraian_kegiatan" rows="3" required></textarea>
               </div>
-              <div class="mb-3">
-                <label for="kuantitas_modal" class="form-label">Kuantitas Target</label>
-                <input type="text" class="form-control" id="kuantitas_modal" name="kuantitas" placeholder="Contoh: 12" required>
-              </div>
+              <!-- Kuantitas akan otomatis terisi berdasarkan jumlah LKH yang menggunakan RKB ini -->
               <div class="mb-3">
                 <label for="satuan_modal" class="form-label">Satuan Target</label>
                 <select class="form-select" id="satuan_modal" name="satuan" required>
@@ -788,10 +788,7 @@ include __DIR__ . '/../template/topbar.php';
               <label for="uraian_kegiatan" class="form-label">Uraian Kinerja Bulanan (RKB)</label>
               <textarea class="form-control" id="uraian_kegiatan" name="uraian_kegiatan" rows="3" required><?php echo htmlspecialchars($edit_rkb['uraian_kegiatan']); ?></textarea>
             </div>
-            <div class="mb-3">
-              <label for="kuantitas" class="form-label">Kuantitas Target</label>
-              <input type="text" class="form-control" id="kuantitas" name="kuantitas" value="<?php echo htmlspecialchars($edit_rkb['kuantitas']); ?>" placeholder="Contoh: 12" required>
-            </div>
+            <!-- Kuantitas otomatis: <?php echo htmlspecialchars($edit_rkb['kuantitas']); ?> (berdasarkan jumlah LKH) -->
             <div class="mb-3">
               <label for="satuan" class="form-label">Satuan Target</label>
               <select class="form-select" id="satuan" name="satuan" required>
@@ -1077,9 +1074,8 @@ include __DIR__ . '/../template/topbar.php';
         const satuan = this.getAttribute('data-satuan');
         const idRhk = this.getAttribute('data-id-rhk');
         
-        // Isi form di modal tambah RKB
+        // Isi form di modal tambah RKB (kuantitas tidak perlu diisi, otomatis dari LKH)
         document.getElementById('uraian_kegiatan_modal').value = uraian;
-        document.getElementById('kuantitas_modal').value = kuantitas;
         document.getElementById('satuan_modal').value = satuan;
         
         // Auto-select RHK terkait

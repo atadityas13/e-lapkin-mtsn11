@@ -192,16 +192,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 try {
+                    // Untuk edit: simpan id_rkb lama untuk update kuantitas
+                    $old_id_rkb = null;
+                    if ($action == 'edit') {
+                        $id_lkh = (int)$_POST['id_lkh'];
+                        $stmt_get_old = $conn->prepare("SELECT id_rkb FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+                        $stmt_get_old->bind_param("ii", $id_lkh, $id_pegawai_login);
+                        $stmt_get_old->execute();
+                        $result_old = $stmt_get_old->get_result();
+                        if ($row_old = $result_old->fetch_assoc()) {
+                            $old_id_rkb = $row_old['id_rkb'];
+                        }
+                        $stmt_get_old->close();
+                    }
+                    
                     if ($action == 'add') {
                         $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
                     } else { // action == 'edit'
-                        $id_lkh = (int)$_POST['id_lkh'];
                         $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
                         $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
                     }
 
                     if ($stmt->execute()) {
+                        // Auto-update kuantitas RKB berdasarkan jumlah LKH yang menggunakan RKB tersebut
+                        $lkh_month = date('m', strtotime($tanggal_lkh));
+                        $lkh_year = date('Y', strtotime($tanggal_lkh));
+                        
+                        // Update kuantitas untuk RKB yang baru/saat ini
+                        $stmt_update_rkb = $conn->prepare("
+                            UPDATE rkb 
+                            SET kuantitas = (
+                                SELECT COUNT(*) 
+                                FROM lkh 
+                                WHERE lkh.id_rkb = rkb.id_rkb 
+                                AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
+                                AND YEAR(lkh.tanggal_lkh) = rkb.tahun
+                            )
+                            WHERE id_rkb = ?
+                        ");
+                        $stmt_update_rkb->bind_param("i", $id_rkb);
+                        $stmt_update_rkb->execute();
+                        $stmt_update_rkb->close();
+                        
+                        // Jika edit dan RKB berubah, update juga kuantitas RKB lama
+                        if ($action == 'edit' && $old_id_rkb && $old_id_rkb != $id_rkb) {
+                            $stmt_update_old = $conn->prepare("
+                                UPDATE rkb 
+                                SET kuantitas = (
+                                    SELECT COUNT(*) 
+                                    FROM lkh 
+                                    WHERE lkh.id_rkb = rkb.id_rkb 
+                                    AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
+                                    AND YEAR(lkh.tanggal_lkh) = rkb.tahun
+                                )
+                                WHERE id_rkb = ?
+                            ");
+                            $stmt_update_old->bind_param("i", $old_id_rkb);
+                            $stmt_update_old->execute();
+                            $stmt_update_old->close();
+                        }
+                        
                         set_swal('success', ($action == 'add') ? 'Berhasil' : 'Update Berhasil', ($action == 'add') ? "LKH berhasil ditambahkan!" : "LKH berhasil diperbarui!");
                         echo '<script>window.location="lkh.php?month=' . date('m', strtotime($tanggal_lkh)) . '&year=' . date('Y', strtotime($tanggal_lkh)) . '";</script>';
                         exit();
@@ -309,11 +360,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } elseif ($action == 'delete') {
             $id_lkh_to_delete = (int)$_POST['id_lkh'];
             
-            // Get file name to delete
-            $stmt_get_file = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            // Get file name and id_rkb to delete and update kuantitas
+            $stmt_get_file = $conn->prepare("SELECT lampiran, id_rkb FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
             $stmt_get_file->bind_param("ii", $id_lkh_to_delete, $id_pegawai_login);
             $stmt_get_file->execute();
-            $stmt_get_file->bind_result($file_to_delete);
+            $stmt_get_file->bind_result($file_to_delete, $deleted_id_rkb);
             $stmt_get_file->fetch();
             $stmt_get_file->close();
             
@@ -325,6 +376,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($file_to_delete && file_exists(__DIR__ . '/../uploads/lkh/' . $file_to_delete)) {
                     unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
                 }
+                
+                // Auto-update kuantitas RKB
+                if ($deleted_id_rkb) {
+                    $stmt_update_rkb = $conn->prepare("
+                        UPDATE rkb 
+                        SET kuantitas = (
+                            SELECT COUNT(*) 
+                            FROM lkh 
+                            WHERE lkh.id_rkb = rkb.id_rkb 
+                            AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
+                            AND YEAR(lkh.tanggal_lkh) = rkb.tahun
+                        )
+                        WHERE id_rkb = ?
+                    ");
+                    $stmt_update_rkb->bind_param("i", $deleted_id_rkb);
+                    $stmt_update_rkb->execute();
+                    $stmt_update_rkb->close();
+                }
+                
                 set_swal('success', 'Berhasil', 'LKH berhasil dihapus!');
             } else {
                 set_swal('error', 'Gagal', "Gagal menghapus LKH: " . $stmt->error);

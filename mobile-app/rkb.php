@@ -200,13 +200,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 try {
                     if ($action == 'add') {
+                        // Kuantitas default 0, akan otomatis terupdate saat LKH ditambahkan
+                        $kuantitas_default = 0;
                         // Match web version database structure
                         $stmt = $conn->prepare("INSERT INTO rkb (id_pegawai, id_rhk, bulan, tahun, uraian_kegiatan, kuantitas, satuan, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->bind_param("iiisssss", $id_pegawai_login, $id_rhk, $filter_month, $filter_year, $uraian_kegiatan, $kuantitas, $satuan, $lampiran);
+                        $stmt->bind_param("iiississ", $id_pegawai_login, $id_rhk, $filter_month, $filter_year, $uraian_kegiatan, $kuantitas_default, $satuan, $lampiran);
                     } else {
                         $id_rkb = (int)$_POST['id_rkb'];
-                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, uraian_kegiatan = ?, kuantitas = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
-                        $stmt->bind_param("isssii", $id_rhk, $uraian_kegiatan, $kuantitas, $satuan, $id_rkb, $id_pegawai_login);
+                        // Tidak update kuantitas karena akan otomatis dihitung dari LKH
+                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, uraian_kegiatan = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
+                        $stmt->bind_param("issii", $id_rhk, $uraian_kegiatan, $satuan, $id_rkb, $id_pegawai_login);
                     }
 
                     if ($stmt->execute()) {
@@ -1145,29 +1148,20 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <textarea class="form-control" id="uraian_kegiatan_modal" name="uraian_kegiatan" rows="3" required placeholder="Deskripsi kegiatan yang akan dilakukan..."></textarea>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Kuantitas Target <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="kuantitas" id="kuantitas_modal" required placeholder="Contoh: 12">
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Satuan Target <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="satuan" id="satuan_modal" required>
-                                        <option value="">-- Pilih Satuan --</option>
-                                        <option value="Kegiatan">Kegiatan</option>
-                                        <option value="JP">JP</option>
-                                        <option value="Dokumen">Dokumen</option>
-                                        <option value="Laporan">Laporan</option>
-                                        <option value="Hari">Hari</option>
-                                        <option value="Jam">Jam</option>
-                                        <option value="Menit">Menit</option>
-                                        <option value="Unit">Unit</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <!-- Kuantitas akan otomatis terisi berdasarkan jumlah LKH yang menggunakan RKB ini -->
+                        <div class="mb-3">
+                            <label class="form-label">Satuan Target <span class="text-danger">*</span></label>
+                            <select class="form-select" name="satuan" id="satuan_modal" required>
+                                <option value="">-- Pilih Satuan --</option>
+                                <option value="Kegiatan">Kegiatan</option>
+                                <option value="JP">JP</option>
+                                <option value="Dokumen">Dokumen</option>
+                                <option value="Laporan">Laporan</option>
+                                <option value="Hari">Hari</option>
+                                <option value="Jam">Jam</option>
+                                <option value="Menit">Menit</option>
+                                <option value="Unit">Unit</option>
+                            </select>
                         </div>
                         
                         <!-- <div class="alert alert-info">
@@ -1420,7 +1414,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             document.getElementById('rkbId').value = id;
             document.getElementById('id_rhk_modal').value = id_rhk;
             document.getElementById('uraian_kegiatan_modal').value = uraian;
-            document.getElementById('kuantitas_modal').value = kuantitas;
+            // Kuantitas otomatis: tidak perlu di-set, akan dihitung dari LKH (saat ini: ' + kuantitas + ')
             document.getElementById('satuan_modal').value = satuan;
             document.getElementById('submitBtn').textContent = 'Update';
             new bootstrap.Modal(document.getElementById('rkbModal')).show();
@@ -1436,7 +1430,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
         function selectPreviousRkb(uraian, kuantitas, satuan, idRhk) {
             document.getElementById('uraian_kegiatan_modal').value = uraian;
-            document.getElementById('kuantitas_modal').value = kuantitas;
+            // Kuantitas tidak perlu diisi, otomatis dari LKH
             document.getElementById('satuan_modal').value = satuan;
             
             // Auto-select RHK terkait
