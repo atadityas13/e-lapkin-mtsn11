@@ -98,7 +98,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if ($bulan_tanggal_lkh != $filter_month || $tahun_tanggal_lkh != $filter_year) {
                     $nama_bulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                    set_mobile_notification('error', 'Periode Tidak Sesuai', 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year);
+                    // Simpan data form untuk restore
+                    $_SESSION['mobile_notification_keep_modal'] = [
+                        'type' => 'error',
+                        'title' => 'Periode Tidak Sesuai',
+                        'text' => 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year,
+                        'form_data' => $_POST
+                    ];
                     header('Location: lkh.php');
                     exit();
                 }
@@ -1889,6 +1895,44 @@ ob_clean();
                 showConfirmButton: false
             });
             <?php unset($_SESSION['mobile_notification']); ?>
+        <?php endif; ?>
+
+        // Show notification with keep modal open
+        <?php if (isset($_SESSION['mobile_notification_keep_modal'])): ?>
+            <?php $mobile_swal_data = $_SESSION['mobile_notification_keep_modal']; ?>
+            Swal.fire({
+                icon: '<?= $mobile_swal_data['type'] ?>',
+                title: '<?= $mobile_swal_data['title'] ?>',
+                text: '<?= $mobile_swal_data['text'] ?>',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3085d6'
+            }).then((result) => {
+                // Restore form data dan buka modal
+                const formData = <?php echo json_encode($mobile_swal_data['form_data']); ?>;
+                
+                // Set action
+                if (formData.action === 'add') {
+                    document.getElementById('lkhAction').value = 'add';
+                    document.getElementById('lkhModalTitle').textContent = 'Tambah LKH';
+                } else if (formData.action === 'edit') {
+                    document.getElementById('lkhAction').value = 'edit';
+                    document.getElementById('lkhModalTitle').textContent = 'Edit LKH';
+                    if (formData.id_lkh) document.getElementById('lkhId').value = formData.id_lkh;
+                }
+                
+                // Isi kembali form
+                if (formData.tanggal_lkh) document.getElementById('tanggalLkh').value = formData.tanggal_lkh;
+                if (formData.id_rkb) document.getElementById('rkbSelect').value = formData.id_rkb;
+                if (formData.nama_kegiatan_harian) document.getElementById('namaKegiatan').value = formData.nama_kegiatan_harian;
+                if (formData.uraian_kegiatan_lkh) document.getElementById('uraianKegiatan').value = formData.uraian_kegiatan_lkh;
+                if (formData.jumlah_realisasi) document.getElementById('jumlahRealisasi').value = formData.jumlah_realisasi;
+                if (formData.satuan_realisasi) document.getElementById('satuanRealisasi').value = formData.satuan_realisasi;
+                
+                // Buka modal
+                const modal = new bootstrap.Modal(document.getElementById('lkhModal'));
+                modal.show();
+            });
+            <?php unset($_SESSION['mobile_notification_keep_modal']); ?>
         <?php endif; ?>
 
         function showAddModal() {
