@@ -409,24 +409,24 @@ $stmt_previous_lkh = $conn->prepare("
         l1.nama_kegiatan_harian,
         l1.uraian_kegiatan_lkh,
         l1.jumlah_realisasi,
-        l1.satuan_realisasi
+        l1.satuan_realisasi,
+        l2.usage_count
     FROM lkh l1
     INNER JOIN (
         SELECT 
-            nama_kegiatan_harian,
-            uraian_kegiatan_lkh,
+            LOWER(TRIM(nama_kegiatan_harian)) as nama_key,
+            LOWER(TRIM(uraian_kegiatan_lkh)) as uraian_key,
             MAX(id_lkh) as max_id_lkh
+            ,COUNT(*) as usage_count
         FROM lkh 
         WHERE id_pegawai = ? AND NOT (MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?)
-        GROUP BY nama_kegiatan_harian, uraian_kegiatan_lkh
-    ) l2 ON l1.nama_kegiatan_harian = l2.nama_kegiatan_harian 
-         AND l1.uraian_kegiatan_lkh = l2.uraian_kegiatan_lkh
-         AND l1.id_lkh = l2.max_id_lkh
-    WHERE l1.id_pegawai = ? AND NOT (MONTH(l1.tanggal_lkh) = ? AND YEAR(l1.tanggal_lkh) = ?)
-    ORDER BY l1.id_lkh DESC, l1.nama_kegiatan_harian ASC
+        GROUP BY LOWER(TRIM(nama_kegiatan_harian)), LOWER(TRIM(uraian_kegiatan_lkh))
+    ) l2 ON l1.id_lkh = l2.max_id_lkh
+    WHERE l1.id_pegawai = ?
+    ORDER BY l2.usage_count DESC, l1.id_lkh DESC
 ");
 
-$stmt_previous_lkh->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
+$stmt_previous_lkh->bind_param("iiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login);
 $stmt_previous_lkh->execute();
 $result_previous_lkh = $stmt_previous_lkh->get_result();
 
@@ -435,7 +435,8 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'nama_kegiatan_harian' => $row['nama_kegiatan_harian'],
         'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
         'jumlah_realisasi' => $row['jumlah_realisasi'],
-        'satuan_realisasi' => $row['satuan_realisasi']
+        'satuan_realisasi' => $row['satuan_realisasi'],
+        'usage_count' => $row['usage_count']
     ];
 }
 
@@ -1760,18 +1761,20 @@ ob_clean();
                                      data-jumlah="<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>"
                                      data-satuan="<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>">
                                     <div class="card-body p-3">
-                                        <h6 class="card-title mb-2"><?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?></h6>
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0 flex-grow-1"><?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?></h6>
+                                            <span class="badge bg-success ms-2" title="Sudah digunakan <?= $prev_lkh['usage_count'] ?>x" style="font-size: 0.9rem;">
+                                                <i class="fas fa-sync-alt me-1"></i><?= $prev_lkh['usage_count'] ?>x
+                                            </span>
+                                        </div>
                                         <p class="card-text small text-muted mb-2">
                                             <?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>
                                         </p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <span class="badge bg-secondary me-1"><?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?></span>
-                                                <span class="badge bg-primary"><?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?></span>
-                                            </div>                            <button type="button" class="btn btn-sm btn-success" 
-                                    onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
-                                <i class="fas fa-check me-1"></i>Gunakan
-                            </button>
+                                        <div class="text-end">
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
+                                                <i class="fas fa-check me-1"></i>Gunakan
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

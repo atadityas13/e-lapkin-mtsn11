@@ -471,30 +471,30 @@ $months = [
 // Ambil daftar LKH terdahulu untuk referensi
 $previous_lkh_list = [];
 
-// Get unique nama_kegiatan_harian and uraian_kegiatan_lkh with latest data (compatible with ONLY_FULL_GROUP_BY)
+// Get unique nama_kegiatan_harian and uraian_kegiatan_lkh with latest data and usage count
 $stmt_previous_lkh = $conn->prepare("
     SELECT 
         l1.nama_kegiatan_harian,
         l1.uraian_kegiatan_lkh,
         l1.jumlah_realisasi,
-        l1.satuan_realisasi
+        l1.satuan_realisasi,
+    l2.usage_count
     FROM lkh l1
     INNER JOIN (
         SELECT 
-            nama_kegiatan_harian,
-            uraian_kegiatan_lkh,
-            MAX(created_at) as max_created_at
+      LOWER(TRIM(nama_kegiatan_harian)) as nama_key,
+      LOWER(TRIM(uraian_kegiatan_lkh)) as uraian_key,
+      MAX(id_lkh) as max_id_lkh,
+      COUNT(*) as usage_count
         FROM lkh 
         WHERE id_pegawai = ? AND NOT (MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?)
-        GROUP BY nama_kegiatan_harian, uraian_kegiatan_lkh
-    ) l2 ON l1.nama_kegiatan_harian = l2.nama_kegiatan_harian 
-         AND l1.uraian_kegiatan_lkh = l2.uraian_kegiatan_lkh
-         AND l1.created_at = l2.max_created_at
-    WHERE l1.id_pegawai = ? AND NOT (MONTH(l1.tanggal_lkh) = ? AND YEAR(l1.tanggal_lkh) = ?)
-    ORDER BY l1.created_at DESC, l1.nama_kegiatan_harian ASC
+    GROUP BY LOWER(TRIM(nama_kegiatan_harian)), LOWER(TRIM(uraian_kegiatan_lkh))
+  ) l2 ON l1.id_lkh = l2.max_id_lkh
+  WHERE l1.id_pegawai = ?
+  ORDER BY l2.usage_count DESC, l1.id_lkh DESC
 ");
 
-$stmt_previous_lkh->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
+$stmt_previous_lkh->bind_param("iiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login);
 $stmt_previous_lkh->execute();
 $result_previous_lkh = $stmt_previous_lkh->get_result();
 
@@ -503,7 +503,8 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'nama_kegiatan_harian' => $row['nama_kegiatan_harian'],
         'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
         'jumlah_realisasi' => $row['jumlah_realisasi'],
-        'satuan_realisasi' => $row['satuan_realisasi']
+        'satuan_realisasi' => $row['satuan_realisasi'],
+        'usage_count' => $row['usage_count']
     ];
 }
 
@@ -1013,10 +1014,9 @@ include __DIR__ . '/../template/topbar.php';
                   <table class="table table-hover table-sm">
                     <thead class="table-light">
                       <tr>
-                        <th width="25%">Nama Kegiatan</th>
-                        <th width="35%">Uraian Kegiatan LKH</th>
-                        <th width="15%">Jumlah Terakhir</th>
-                        <th width="15%">Satuan Terakhir</th>
+                        <th width="30%">Nama Kegiatan</th>
+                        <th width="50%">Uraian Kegiatan LKH</th>
+                        <th width="10%" class="text-center">Digunakan</th>
                         <th width="10%">Aksi</th>
                       </tr>
                     </thead>
@@ -1031,15 +1031,14 @@ include __DIR__ . '/../template/topbar.php';
                             <div class="fw-semibold"><?php echo htmlspecialchars($prev_lkh['nama_kegiatan_harian']); ?></div>
                           </td>
                           <td>
-                            <div class="text-truncate" style="max-width: 200px;" title="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>">
+                            <div class="text-truncate" style="max-width: 300px;" title="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>">
                               <?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>
                             </div>
                           </td>
                           <td class="text-center">
-                            <span class="badge bg-secondary"><?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?></span>
-                          </td>
-                          <td class="text-center">
-                            <span class="badge bg-primary"><?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?></span>
+                            <span class="badge bg-success" title="Sudah digunakan <?php echo $prev_lkh['usage_count']; ?>x">
+                              <?php echo $prev_lkh['usage_count']; ?>x
+                            </span>
                           </td>
                           <td class="text-center">
                             <button type="button" class="btn btn-sm btn-success pilih-lkh-btn"
