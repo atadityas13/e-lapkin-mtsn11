@@ -387,7 +387,7 @@ ensure_lampiran_column_lkh($conn);
 
 // Ambil data LKH (tambahkan nama_kegiatan_harian)
 $lkhs = [];
-$stmt_lkh = $conn->prepare("SELECT lkh.id_lkh, lkh.id_rkb, lkh.tanggal_lkh, lkh.uraian_kegiatan_lkh, lkh.jumlah_realisasi, lkh.satuan_realisasi, lkh.lampiran, lkh.nama_kegiatan_harian, rkb.uraian_kegiatan AS rkb_uraian FROM lkh JOIN rkb ON lkh.id_rkb = rkb.id_rkb WHERE lkh.id_pegawai = ? AND MONTH(lkh.tanggal_lkh) = ? AND YEAR(lkh.tanggal_lkh) = ? ORDER BY lkh.tanggal_lkh ASC");
+$stmt_lkh = $conn->prepare("SELECT lkh.id_lkh, lkh.id_rkb, lkh.tanggal_lkh, lkh.uraian_kegiatan_lkh, lkh.jumlah_realisasi, lkh.satuan_realisasi, lkh.lampiran, lkh.nama_kegiatan_harian, rkb.uraian_kegiatan AS rkb_uraian FROM lkh JOIN rkb ON lkh.id_rkb = rkb.id_rkb WHERE lkh.id_pegawai = ? AND MONTH(lkh.tanggal_lkh) = ? AND YEAR(lkh.tanggal_lkh) = ? ORDER BY lkh.id_lkh DESC");
 $stmt_lkh->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
 $stmt_lkh->execute();
 $result_lkh = $stmt_lkh->get_result();
