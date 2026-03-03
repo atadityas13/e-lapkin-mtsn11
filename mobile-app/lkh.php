@@ -481,8 +481,10 @@ $stmt_previous_lkh = $conn->prepare("
         l1.jumlah_realisasi,
         l1.satuan_realisasi,
         l1.id_rkb,
+        COALESCE(r_old.uraian_kegiatan, '') AS rkb_uraian,
         l2.usage_count
     FROM lkh l1
+    LEFT JOIN rkb r_old ON l1.id_rkb = r_old.id_rkb
     INNER JOIN (
         SELECT 
             LOWER(TRIM(nama_kegiatan_harian)) as nama_key,
@@ -507,6 +509,7 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'jumlah_realisasi' => $row['jumlah_realisasi'],
         'satuan_realisasi' => $row['satuan_realisasi'],
         'id_rkb' => $row['id_rkb'],
+        'rkb_uraian' => $row['rkb_uraian'],
         'usage_count' => $row['usage_count']
     ];
 }
@@ -1831,7 +1834,8 @@ ob_clean();
                                      data-uraian="<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>"
                                      data-jumlah="<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>"
                                      data-satuan="<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>"
-                                     data-id-rkb="<?= htmlspecialchars($prev_lkh['id_rkb']) ?>">
+                                      data-id-rkb="<?= htmlspecialchars($prev_lkh['id_rkb']) ?>"
+                                      data-rkb-uraian="<?= htmlspecialchars($prev_lkh['rkb_uraian']) ?>">
                                     <div class="card-body p-3">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h6 class="card-title mb-0 flex-grow-1"><?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?></h6>
@@ -1844,7 +1848,7 @@ ob_clean();
                                         </p>
                                         <div class="text-end">
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['id_rkb']) ?>')">
+                                                onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['id_rkb']) ?>', '<?= htmlspecialchars($prev_lkh['rkb_uraian']) ?>')">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -2107,14 +2111,29 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
         }
 
-        function selectPreviousLkh(nama, uraian, jumlah, satuan, idRkb) {
+        function selectPreviousLkh(nama, uraian, jumlah, satuan, idRkb, rkbUraian) {
             document.getElementById('namaKegiatan').value = nama;
             document.getElementById('uraianKegiatan').value = uraian;
             document.getElementById('jumlahRealisasi').value = jumlah;
             
             // Auto-select RKB terkait
+            const rkbSelect = document.getElementById('rkbTerkait');
+            let selected = false;
+            
             if (idRkb) {
-                document.getElementById('rkbTerkait').value = idRkb;
+                rkbSelect.value = idRkb;
+                selected = (rkbSelect.value === String(idRkb));
+            }
+            
+            if (!selected && rkbUraian) {
+                const target = rkbUraian.toLowerCase().replace(/\s+/g, ' ').trim();
+                Array.from(rkbSelect.options).forEach(function(option) {
+                    const optionText = (option.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    if (!selected && optionText && (optionText === target || optionText.includes(target) || target.includes(optionText))) {
+                        rkbSelect.value = option.value;
+                        selected = true;
+                    }
+                });
             }
             
             

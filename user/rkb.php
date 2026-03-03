@@ -142,12 +142,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($action == 'add' || $action == 'edit') {
             $id_rhk = (int)$_POST['id_rhk'];
             $uraian_kegiatan = trim($_POST['uraian_kegiatan']);
-            $kuantitas = trim($_POST['kuantitas']);
             $satuan = trim($_POST['satuan']);
             $bulan = (int)$_POST['bulan'];
             $tahun = (int)$_POST['tahun'];
 
-            if (empty($uraian_kegiatan) || empty($kuantitas) || empty($satuan) || empty($bulan) || empty($tahun)) {
+          if (empty($id_rhk) || empty($uraian_kegiatan) || empty($satuan) || empty($bulan) || empty($tahun)) {
                 set_swal('error', 'Gagal', 'Semua field harus diisi.');
             } else {
                 // Validate satuan against ENUM values
@@ -313,8 +312,10 @@ $stmt_previous_rkb = $conn->prepare("
         r1.uraian_kegiatan,
         r1.kuantitas,
         r1.satuan,
-        r1.id_rhk
+    r1.id_rhk,
+    COALESCE(rh.nama_rhk, '') AS nama_rhk
     FROM rkb r1
+  LEFT JOIN rhk rh ON r1.id_rhk = rh.id_rhk
     INNER JOIN (
         SELECT 
             uraian_kegiatan,
@@ -337,7 +338,8 @@ while ($row = $result_previous_rkb->fetch_assoc()) {
         'uraian_kegiatan' => $row['uraian_kegiatan'],
         'kuantitas' => $row['kuantitas'],
         'satuan' => $row['satuan'],
-        'id_rhk' => $row['id_rhk']
+    'id_rhk' => $row['id_rhk'],
+    'nama_rhk' => $row['nama_rhk']
     ];
 }
 
@@ -723,6 +725,7 @@ include __DIR__ . '/../template/topbar.php';
                                     data-kuantitas="<?php echo htmlspecialchars($prev_rkb['kuantitas']); ?>"
                                     data-satuan="<?php echo htmlspecialchars($prev_rkb['satuan']); ?>"
                                     data-id-rhk="<?php echo htmlspecialchars($prev_rkb['id_rhk']); ?>"
+                                    data-nama-rhk="<?php echo htmlspecialchars($prev_rkb['nama_rhk']); ?>"
                                     title="Pilih RKB ini">
                               <i class="fas fa-check me-1"></i><small>Gunakan</small>
                             </button>
@@ -1066,6 +1069,32 @@ include __DIR__ . '/../template/topbar.php';
 <script>
   // JavaScript untuk fitur RKB terdahulu
   document.addEventListener('DOMContentLoaded', function() {
+    function normalizeText(value) {
+      return (value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function selectByValueOrText(selectElement, value, text) {
+      let selected = false;
+
+      if (value) {
+        selectElement.value = value;
+        selected = (selectElement.value === String(value));
+      }
+
+      if (!selected && text) {
+        const targetText = normalizeText(text);
+        Array.from(selectElement.options).forEach(function(option) {
+          const optionText = normalizeText(option.textContent);
+          if (!selected && optionText && (optionText === targetText || optionText.includes(targetText) || targetText.includes(optionText))) {
+            selectElement.value = option.value;
+            selected = true;
+          }
+        });
+      }
+
+      return selected;
+    }
+
     // Event listener untuk tombol pilih RKB
     document.querySelectorAll('.pilih-rkb-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -1073,15 +1102,15 @@ include __DIR__ . '/../template/topbar.php';
         const kuantitas = this.getAttribute('data-kuantitas');
         const satuan = this.getAttribute('data-satuan');
         const idRhk = this.getAttribute('data-id-rhk');
+        const namaRhk = this.getAttribute('data-nama-rhk');
         
         // Isi form di modal tambah RKB (kuantitas tidak perlu diisi, otomatis dari LKH)
         document.getElementById('uraian_kegiatan_modal').value = uraian;
         document.getElementById('satuan_modal').value = satuan;
         
         // Auto-select RHK terkait
-        if (idRhk) {
-          document.getElementById('id_rhk_modal').value = idRhk;
-        }
+        const rhkSelect = document.getElementById('id_rhk_modal');
+        selectByValueOrText(rhkSelect, idRhk, namaRhk);
         
         // Tutup hanya modal RKB terdahulu, bukan modal tambah RKB
         const modalRkbTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalRkbTerdahulu'));

@@ -129,7 +129,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($action == 'add' || $action == 'edit') {
             $id_rhk = (int)$_POST['id_rhk'];
             $uraian_kegiatan = trim($_POST['uraian_kegiatan']);
-            $kuantitas = trim($_POST['kuantitas']);
             $satuan = trim($_POST['satuan']);
             
             // Handle file upload for add action (optional)
@@ -187,7 +186,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             // Validation - lampiran is now truly optional
-            if (empty($id_rhk) || empty($uraian_kegiatan) || empty($kuantitas) || empty($satuan)) {
+            if (empty($id_rhk) || empty($uraian_kegiatan) || empty($satuan)) {
                 set_mobile_notification('error', 'Gagal', 'Semua field wajib harus diisi.');
             } else {
                 // Validate satuan against ENUM values (same as web version)
@@ -395,8 +394,10 @@ $stmt_previous_rkb = $conn->prepare("
         r1.uraian_kegiatan,
         r1.kuantitas,
         r1.satuan,
-        r1.id_rhk
+        r1.id_rhk,
+        COALESCE(rh.nama_rhk, '') AS nama_rhk
     FROM rkb r1
+    LEFT JOIN rhk rh ON r1.id_rhk = rh.id_rhk
     INNER JOIN (
         SELECT 
             uraian_kegiatan,
@@ -419,7 +420,8 @@ while ($row = $result_previous_rkb->fetch_assoc()) {
         'uraian_kegiatan' => $row['uraian_kegiatan'],
         'kuantitas' => $row['kuantitas'],
         'satuan' => $row['satuan'],
-        'id_rhk' => $row['id_rhk']
+        'id_rhk' => $row['id_rhk'],
+        'nama_rhk' => $row['nama_rhk']
     ];
 }
 
@@ -1299,7 +1301,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                      data-uraian="<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>"
                                      data-kuantitas="<?= htmlspecialchars($prev_rkb['kuantitas']) ?>"
                                      data-satuan="<?= htmlspecialchars($prev_rkb['satuan']) ?>"
-                                     data-id-rhk="<?= htmlspecialchars($prev_rkb['id_rhk']) ?>">
+                                      data-id-rhk="<?= htmlspecialchars($prev_rkb['id_rhk']) ?>"
+                                      data-nama-rhk="<?= htmlspecialchars($prev_rkb['nama_rhk']) ?>">
                                     <div class="card-body p-3">
                                         <h6 class="card-title mb-2"><?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?></h6>
                                         <div class="d-flex justify-content-between align-items-center">
@@ -1308,7 +1311,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                                 <span class="badge bg-primary"><?= htmlspecialchars($prev_rkb['satuan']) ?></span>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selectPreviousRkb('<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($prev_rkb['kuantitas']) ?>', '<?= htmlspecialchars($prev_rkb['satuan']) ?>', '<?= htmlspecialchars($prev_rkb['id_rhk']) ?>')">
+                                                    onclick="selectPreviousRkb('<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($prev_rkb['kuantitas']) ?>', '<?= htmlspecialchars($prev_rkb['satuan']) ?>', '<?= htmlspecialchars($prev_rkb['id_rhk']) ?>', '<?= htmlspecialchars($prev_rkb['nama_rhk']) ?>')">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -1428,14 +1431,29 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             new bootstrap.Modal(document.getElementById('previousRkbModal')).show();
         }
 
-        function selectPreviousRkb(uraian, kuantitas, satuan, idRhk) {
+        function selectPreviousRkb(uraian, kuantitas, satuan, idRhk, namaRhk) {
             document.getElementById('uraian_kegiatan_modal').value = uraian;
             // Kuantitas tidak perlu diisi, otomatis dari LKH
             document.getElementById('satuan_modal').value = satuan;
             
             // Auto-select RHK terkait
+            const rhkSelect = document.getElementById('id_rhk_modal');
+            let selected = false;
+            
             if (idRhk) {
-                document.getElementById('id_rhk_modal').value = idRhk;
+                rhkSelect.value = idRhk;
+                selected = (rhkSelect.value === String(idRhk));
+            }
+            
+            if (!selected && namaRhk) {
+                const target = namaRhk.toLowerCase().replace(/\s+/g, ' ').trim();
+                Array.from(rhkSelect.options).forEach(function(option) {
+                    const optionText = (option.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    if (!selected && optionText && (optionText === target || optionText.includes(target) || target.includes(optionText))) {
+                        rhkSelect.value = option.value;
+                        selected = true;
+                    }
+                });
             }
             
             // Close previous RKB modal

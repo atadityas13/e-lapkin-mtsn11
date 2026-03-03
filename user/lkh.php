@@ -549,8 +549,10 @@ $stmt_previous_lkh = $conn->prepare("
         l1.jumlah_realisasi,
         l1.satuan_realisasi,
         l1.id_rkb,
+    COALESCE(r_old.uraian_kegiatan, '') AS rkb_uraian,
     l2.usage_count
     FROM lkh l1
+  LEFT JOIN rkb r_old ON l1.id_rkb = r_old.id_rkb
     INNER JOIN (
         SELECT 
       LOWER(TRIM(nama_kegiatan_harian)) as nama_key,
@@ -575,6 +577,7 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'jumlah_realisasi' => $row['jumlah_realisasi'],
         'satuan_realisasi' => $row['satuan_realisasi'],
         'id_rkb' => $row['id_rkb'],
+      'rkb_uraian' => $row['rkb_uraian'],
         'usage_count' => $row['usage_count']
     ];
 }
@@ -1118,6 +1121,7 @@ include __DIR__ . '/../template/topbar.php';
                                     data-jumlah="<?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?>"
                                     data-satuan="<?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?>"
                                     data-id-rkb="<?php echo htmlspecialchars($prev_lkh['id_rkb']); ?>"
+                                    data-rkb-uraian="<?php echo htmlspecialchars($prev_lkh['rkb_uraian']); ?>"
                                     title="Pilih LKH ini">
                               <i class="fas fa-check me-1"></i><small>Gunakan</small>
                             </button>
@@ -1349,6 +1353,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const jumlah = this.getAttribute('data-jumlah');
         const satuan = this.getAttribute('data-satuan');
         const idRkb = this.getAttribute('data-id-rkb');
+        const rkbUraian = this.getAttribute('data-rkb-uraian');
+
+        function normalizeText(value) {
+          return (value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        }
+
+        function selectByValueOrText(selectElement, value, text) {
+          let selected = false;
+
+          if (value) {
+            selectElement.value = value;
+            selected = (selectElement.value === String(value));
+          }
+
+          if (!selected && text) {
+            const targetText = normalizeText(text);
+            Array.from(selectElement.options).forEach(function(option) {
+              const optionText = normalizeText(option.textContent);
+              if (!selected && optionText && (optionText === targetText || optionText.includes(targetText) || targetText.includes(optionText))) {
+                selectElement.value = option.value;
+                selected = true;
+              }
+            });
+          }
+
+          return selected;
+        }
         
         // Isi form di modal tambah LKH
         document.getElementById('nama_kegiatan_harian_modal').value = nama;
@@ -1356,9 +1387,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('jumlah_realisasi_modal').value = jumlah;
         
         // Auto-select RKB terkait
-        if (idRkb) {
-          document.getElementById('id_rkb_modal').value = idRkb;
-        }
+        const rkbSelect = document.getElementById('id_rkb_modal');
+        selectByValueOrText(rkbSelect, idRkb, rkbUraian);
         
         // Set satuan dropdown berdasarkan mapping
         const satuanMap = {
