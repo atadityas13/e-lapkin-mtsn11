@@ -120,6 +120,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 : '';
             $nama_kegiatan_harian = isset($_POST['nama_kegiatan_harian']) ? trim($_POST['nama_kegiatan_harian']) : '';
 
+            // Validasi: Bulan tanggal LKH harus sama dengan periode RKB aktif
+            if (!empty($tanggal_lkh)) {
+                $bulan_tanggal_lkh = (int)date('m', strtotime($tanggal_lkh));
+                $tahun_tanggal_lkh = (int)date('Y', strtotime($tanggal_lkh));
+                
+                if ($bulan_tanggal_lkh != $filter_month || $tahun_tanggal_lkh != $filter_year) {
+                    $nama_bulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    set_swal('error', 'Periode Tidak Sesuai', 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year);
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+            }
+
             // Handle file upload (only for add action)
             $lampiran = NULL;
             if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
