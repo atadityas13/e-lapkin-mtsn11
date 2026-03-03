@@ -189,6 +189,32 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
+// Ambil daftar RHK tahun sebelumnya untuk referensi
+$previous_year_for_reference = $periode_aktif - 1;
+$previous_rhk_list = [];
+
+if ($previous_year_for_reference > 0) {
+  $stmt_previous_rhk = $conn->prepare("
+    SELECT r1.id_rhk, r1.nama_rhk, r1.aspek, r1.target
+    FROM rhk r1
+    INNER JOIN (
+      SELECT LOWER(TRIM(nama_rhk)) AS nama_key, MAX(id_rhk) AS max_id_rhk
+      FROM rhk
+      WHERE id_pegawai = ? AND YEAR(created_at) = ?
+      GROUP BY LOWER(TRIM(nama_rhk))
+    ) r2 ON r1.id_rhk = r2.max_id_rhk
+    WHERE r1.id_pegawai = ? AND YEAR(r1.created_at) = ?
+    ORDER BY r1.id_rhk DESC
+  ");
+  $stmt_previous_rhk->bind_param("iiii", $id_pegawai_login, $previous_year_for_reference, $id_pegawai_login, $previous_year_for_reference);
+  $stmt_previous_rhk->execute();
+  $result_previous_rhk = $stmt_previous_rhk->get_result();
+  while ($row = $result_previous_rhk->fetch_assoc()) {
+    $previous_rhk_list[] = $row;
+  }
+  $stmt_previous_rhk->close();
+}
+
 $edit_mode = false;
 $edit_rhk = ['id_rhk' => '', 'nama_rhk' => '', 'aspek' => '', 'target' => ''];
 
@@ -352,7 +378,12 @@ include __DIR__ . '/../template/topbar.php';
             <div class="modal-body">
               <input type="hidden" name="action" value="add">
               <div class="mb-3">
-                <label for="nama_rhk_modal" class="form-label">Nama RHK / Uraian Kegiatan</label>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label for="nama_rhk_modal" class="form-label mb-0">Nama RHK / Uraian Kegiatan</label>
+                  <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalRhkTerdahulu">
+                    <i class="fas fa-history me-1"></i>Lihat RHK <?= $previous_year_for_reference ?>
+                  </button>
+                </div>
                 <input type="text" class="form-control" id="nama_rhk_modal" name="nama_rhk" required>
               </div>
               <div class="mb-3">
@@ -375,6 +406,66 @@ include __DIR__ . '/../template/topbar.php';
               <button type="submit" class="btn btn-primary">Tambah RHK</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Modal RHK Terdahulu (Tahun Sebelumnya) -->
+      <div class="modal fade" id="modalRhkTerdahulu" tabindex="-1" aria-labelledby="modalRhkTerdahuluLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+              <h5 class="modal-title" id="modalRhkTerdahuluLabel">
+                <i class="fas fa-history me-2"></i>RHK Tahun <?= $previous_year_for_reference ?>
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i>
+                Pilih salah satu RHK tahun <?= $previous_year_for_reference ?> untuk mengisi form otomatis.
+              </div>
+
+              <?php if (empty($previous_rhk_list)): ?>
+                <div class="text-center py-4">
+                  <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                  <p class="text-muted mb-0">Belum ada data RHK pada tahun <?= $previous_year_for_reference ?>.</p>
+                </div>
+              <?php else: ?>
+                <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                  <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                      <tr>
+                        <th width="45%">Nama RHK</th>
+                        <th width="20%">Aspek</th>
+                        <th width="25%">Target</th>
+                        <th width="10%">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php foreach ($previous_rhk_list as $prev_rhk): ?>
+                        <tr>
+                          <td><?php echo htmlspecialchars($prev_rhk['nama_rhk']); ?></td>
+                          <td><?php echo htmlspecialchars($prev_rhk['aspek']); ?></td>
+                          <td><?php echo htmlspecialchars($prev_rhk['target']); ?></td>
+                          <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-success pilih-rhk-btn"
+                                    data-nama="<?php echo htmlspecialchars($prev_rhk['nama_rhk']); ?>"
+                                    data-aspek="<?php echo htmlspecialchars($prev_rhk['aspek']); ?>"
+                                    data-target="<?php echo htmlspecialchars($prev_rhk['target']); ?>">
+                              Gunakan
+                            </button>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -492,5 +583,57 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   });
+
+  // Pilih data RHK tahun sebelumnya untuk autofill form tambah
+  document.querySelectorAll('.pilih-rhk-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const nama = this.getAttribute('data-nama');
+      const aspek = this.getAttribute('data-aspek');
+      const target = this.getAttribute('data-target');
+
+      const namaInput = document.getElementById('nama_rhk_modal');
+      const aspekInput = document.getElementById('aspek_modal');
+      const targetInput = document.getElementById('target_modal');
+
+      if (namaInput) namaInput.value = nama || '';
+      if (aspekInput) aspekInput.value = aspek || '';
+      if (targetInput) targetInput.value = target || '';
+
+      const modalRhkTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalRhkTerdahulu'));
+      if (modalRhkTerdahulu) {
+        modalRhkTerdahulu.hide();
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'RHK Terpilih',
+        text: 'Data RHK berhasil disalin ke form tambah.',
+        timer: 1300,
+        showConfirmButton: false
+      });
+
+      setTimeout(function() {
+        const modalTambahRhk = bootstrap.Modal.getInstance(document.getElementById('modalTambahRhk'));
+        if (!modalTambahRhk || !modalTambahRhk._isShown) {
+          const newModalTambahRhk = new bootstrap.Modal(document.getElementById('modalTambahRhk'));
+          newModalTambahRhk.show();
+        }
+      }, 120);
+    });
+  });
+
+  // Pastikan modal tambah tetap terbuka setelah modal RHK terdahulu ditutup
+  const modalRhkTerdahuluElement = document.getElementById('modalRhkTerdahulu');
+  if (modalRhkTerdahuluElement) {
+    modalRhkTerdahuluElement.addEventListener('hidden.bs.modal', function() {
+      setTimeout(function() {
+        const modalTambahRhk = bootstrap.Modal.getInstance(document.getElementById('modalTambahRhk'));
+        if (!modalTambahRhk || !modalTambahRhk._isShown) {
+          const newModalTambahRhk = new bootstrap.Modal(document.getElementById('modalTambahRhk'));
+          newModalTambahRhk.show();
+        }
+      }, 120);
+    });
+  }
 });
 </script>

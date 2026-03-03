@@ -281,8 +281,19 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
 
 // Ambil daftar RHK untuk dropdown
 $rhk_list = [];
-$stmt_rhk_list = $conn->prepare("SELECT id_rhk, nama_rhk FROM rhk WHERE id_pegawai = ? ORDER BY nama_rhk ASC");
-$stmt_rhk_list->bind_param("i", $id_pegawai_login);
+$stmt_rhk_list = $conn->prepare("
+  SELECT r1.id_rhk, r1.nama_rhk
+  FROM rhk r1
+  INNER JOIN (
+    SELECT LOWER(TRIM(nama_rhk)) AS nama_key, MAX(id_rhk) AS max_id_rhk
+    FROM rhk
+    WHERE id_pegawai = ?
+    GROUP BY LOWER(TRIM(nama_rhk))
+  ) r2 ON r1.id_rhk = r2.max_id_rhk
+  WHERE r1.id_pegawai = ?
+  ORDER BY r1.nama_rhk ASC
+");
+$stmt_rhk_list->bind_param("ii", $id_pegawai_login, $id_pegawai_login);
 $stmt_rhk_list->execute();
 $result_rhk_list = $stmt_rhk_list->get_result();
 while ($row = $result_rhk_list->fetch_assoc()) {
