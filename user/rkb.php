@@ -309,7 +309,8 @@ $stmt_previous_rkb = $conn->prepare("
     SELECT 
         r1.uraian_kegiatan,
         r1.kuantitas,
-        r1.satuan
+        r1.satuan,
+        r1.id_rhk
     FROM rkb r1
     INNER JOIN (
         SELECT 
@@ -332,7 +333,8 @@ while ($row = $result_previous_rkb->fetch_assoc()) {
     $previous_rkb_list[] = [
         'uraian_kegiatan' => $row['uraian_kegiatan'],
         'kuantitas' => $row['kuantitas'],
-        'satuan' => $row['satuan']
+        'satuan' => $row['satuan'],
+        'id_rhk' => $row['id_rhk']
     ];
 }
 
@@ -720,6 +722,7 @@ include __DIR__ . '/../template/topbar.php';
                                     data-uraian="<?php echo htmlspecialchars($prev_rkb['uraian_kegiatan']); ?>"
                                     data-kuantitas="<?php echo htmlspecialchars($prev_rkb['kuantitas']); ?>"
                                     data-satuan="<?php echo htmlspecialchars($prev_rkb['satuan']); ?>"
+                                    data-id-rhk="<?php echo htmlspecialchars($prev_rkb['id_rhk']); ?>"
                                     title="Pilih RKB ini">
                               <i class="fas fa-check me-1"></i><small>Gunakan</small>
                             </button>
@@ -1072,11 +1075,17 @@ include __DIR__ . '/../template/topbar.php';
         const uraian = this.getAttribute('data-uraian');
         const kuantitas = this.getAttribute('data-kuantitas');
         const satuan = this.getAttribute('data-satuan');
+        const idRhk = this.getAttribute('data-id-rhk');
         
         // Isi form di modal tambah RKB
         document.getElementById('uraian_kegiatan_modal').value = uraian;
         document.getElementById('kuantitas_modal').value = kuantitas;
         document.getElementById('satuan_modal').value = satuan;
+        
+        // Auto-select RHK terkait
+        if (idRhk) {
+          document.getElementById('id_rhk_modal').value = idRhk;
+        }
         
         // Tutup hanya modal RKB terdahulu, bukan modal tambah RKB
         const modalRkbTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalRkbTerdahulu'));

@@ -391,7 +391,8 @@ $stmt_previous_rkb = $conn->prepare("
     SELECT 
         r1.uraian_kegiatan,
         r1.kuantitas,
-        r1.satuan
+        r1.satuan,
+        r1.id_rhk
     FROM rkb r1
     INNER JOIN (
         SELECT 
@@ -414,7 +415,8 @@ while ($row = $result_previous_rkb->fetch_assoc()) {
     $previous_rkb_list[] = [
         'uraian_kegiatan' => $row['uraian_kegiatan'],
         'kuantitas' => $row['kuantitas'],
-        'satuan' => $row['satuan']
+        'satuan' => $row['satuan'],
+        'id_rhk' => $row['id_rhk']
     ];
 }
 
@@ -1302,7 +1304,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                 <div class="card mb-2 previous-rkb-item" 
                                      data-uraian="<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>"
                                      data-kuantitas="<?= htmlspecialchars($prev_rkb['kuantitas']) ?>"
-                                     data-satuan="<?= htmlspecialchars($prev_rkb['satuan']) ?>">
+                                     data-satuan="<?= htmlspecialchars($prev_rkb['satuan']) ?>"
+                                     data-id-rhk="<?= htmlspecialchars($prev_rkb['id_rhk']) ?>">
                                     <div class="card-body p-3">
                                         <h6 class="card-title mb-2"><?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?></h6>
                                         <div class="d-flex justify-content-between align-items-center">
@@ -1311,7 +1314,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                                 <span class="badge bg-primary"><?= htmlspecialchars($prev_rkb['satuan']) ?></span>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selectPreviousRkb('<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($prev_rkb['kuantitas']) ?>', '<?= htmlspecialchars($prev_rkb['satuan']) ?>')">
+                                                    onclick="selectPreviousRkb('<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($prev_rkb['kuantitas']) ?>', '<?= htmlspecialchars($prev_rkb['satuan']) ?>', '<?= htmlspecialchars($prev_rkb['id_rhk']) ?>')">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -1431,10 +1434,15 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             new bootstrap.Modal(document.getElementById('previousRkbModal')).show();
         }
 
-        function selectPreviousRkb(uraian, kuantitas, satuan) {
+        function selectPreviousRkb(uraian, kuantitas, satuan, idRhk) {
             document.getElementById('uraian_kegiatan_modal').value = uraian;
             document.getElementById('kuantitas_modal').value = kuantitas;
             document.getElementById('satuan_modal').value = satuan;
+            
+            // Auto-select RHK terkait
+            if (idRhk) {
+                document.getElementById('id_rhk_modal').value = idRhk;
+            }
             
             // Close previous RKB modal
             bootstrap.Modal.getInstance(document.getElementById('previousRkbModal')).hide();

@@ -410,6 +410,7 @@ $stmt_previous_lkh = $conn->prepare("
         l1.uraian_kegiatan_lkh,
         l1.jumlah_realisasi,
         l1.satuan_realisasi,
+        l1.id_rkb,
         l2.usage_count
     FROM lkh l1
     INNER JOIN (
@@ -435,6 +436,7 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
         'jumlah_realisasi' => $row['jumlah_realisasi'],
         'satuan_realisasi' => $row['satuan_realisasi'],
+        'id_rkb' => $row['id_rkb'],
         'usage_count' => $row['usage_count']
     ];
 }
@@ -1758,7 +1760,8 @@ ob_clean();
                                      data-nama="<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>"
                                      data-uraian="<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>"
                                      data-jumlah="<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>"
-                                     data-satuan="<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>">
+                                     data-satuan="<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>"
+                                     data-id-rkb="<?= htmlspecialchars($prev_lkh['id_rkb']) ?>">
                                     <div class="card-body p-3">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h6 class="card-title mb-0 flex-grow-1"><?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?></h6>
@@ -1771,7 +1774,7 @@ ob_clean();
                                         </p>
                                         <div class="text-end">
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
+                                                onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['id_rkb']) ?>')">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -2034,10 +2037,15 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
         }
 
-        function selectPreviousLkh(nama, uraian, jumlah, satuan) {
+        function selectPreviousLkh(nama, uraian, jumlah, satuan, idRkb) {
             document.getElementById('namaKegiatan').value = nama;
             document.getElementById('uraianKegiatan').value = uraian;
             document.getElementById('jumlahRealisasi').value = jumlah;
+            
+            // Auto-select RKB terkait
+            if (idRkb) {
+                document.getElementById('rkbTerkait').value = idRkb;
+            }
             
             
             // Set satuan dropdown

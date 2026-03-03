@@ -478,6 +478,7 @@ $stmt_previous_lkh = $conn->prepare("
         l1.uraian_kegiatan_lkh,
         l1.jumlah_realisasi,
         l1.satuan_realisasi,
+        l1.id_rkb,
     l2.usage_count
     FROM lkh l1
     INNER JOIN (
@@ -503,6 +504,7 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
         'jumlah_realisasi' => $row['jumlah_realisasi'],
         'satuan_realisasi' => $row['satuan_realisasi'],
+        'id_rkb' => $row['id_rkb'],
         'usage_count' => $row['usage_count']
     ];
 }
@@ -1045,6 +1047,7 @@ include __DIR__ . '/../template/topbar.php';
                                     data-uraian="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>"
                                     data-jumlah="<?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?>"
                                     data-satuan="<?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?>"
+                                    data-id-rkb="<?php echo htmlspecialchars($prev_lkh['id_rkb']); ?>"
                                     title="Pilih LKH ini">
                               <i class="fas fa-check me-1"></i><small>Gunakan</small>
                             </button>
@@ -1275,11 +1278,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const uraian = this.getAttribute('data-uraian');
         const jumlah = this.getAttribute('data-jumlah');
         const satuan = this.getAttribute('data-satuan');
+        const idRkb = this.getAttribute('data-id-rkb');
         
         // Isi form di modal tambah LKH
         document.getElementById('nama_kegiatan_harian_modal').value = nama;
         document.getElementById('uraian_kegiatan_lkh_modal').value = uraian;
         document.getElementById('jumlah_realisasi_modal').value = jumlah;
+        
+        // Auto-select RKB terkait
+        if (idRkb) {
+          document.getElementById('id_rkb_modal').value = idRkb;
+        }
         
         // Set satuan dropdown berdasarkan mapping
         const satuanMap = {
