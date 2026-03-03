@@ -483,12 +483,11 @@ $stmt_previous_lkh = $conn->prepare("
     INNER JOIN (
         SELECT 
       LOWER(TRIM(nama_kegiatan_harian)) as nama_key,
-      LOWER(TRIM(uraian_kegiatan_lkh)) as uraian_key,
       MAX(id_lkh) as max_id_lkh,
       COUNT(*) as usage_count
         FROM lkh 
         WHERE id_pegawai = ? AND NOT (MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?)
-    GROUP BY LOWER(TRIM(nama_kegiatan_harian)), LOWER(TRIM(uraian_kegiatan_lkh))
+    GROUP BY LOWER(TRIM(nama_kegiatan_harian))
   ) l2 ON l1.id_lkh = l2.max_id_lkh
   WHERE l1.id_pegawai = ?
   ORDER BY l2.usage_count DESC, l1.id_lkh DESC
