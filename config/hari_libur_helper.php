@@ -102,7 +102,7 @@ function get_all_hari_libur($conn, $tahun = null) {
  * @param string $sumber api|admin
  * @return array ['success' => bool, 'message' => string]
  */
-function add_hari_libur($conn, $tanggal_libur, $nama_hari_libur, $tipe_libur = 'nasional', $id_pegawai = null, $keterangan = null, $sumber = 'admin') {
+function add_hari_libur($conn, $tanggal_libur, $nama_hari_libur, $tipe_libur = 'nasional', $id_pegawai = null, $keterangan = null, $sumber = 'admin', $tipe_libur_custom = null) {
     // Validate tanggal format
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal_libur)) {
         return [
@@ -125,9 +125,13 @@ function add_hari_libur($conn, $tanggal_libur, $nama_hari_libur, $tipe_libur = '
         ];
     }
     
+    if ($tipe_libur !== 'custom') {
+        $tipe_libur_custom = null;
+    }
+
     // Insert
-    $stmt = $conn->prepare("INSERT INTO hari_libur (tanggal_libur, nama_hari_libur, tipe_libur, sumber, keterangan, created_by) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssi", $tanggal_libur, $nama_hari_libur, $tipe_libur, $sumber, $keterangan, $id_pegawai);
+    $stmt = $conn->prepare("INSERT INTO hari_libur (tanggal_libur, nama_hari_libur, tipe_libur, tipe_libur_custom, sumber, keterangan, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssi", $tanggal_libur, $nama_hari_libur, $tipe_libur, $tipe_libur_custom, $sumber, $keterangan, $id_pegawai);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -152,7 +156,7 @@ function add_hari_libur($conn, $tanggal_libur, $nama_hari_libur, $tipe_libur = '
  * @return array ['success' => bool, 'message' => string]
  */
 function delete_hari_libur($conn, $id_hari_libur) {
-    $stmt_get = $conn->prepare("SELECT tanggal_libur, nama_hari_libur FROM hari_libur WHERE id_hari_libur = ?");
+    $stmt_get = $conn->prepare("SELECT tanggal_libur, nama_hari_libur, sumber FROM hari_libur WHERE id_hari_libur = ?");
     $stmt_get->bind_param("i", $id_hari_libur);
     $stmt_get->execute();
     $result_get = $stmt_get->get_result();
@@ -169,11 +173,14 @@ function delete_hari_libur($conn, $id_hari_libur) {
     $tanggal_libur = $row['tanggal_libur'];
     $nama_hari_libur = $row['nama_hari_libur'];
 
-    $stmt_blacklist = $conn->prepare("INSERT INTO hari_libur_blacklist (tanggal_libur, nama_hari_libur, deleted_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nama_hari_libur = VALUES(nama_hari_libur), deleted_by = VALUES(deleted_by), deleted_at = CURRENT_TIMESTAMP");
-    $deleted_by = isset($_SESSION['id_pegawai']) ? (int)$_SESSION['id_pegawai'] : null;
-    $stmt_blacklist->bind_param("ssi", $tanggal_libur, $nama_hari_libur, $deleted_by);
-    $stmt_blacklist->execute();
-    $stmt_blacklist->close();
+    // Blacklist hanya untuk data yang berasal dari API
+    if ($row['sumber'] === 'api') {
+        $stmt_blacklist = $conn->prepare("INSERT INTO hari_libur_blacklist (tanggal_libur, nama_hari_libur, deleted_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nama_hari_libur = VALUES(nama_hari_libur), deleted_by = VALUES(deleted_by), deleted_at = CURRENT_TIMESTAMP");
+        $deleted_by = isset($_SESSION['id_pegawai']) ? (int)$_SESSION['id_pegawai'] : null;
+        $stmt_blacklist->bind_param("ssi", $tanggal_libur, $nama_hari_libur, $deleted_by);
+        $stmt_blacklist->execute();
+        $stmt_blacklist->close();
+    }
 
     $stmt = $conn->prepare("DELETE FROM hari_libur WHERE id_hari_libur = ?");
     $stmt->bind_param("i", $id_hari_libur);
@@ -203,9 +210,43 @@ function delete_hari_libur($conn, $id_hari_libur) {
  * @param string $keterangan Optional: keterangan
  * @return array ['success' => bool, 'message' => string]
  */
-function update_hari_libur($conn, $id_hari_libur, $nama_hari_libur, $tipe_libur, $keterangan = null) {
-    $stmt = $conn->prepare("UPDATE hari_libur SET nama_hari_libur = ?, tipe_libur = ?, keterangan = ?, updated_at = NOW() WHERE id_hari_libur = ?");
-    $stmt->bind_param("sssi", $nama_hari_libur, $tipe_libur, $keterangan, $id_hari_libur);
+function update_hari_libur($conn, $id_hari_libur, $nama_hari_libur, $tipe_libur, $keterangan = null, $tanggal_libur = null, $tipe_libur_custom = null) {
+    if (!$tanggal_libur) {
+        $stmt_get = $conn->prepare("SELECT tanggal_libur FROM hari_libur WHERE id_hari_libur = ?");
+        $stmt_get->bind_param("i", $id_hari_libur);
+        $stmt_get->execute();
+        $result_get = $stmt_get->get_result();
+        $row_get = $result_get->fetch_assoc();
+        $stmt_get->close();
+        if (!$row_get) {
+            return [
+                'success' => false,
+                'message' => 'Data hari libur tidak ditemukan'
+            ];
+        }
+        $tanggal_libur = $row_get['tanggal_libur'];
+    }
+
+    if ($tipe_libur !== 'custom') {
+        $tipe_libur_custom = null;
+    }
+
+    // Pastikan tanggal baru tidak bentrok dengan entri lain
+    $stmt_check = $conn->prepare("SELECT id_hari_libur FROM hari_libur WHERE tanggal_libur = ? AND id_hari_libur <> ? LIMIT 1");
+    $stmt_check->bind_param("si", $tanggal_libur, $id_hari_libur);
+    $stmt_check->execute();
+    $result_check = $stmt_check->get_result();
+    $stmt_check->close();
+
+    if ($result_check->num_rows > 0) {
+        return [
+            'success' => false,
+            'message' => 'Tanggal sudah digunakan oleh hari libur lain'
+        ];
+    }
+
+    $stmt = $conn->prepare("UPDATE hari_libur SET tanggal_libur = ?, nama_hari_libur = ?, tipe_libur = ?, tipe_libur_custom = ?, keterangan = ?, updated_at = NOW() WHERE id_hari_libur = ?");
+    $stmt->bind_param("sssssi", $tanggal_libur, $nama_hari_libur, $tipe_libur, $tipe_libur_custom, $keterangan, $id_hari_libur);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -387,7 +428,7 @@ function sync_hari_libur_dari_api($conn, $tahun, $id_pegawai = null) {
                 $tipe = 'nasional';
                 $sumber = 'api';
                 
-                $stmt = $conn->prepare("INSERT INTO hari_libur (tanggal_libur, nama_hari_libur, tipe_libur, sumber, created_by) VALUES (?, ?, ?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO hari_libur (tanggal_libur, nama_hari_libur, tipe_libur, tipe_libur_custom, sumber, created_by) VALUES (?, ?, ?, NULL, ?, ?)");
                 $stmt->bind_param("ssssi", $tanggal, $nama, $tipe, $sumber, $id_pegawai);
                 
                 if ($stmt->execute()) {
@@ -465,6 +506,7 @@ function ensure_hari_libur_table($conn) {
             tanggal_libur DATE NOT NULL UNIQUE,
             nama_hari_libur VARCHAR(255) NOT NULL,
             tipe_libur ENUM('nasional', 'cuti_bersama', 'custom') DEFAULT 'nasional',
+            tipe_libur_custom VARCHAR(100) NULL,
             sumber ENUM('api', 'admin') DEFAULT 'admin',
             keterangan TEXT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -476,6 +518,12 @@ function ensure_hari_libur_table($conn) {
             INDEX idx_sumber (sumber)
         )";
         $conn->query($sql);
+    }
+
+    // Ensure kolom tipe_libur_custom ada untuk label custom manual
+    $custom_col_exists = $conn->query("SHOW COLUMNS FROM hari_libur LIKE 'tipe_libur_custom'");
+    if ($custom_col_exists && $custom_col_exists->num_rows == 0) {
+        $conn->query("ALTER TABLE hari_libur ADD COLUMN tipe_libur_custom VARCHAR(100) NULL AFTER tipe_libur");
     }
     
     // Ensure sync_log table exists untuk tracking

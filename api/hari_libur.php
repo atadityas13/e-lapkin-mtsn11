@@ -265,11 +265,12 @@ function add_holiday() {
     $tanggal = $_POST['tanggal_libur'];
     $nama = $_POST['nama_hari_libur'];
     $tipe = isset($_POST['tipe_libur']) ? $_POST['tipe_libur'] : 'nasional';
+    $tipe_custom = isset($_POST['tipe_libur_custom']) ? trim($_POST['tipe_libur_custom']) : null;
     $keterangan = isset($_POST['keterangan']) ? $_POST['keterangan'] : null;
     $id_pegawai = $_SESSION['id_pegawai'];
     
     try {
-        $result = add_hari_libur($conn, $tanggal, $nama, $tipe, $id_pegawai, $keterangan, 'admin');
+        $result = add_hari_libur($conn, $tanggal, $nama, $tipe, $id_pegawai, $keterangan, 'admin', $tipe_custom);
         echo json_encode([
             'success' => $result['success'],
             'message' => $result['message']
@@ -344,12 +345,14 @@ function update_holiday() {
     }
     
     $id = (int)$_POST['id_hari_libur'];
+    $tanggal = isset($_POST['tanggal_libur']) ? $_POST['tanggal_libur'] : null;
     $nama = $_POST['nama_hari_libur'];
     $tipe = isset($_POST['tipe_libur']) ? $_POST['tipe_libur'] : 'nasional';
+    $tipe_custom = isset($_POST['tipe_libur_custom']) ? trim($_POST['tipe_libur_custom']) : null;
     $keterangan = isset($_POST['keterangan']) ? $_POST['keterangan'] : null;
     
     try {
-        $result = update_hari_libur($conn, $id, $nama, $tipe, $keterangan);
+        $result = update_hari_libur($conn, $id, $nama, $tipe, $keterangan, $tanggal, $tipe_custom);
         echo json_encode([
             'success' => $result['success'],
             'message' => $result['message']
