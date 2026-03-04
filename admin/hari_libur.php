@@ -20,7 +20,6 @@
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/hari_libur_helper.php';
 require_once __DIR__ . '/../template/session_admin.php';
 
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] !== 'admin') {
@@ -182,6 +181,52 @@ $sumber_colors = [
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
+                
+                                <!-- Sync History -->
+                                <div class="card mt-4">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sinkronisasi Tahun <?php echo $filter_year; ?></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php 
+                                        $sync_history = get_sync_history($conn, $filter_year, 10);
+                                        if (empty($sync_history)): 
+                                        ?>
+                                            <div class="alert alert-info mb-0">
+                                                <i class="fas fa-info-circle me-1"></i>Tidak ada riwayat sinkronisasi untuk tahun <?php echo $filter_year; ?>.
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th><i class="fas fa-calendar"></i> Tanggal Sync</th>
+                                                            <th><i class="fas fa-plus-circle"></i> Ditambahkan</th>
+                                                            <th><i class="fas fa-check"></i> Status</th>
+                                                            <th><i class="fas fa-user"></i> Disync oleh</th>
+                                                            <th><i class="fas fa-note-sticky"></i> Pesan</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php foreach ($sync_history as $log): ?>
+                                                            <tr>
+                                                                <td><small><?php echo date('d M Y H:i', strtotime($log['synced_at'])); ?></small></td>
+                                                                <td><span class="badge bg-primary"><?php echo $log['count_added']; ?></span></td>
+                                                                <td>
+                                                                    <span class="badge bg-<?php echo ($log['status'] == 'success') ? 'success' : 'danger'; ?>">
+                                                                        <?php echo ucfirst($log['status']); ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td><small><?php echo $log['synced_by_name'] ? htmlspecialchars($log['synced_by_name']) : 'Sistem'; ?></small></td>
+                                                                <td><small class="text-muted"><?php echo htmlspecialchars(substr($log['message'], 0, 50)); ?><?php echo strlen($log['message']) > 50 ? '...' : ''; ?></small></td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                 
                 <?php if (!empty($error_message)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -424,3 +469,37 @@ $sumber_colors = [
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
+
+                <!-- Last Sync Info -->
+                <?php 
+                $last_sync_info = get_last_sync_info($conn, $filter_year);
+                ?>
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Sinkronisasi</h5>
+                    </div>
+                    <div class="card-body">
+                        <?php if ($last_sync_info): ?>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Terakhir Sync:</strong> <span class="badge bg-<?php echo ($last_sync_info['status'] == 'success') ? 'success' : 'danger'; ?>"><?php echo ucfirst($last_sync_info['status']); ?></span></p>
+                                    <p><small class="text-muted"><?php echo date('d F Y H:i:s', strtotime($last_sync_info['synced_at'])); ?></small></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Hari Libur Ditambahkan:</strong> <span class="badge bg-primary"><?php echo $last_sync_info['count_added']; ?></span></p>
+                                    <?php if ($last_sync_info['synced_by_name']): ?>
+                                        <p><small class="text-muted">Oleh: <?php echo htmlspecialchars($last_sync_info['synced_by_name']); ?></small></p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php if (!empty($last_sync_info['message'])): ?>
+                                <hr>
+                                <p><small class="text-muted"><i class="fas fa-comment-alt me-1"></i><?php echo htmlspecialchars($last_sync_info['message']); ?></small></p>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Belum pernah melakukan sinkronisasi untuk tahun <?php echo $filter_year; ?>.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>

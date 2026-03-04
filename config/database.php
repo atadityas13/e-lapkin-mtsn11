@@ -79,6 +79,9 @@ function getPegawaiByNip($nip) {
     return $stmt->fetch();
 }
 
+// Include hari libur helper untuk auto-sync (silent background sync max 1x per hari)
+require_once __DIR__ . '/hari_libur_helper.php';
+
 // Catatan: Variabel $conn sekarang berisi objek koneksi ke database.
 // Anda bisa menggunakannya di file PHP lain dengan menggunakan `require_once`.
 ?>

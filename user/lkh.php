@@ -34,7 +34,6 @@
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/hari_libur_helper.php';
 require_once __DIR__ . '/../template/session_user.php';
 
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {

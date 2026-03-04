@@ -11,7 +11,6 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/hari_libur_helper.php';
 require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
