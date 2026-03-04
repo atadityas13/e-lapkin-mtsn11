@@ -527,11 +527,11 @@ function get_last_sync_info($conn, $tahun = null) {
     }
     
     $stmt = $conn->prepare("
-        SELECT tahun, sync_date, count_added, status, message, synced_by, synced_at, p.nama as synced_by_name
+        SELECT lsl.tahun, lsl.sync_date, lsl.count_added, lsl.status, lsl.message, lsl.synced_by, lsl.synced_at, p.nama as synced_by_name
         FROM hari_libur_sync_log lsl
         LEFT JOIN pegawai p ON lsl.synced_by = p.id_pegawai
-        WHERE tahun = ?
-        ORDER BY synced_at DESC
+        WHERE lsl.tahun = ?
+        ORDER BY lsl.synced_at DESC
         LIMIT 1
     ");
     $stmt->bind_param("i", $tahun);
@@ -556,11 +556,11 @@ function get_sync_history($conn, $tahun = null, $limit = 30) {
     }
     
     $stmt = $conn->prepare("
-        SELECT tahun, sync_date, count_added, status, message, synced_by, synced_at, p.nama as synced_by_name
+        SELECT lsl.tahun, lsl.sync_date, lsl.count_added, lsl.status, lsl.message, lsl.synced_by, lsl.synced_at, p.nama as synced_by_name
         FROM hari_libur_sync_log lsl
         LEFT JOIN pegawai p ON lsl.synced_by = p.id_pegawai
-        WHERE tahun = ?
-        ORDER BY synced_at DESC
+        WHERE lsl.tahun = ?
+        ORDER BY lsl.synced_at DESC
         LIMIT ?
     ");
     $stmt->bind_param("ii", $tahun, $limit);
