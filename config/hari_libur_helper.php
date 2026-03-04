@@ -152,14 +152,37 @@ function add_hari_libur($conn, $tanggal_libur, $nama_hari_libur, $tipe_libur = '
  * @return array ['success' => bool, 'message' => string]
  */
 function delete_hari_libur($conn, $id_hari_libur) {
+    $stmt_get = $conn->prepare("SELECT tanggal_libur, nama_hari_libur FROM hari_libur WHERE id_hari_libur = ?");
+    $stmt_get->bind_param("i", $id_hari_libur);
+    $stmt_get->execute();
+    $result_get = $stmt_get->get_result();
+    $row = $result_get->fetch_assoc();
+    $stmt_get->close();
+
+    if (!$row) {
+        return [
+            'success' => false,
+            'message' => 'Data hari libur tidak ditemukan'
+        ];
+    }
+
+    $tanggal_libur = $row['tanggal_libur'];
+    $nama_hari_libur = $row['nama_hari_libur'];
+
+    $stmt_blacklist = $conn->prepare("INSERT INTO hari_libur_blacklist (tanggal_libur, nama_hari_libur, deleted_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nama_hari_libur = VALUES(nama_hari_libur), deleted_by = VALUES(deleted_by), deleted_at = CURRENT_TIMESTAMP");
+    $deleted_by = isset($_SESSION['id_pegawai']) ? (int)$_SESSION['id_pegawai'] : null;
+    $stmt_blacklist->bind_param("ssi", $tanggal_libur, $nama_hari_libur, $deleted_by);
+    $stmt_blacklist->execute();
+    $stmt_blacklist->close();
+
     $stmt = $conn->prepare("DELETE FROM hari_libur WHERE id_hari_libur = ?");
     $stmt->bind_param("i", $id_hari_libur);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         return [
             'success' => true,
-            'message' => 'Hari libur berhasil dihapus'
+            'message' => 'Hari libur berhasil dihapus dan tidak akan ditambahkan otomatis lagi dari API'
         ];
     } else {
         $error = $stmt->error;
@@ -341,8 +364,19 @@ function sync_hari_libur_dari_api($conn, $tahun, $id_pegawai = null) {
                 continue;
             }
             
-            // Check apakah sudah ada
-            $stmt_check = $conn->prepare("SELECT id_hari_libur FROM hari_libur WHERE tanggal_libur = ? AND sumber = 'api'");
+            // Lewati jika tanggal sudah masuk blacklist (pernah dihapus)
+            $stmt_blacklist = $conn->prepare("SELECT id FROM hari_libur_blacklist WHERE tanggal_libur = ? LIMIT 1");
+            $stmt_blacklist->bind_param("s", $tanggal);
+            $stmt_blacklist->execute();
+            $result_blacklist = $stmt_blacklist->get_result();
+            $stmt_blacklist->close();
+
+            if ($result_blacklist->num_rows > 0) {
+                continue;
+            }
+
+            // Check apakah sudah ada (dari sumber apapun)
+            $stmt_check = $conn->prepare("SELECT id_hari_libur FROM hari_libur WHERE tanggal_libur = ? LIMIT 1");
             $stmt_check->bind_param("s", $tanggal);
             $stmt_check->execute();
             $result_check = $stmt_check->get_result();
@@ -396,17 +430,17 @@ function get_nama_hari_indo($tanggal) {
 }
 
 /**
- * Fungsi untuk auto-sync hari libur jika belum sync hari ini
- * Bisa dipanggil sekali pada setiap page load - dengan guard should_sync_daily
+ * Fungsi untuk auto-sync hari libur jika belum sync bulan ini
+ * Bisa dipanggil sekali pada setiap page load - dengan guard should_sync_monthly
  * @param mysqli $conn Database connection
  * @param int $id_pegawai ID pegawai (optional)
  * @return void
  */
-function auto_sync_hari_libur_daily($conn, $id_pegawai = null) {
+function auto_sync_hari_libur_monthly($conn, $id_pegawai = null) {
     $current_year = (int)date('Y');
     
-    // Cek apakah sudah sync hari ini untuk tahun ini
-    if (should_sync_daily($conn, $current_year)) {
+    // Cek apakah sudah sync bulan ini untuk tahun ini
+    if (should_sync_monthly($conn, $current_year)) {
         // Sync tahun ini
         sync_hari_libur_dari_api($conn, $current_year, $id_pegawai);
     }
@@ -415,7 +449,7 @@ function auto_sync_hari_libur_daily($conn, $id_pegawai = null) {
     $current_month = (int)date('m');
     if ($current_month >= 6) {
         $next_year = $current_year + 1;
-        if (should_sync_daily($conn, $next_year)) {
+        if (should_sync_monthly($conn, $next_year)) {
             sync_hari_libur_dari_api($conn, $next_year, $id_pegawai);
         }
     }
@@ -461,33 +495,52 @@ function ensure_hari_libur_table($conn) {
         )";
         $conn->query($sql);
     }
+
+    // Ensure blacklist table exists untuk tanggal libur yang tidak boleh auto-import lagi
+    $blacklist_table_exists = $conn->query("SHOW TABLES LIKE 'hari_libur_blacklist'")->num_rows > 0;
+    if (!$blacklist_table_exists) {
+        $sql = "CREATE TABLE IF NOT EXISTS hari_libur_blacklist (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            tanggal_libur DATE NOT NULL UNIQUE,
+            nama_hari_libur VARCHAR(255) NULL,
+            deleted_by INT NULL,
+            deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_blacklist_tanggal (tanggal_libur),
+            FOREIGN KEY (deleted_by) REFERENCES pegawai(id_pegawai) ON DELETE SET NULL
+        )";
+        $conn->query($sql);
+    }
 }
 
 /**
- * Cek apakah sudah melakukan sync hari ini
+ * Cek apakah sudah melakukan sync bulan ini
  * @param mysqli $conn Database connection
  * @param int $tahun Tahun yang akan dicek
- * @return bool true jika belum sync hari ini, false jika sudah sync
+ * @return bool true jika belum sync bulan ini, false jika sudah sync
  */
-function should_sync_daily($conn, $tahun = null) {
+function should_sync_monthly($conn, $tahun = null) {
     if (!$tahun) {
         $tahun = (int)date('Y');
     }
     
-    $today = date('Y-m-d');
+    $this_year = (int)date('Y');
+    $this_month = (int)date('m');
     
     $stmt = $conn->prepare("
         SELECT COUNT(*) as count 
         FROM hari_libur_sync_log 
-        WHERE tahun = ? AND sync_date = ? AND status = 'success'
+        WHERE tahun = ? 
+        AND YEAR(sync_date) = ? 
+        AND MONTH(sync_date) = ? 
+        AND status = 'success'
     ");
-    $stmt->bind_param("is", $tahun, $today);
+    $stmt->bind_param("iii", $tahun, $this_year, $this_month);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
     $stmt->close();
     
-    // Return true jika belum ada sync sukses hari ini
+    // Return true jika belum ada sync sukses di bulan ini
     return ($row['count'] == 0);
 }
 
@@ -578,7 +631,7 @@ function get_sync_history($conn, $tahun = null, $limit = 30) {
 // Ensure table exists saat helper diinclude
 ensure_hari_libur_table($conn);
 
-// Auto sync harian untuk tahun ini (max 1x per hari)
-auto_sync_hari_libur_daily($conn);
+// Auto sync bulanan untuk tahun ini (max 1x per bulan)
+auto_sync_hari_libur_monthly($conn);
 
 ?>
