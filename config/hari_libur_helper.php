@@ -508,7 +508,7 @@ function log_sync_activity($conn, $tahun, $count_added, $status, $message, $sync
         INSERT INTO hari_libur_sync_log (tahun, sync_date, count_added, status, message, synced_by)
         VALUES (?, ?, ?, ?, ?, ?)
     ");
-    $stmt->bind_param("isiss i", $tahun, $today, $count_added, $status, $message, $synced_by);
+    $stmt->bind_param("isissi", $tahun, $today, $count_added, $status, $message, $synced_by);
     $result = $stmt->execute();
     $stmt->close();
     
