@@ -119,20 +119,6 @@ if (!in_array($current_year + 1, $available_years)) {
     $available_years[] = $current_year + 1;
 }
 
-$edit_mode = false;
-$edit_hari = null;
-if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
-    $edit_id = (int)$_GET['id'];
-    $stmt_edit = $conn->prepare("SELECT * FROM hari_libur WHERE id_hari_libur = ?");
-    $stmt_edit->bind_param("i", $edit_id);
-    $stmt_edit->execute();
-    $result_edit = $stmt_edit->get_result();
-    if ($edit_hari = $result_edit->fetch_assoc()) {
-        $edit_mode = true;
-    }
-    $stmt_edit->close();
-}
-
 // Map tipe libur ke label
 $tipe_libur_labels = [
     'nasional' => 'Hari Libur Nasional',
@@ -309,12 +295,9 @@ $sync_history = get_sync_history($conn, $filter_year, 20);
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <a href="hari_libur.php?action=edit&id=<?php echo $hari['id_hari_libur']; ?>&tahun=<?php echo $filter_year; ?>" class="btn btn-sm btn-warning me-1">
+                                                    <button type="button" class="btn btn-sm btn-warning me-1" data-bs-toggle="modal" data-bs-target="#modalEditHariLibur<?php echo $hari['id_hari_libur']; ?>">
                                                         <i class="fas fa-edit"></i> Edit
-                                                    </a>
-                                                    <?php if ($hari['sumber'] == 'api'): ?>
-                                                        <span class="badge bg-secondary me-1">Data Otomatis</span>
-                                                    <?php endif; ?>
+                                                    </button>
                                                     <form action="hari_libur.php" method="POST" style="display:inline-block;" class="form-hapus-hari-libur">
                                                         <input type="hidden" name="action" value="delete">
                                                         <input type="hidden" name="id_hari_libur" value="<?php echo $hari['id_hari_libur']; ?>">
@@ -332,6 +315,58 @@ $sync_history = get_sync_history($conn, $filter_year, 20);
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <?php if (!empty($haris_libur)): ?>
+                    <?php foreach ($haris_libur as $hari): ?>
+                        <div class="modal fade" id="modalEditHariLibur<?php echo $hari['id_hari_libur']; ?>" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <form action="hari_libur.php" method="POST" class="modal-content">
+                                    <div class="modal-header bg-warning text-dark">
+                                        <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Hari Libur</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="action" value="edit">
+                                        <input type="hidden" name="id_hari_libur" value="<?php echo (int)$hari['id_hari_libur']; ?>">
+
+                                        <div class="mb-3">
+                                            <label class="form-label" for="tanggal_libur_edit_<?php echo $hari['id_hari_libur']; ?>">Tanggal Hari Libur</label>
+                                            <input type="date" class="form-control" id="tanggal_libur_edit_<?php echo $hari['id_hari_libur']; ?>" name="tanggal_libur" value="<?php echo htmlspecialchars($hari['tanggal_libur']); ?>" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label" for="nama_hari_libur_edit_<?php echo $hari['id_hari_libur']; ?>">Nama Hari Libur</label>
+                                            <input type="text" class="form-control" id="nama_hari_libur_edit_<?php echo $hari['id_hari_libur']; ?>" name="nama_hari_libur" value="<?php echo htmlspecialchars($hari['nama_hari_libur']); ?>" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label" for="tipe_libur_edit_<?php echo $hari['id_hari_libur']; ?>">Tipe Hari Libur</label>
+                                            <select class="form-select tipe-libur-edit-modal" id="tipe_libur_edit_<?php echo $hari['id_hari_libur']; ?>" name="tipe_libur" data-custom-wrap="tipe_custom_wrap_edit_<?php echo $hari['id_hari_libur']; ?>" data-custom-input="tipe_libur_custom_edit_<?php echo $hari['id_hari_libur']; ?>">
+                                                <option value="nasional" <?php echo ($hari['tipe_libur'] == 'nasional') ? 'selected' : ''; ?>>Hari Libur Nasional</option>
+                                                <option value="cuti_bersama" <?php echo ($hari['tipe_libur'] == 'cuti_bersama') ? 'selected' : ''; ?>>Cuti Bersama</option>
+                                                <option value="custom" <?php echo ($hari['tipe_libur'] == 'custom') ? 'selected' : ''; ?>>Custom</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3 <?php echo ($hari['tipe_libur'] == 'custom') ? '' : 'd-none'; ?>" id="tipe_custom_wrap_edit_<?php echo $hari['id_hari_libur']; ?>">
+                                            <label class="form-label" for="tipe_libur_custom_edit_<?php echo $hari['id_hari_libur']; ?>">Nama Tipe Custom</label>
+                                            <input type="text" class="form-control" id="tipe_libur_custom_edit_<?php echo $hari['id_hari_libur']; ?>" name="tipe_libur_custom" value="<?php echo htmlspecialchars($hari['tipe_libur_custom'] ?? ''); ?>" placeholder="Contoh: Libur Sekolah, Libur Daerah">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label" for="keterangan_edit_<?php echo $hari['id_hari_libur']; ?>">Keterangan (Opsional)</label>
+                                            <textarea class="form-control" id="keterangan_edit_<?php echo $hari['id_hari_libur']; ?>" name="keterangan" rows="2"><?php echo htmlspecialchars($hari['keterangan'] ?? ''); ?></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Simpan Perubahan</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </main>
             <?php include __DIR__ . '/../template/footer.php'; ?>
         </div>
@@ -462,60 +497,6 @@ $sync_history = get_sync_history($conn, $filter_year, 20);
         </div>
     </div>
 
-    <!-- Modal Edit Hari Libur -->
-    <?php if ($edit_mode && $edit_hari): ?>
-    <div class="d-print-none">
-        <div class="card mb-4">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="card-title mb-0"><i class="fas fa-edit me-2"></i>Edit Hari Libur</h5>
-            </div>
-            <div class="card-body">
-                <form action="hari_libur.php" method="POST">
-                    <input type="hidden" name="action" value="edit">
-                    <input type="hidden" name="id_hari_libur" value="<?php echo htmlspecialchars($edit_hari['id_hari_libur']); ?>">
-                    
-                    <div class="mb-3">
-                        <label for="tanggal_libur_edit" class="form-label">Tanggal Hari Libur</label>
-                        <input type="date" class="form-control" id="tanggal_libur_edit" name="tanggal_libur" value="<?php echo htmlspecialchars($edit_hari['tanggal_libur']); ?>" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="nama_hari_libur_edit" class="form-label">Nama Hari Libur</label>
-                        <input type="text" class="form-control" id="nama_hari_libur_edit" name="nama_hari_libur" value="<?php echo htmlspecialchars($edit_hari['nama_hari_libur']); ?>" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="tipe_libur_edit" class="form-label">Tipe Hari Libur</label>
-                        <select class="form-select" id="tipe_libur_edit" name="tipe_libur">
-                            <option value="nasional" <?php echo ($edit_hari['tipe_libur'] == 'nasional') ? 'selected' : ''; ?>>Hari Libur Nasional</option>
-                            <option value="cuti_bersama" <?php echo ($edit_hari['tipe_libur'] == 'cuti_bersama') ? 'selected' : ''; ?>>Cuti Bersama</option>
-                            <option value="custom" <?php echo ($edit_hari['tipe_libur'] == 'custom') ? 'selected' : ''; ?>>Custom</option>
-                        </select>
-                    </div>
-                    <div class="mb-3 <?php echo ($edit_hari['tipe_libur'] == 'custom') ? '' : 'd-none'; ?>" id="tipe_custom_wrap_edit">
-                        <label for="tipe_libur_custom_edit" class="form-label">Nama Tipe Custom</label>
-                        <input type="text" class="form-control" id="tipe_libur_custom_edit" name="tipe_libur_custom" value="<?php echo htmlspecialchars($edit_hari['tipe_libur_custom'] ?? ''); ?>" placeholder="Contoh: Libur Sekolah, Libur Daerah">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="keterangan_edit" class="form-label">Keterangan (Opsional)</label>
-                        <textarea class="form-control" id="keterangan_edit" name="keterangan" rows="2"><?php echo htmlspecialchars($edit_hari['keterangan'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Simpan Perubahan
-                        </button>
-                        <a href="hari_libur.php?tahun=<?php echo $filter_year; ?>" class="btn btn-secondary">
-                            <i class="fas fa-times me-1"></i>Batal
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -550,6 +531,23 @@ $sync_history = get_sync_history($conn, $filter_year, 20);
             });
             toggleCustomType(tipeEditSelect, tipeEditWrap, tipeEditInput);
         }
+
+        document.querySelectorAll('.tipe-libur-edit-modal').forEach(function(selectElement) {
+            const wrapId = selectElement.getAttribute('data-custom-wrap');
+            const inputId = selectElement.getAttribute('data-custom-input');
+            const wrapElement = document.getElementById(wrapId);
+            const inputElement = document.getElementById(inputId);
+
+            if (!wrapElement || !inputElement) {
+                return;
+            }
+
+            selectElement.addEventListener('change', function() {
+                toggleCustomType(selectElement, wrapElement, inputElement);
+            });
+
+            toggleCustomType(selectElement, wrapElement, inputElement);
+        });
 
         document.querySelectorAll('.form-hapus-hari-libur').forEach(function(form) {
             form.addEventListener('submit', function(e) {
