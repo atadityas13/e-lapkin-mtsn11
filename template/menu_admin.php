@@ -120,6 +120,10 @@ if (!defined('ABSPATH')) {
                 <div class="sb-nav-link-icon"><i class="fas fa-users-cog"></i></div>
                 Manajemen User
               </a>
+              <a class="nav-link<?= basename($_SERVER['PHP_SELF']) === 'hari_libur.php' ? ' active' : '' ?>" href="/admin/hari_libur.php">
+                <div class="sb-nav-link-icon"><i class="fas fa-calendar-times"></i></div>
+                Hari Libur Nasional
+              </a>
               <a class="nav-link<?= basename($_SERVER['PHP_SELF']) === 'pengaturan.php' ? ' active' : '' ?>" href="/admin/pengaturan.php">
                 <div class="sb-nav-link-icon"><i class="fas fa-wrench"></i></div>
                 Sistem
@@ -176,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Auto-expand Pengaturan menu
-    const pengaturanPages = ['manajemen_user.php', 'pengaturan.php'];
+    const pengaturanPages = ['manajemen_user.php', 'pengaturan.php', 'hari_libur.php'];
     if (pengaturanPages.includes(currentPage)) {
         const pengaturanMenu = document.getElementById('collapsePengaturan');
         const pengaturanToggle = document.querySelector('[data-bs-target="#collapsePengaturan"]');

@@ -34,6 +34,7 @@
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/hari_libur_helper.php';
 require_once __DIR__ . '/../template/session_user.php';
 
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -132,6 +133,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'type' => 'error',
                         'title' => 'Periode Tidak Sesuai',
                         'text' => 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year,
+                        'form_data' => $_POST,
+                        'modal_id' => ($action == 'add') ? 'modalTambahLkh' : 'editMode'
+                    ];
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+                
+                // Validasi: Cek apakah tanggal adalah hari libur atau weekend
+                $check_holiday = is_hari_libur_atau_weekend($tanggal_lkh, $conn);
+                if ($check_holiday['is_holiday']) {
+                    $nama_hari_libur = $check_holiday['name'];
+                    if ($check_holiday['type'] == 'weekend') {
+                        $error_msg = 'Tidak dapat menambahkan LKH pada hari ' . $nama_hari_libur . '. LKH hanya dapat ditambahkan pada hari kerja (Senin-Jumat).';
+                    } else {
+                        $error_msg = 'Tidak dapat menambahkan LKH pada tanggal ini (' . $nama_hari_libur . '). Tanggal ini adalah hari libur nasional atau cuti bersama.';
+                    }
+                    
+                    $_SESSION['swal_keep_modal'] = [
+                        'type' => 'error',
+                        'title' => 'Tanggal Tidak Diperbolehkan',
+                        'text' => $error_msg,
                         'form_data' => $_POST,
                         'modal_id' => ($action == 'add') ? 'modalTambahLkh' : 'editMode'
                     ];
@@ -1481,6 +1503,134 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
+    // JavaScript untuk validasi tanggal (weekend dan hari libur)
+    const tanggalInputModal = document.getElementById('tanggal_lkh_modal');
+    const tanggalInputEdit = document.getElementById('tanggal_lkh');
+    const hariLiburData = <?php echo json_encode(get_all_hari_libur($conn)); ?>;
+    
+    // Buat object untuk quick lookup hari libur
+    const hariLiburLookup = {};
+    hariLiburData.forEach(function(hari) {
+        hariLiburLookup[hari.tanggal_libur] = hari.nama_hari_libur;
+    });
+    
+    function validateTanggal(tanggalStr) {
+        // Parse tanggal
+        const date = new Date(tanggalStr + 'T00:00:00');
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        // Check weekend
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            return {
+                valid: false,
+                message: 'Tidak dapat menambahkan LKH pada hari ' + hariNames[dayOfWeek] + '. LKH hanya dapat ditambahkan pada hari kerja (Senin-Jumat).',
+                type: 'weekend'
+            };
+        }
+        
+        // Check hari libur nasional
+        if (hariLiburLookup[tanggalStr]) {
+            return {
+                valid: false,
+                message: 'Tidak dapat menambahkan LKH pada tanggal ini (' + hariLiburLookup[tanggalStr] + '). Tanggal ini adalah hari libur nasional atau cuti bersama.',
+                type: 'holiday'
+            };
+        }
+        
+        return {
+            valid: true,
+            message: '',
+            type: 'ok'
+        };
+    }
+    
+    function updateDateValidationDisplay(inputElement, isValid, message) {
+        const formControl = inputElement.parentElement;
+        const invalidFeedback = formControl.querySelector('.invalid-feedback');
+        
+        if (isValid) {
+            inputElement.classList.remove('is-invalid');
+            inputElement.classList.add('is-valid');
+            if (invalidFeedback) {
+                invalidFeedback.style.display = 'none';
+            }
+        } else {
+            inputElement.classList.remove('is-valid');
+            inputElement.classList.add('is-invalid');
+            if (invalidFeedback) {
+                invalidFeedback.textContent = message;
+                invalidFeedback.style.display = 'block';
+            } else {
+                // Create feedback element if not exists
+                const feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                feedback.textContent = message;
+                feedback.style.display = 'block';
+                formControl.appendChild(feedback);
+            }
+        }
+    }
+    
+    // Add event listeners untuk modal input
+    if (tanggalInputModal) {
+        tanggalInputModal.addEventListener('change', function() {
+            const validation = validateTanggal(this.value);
+            updateDateValidationDisplay(this, validation.valid, validation.message);
+        });
+        
+        // Also validate on blur
+        tanggalInputModal.addEventListener('blur', function() {
+            if (this.value) {
+                const validation = validateTanggal(this.value);
+                updateDateValidationDisplay(this, validation.valid, validation.message);
+            }
+        });
+    }
+    
+    // Add event listeners untuk edit mode
+    if (tanggalInputEdit) {
+        tanggalInputEdit.addEventListener('change', function() {
+            const validation = validateTanggal(this.value);
+            updateDateValidationDisplay(this, validation.valid, validation.message);
+        });
+        
+        // Also validate on blur
+        tanggalInputEdit.addEventListener('blur', function() {
+            if (this.value) {
+                const validation = validateTanggal(this.value);
+                updateDateValidationDisplay(this, validation.valid, validation.message);
+            }
+        });
+    }
+    
+    // Validate form sebelum submit
+    const formTambahLkh = document.querySelector('form[action="lkh.php"]');
+    if (formTambahLkh) {
+        formTambahLkh.addEventListener('submit', function(e) {
+            let tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
+            if (!tanggalInput) {
+                // Jika tidak ada di form biasa, cek di modal
+                tanggalInput = tanggalInputModal;
+            }
+            
+            if (tanggalInput && tanggalInput.value) {
+                const validation = validateTanggal(tanggalInput.value);
+                if (!validation.valid) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Tanggal Tidak Diperbolehkan',
+                        text: validation.message,
+                        confirmButtonText: 'OK'
+                    });
+                    updateDateValidationDisplay(tanggalInput, false, validation.message);
+                    return false;
+                }
+            }
+        });
+    }
+    
     // Reset form ketika modal tambah LKH ditutup (hanya reset jika benar-benar ditutup oleh user)
     const modalTambahLkhElement = document.getElementById('modalTambahLkh');
     if (modalTambahLkhElement) {
@@ -1494,6 +1644,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
           if (tanggalInput) {
             tanggalInput.value = '<?php echo $current_date; ?>';
+            tanggalInput.classList.remove('is-invalid', 'is-valid');
           }
         }
       });

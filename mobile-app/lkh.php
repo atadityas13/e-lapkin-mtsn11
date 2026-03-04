@@ -11,6 +11,7 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/hari_libur_helper.php';
 require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
@@ -103,6 +104,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'type' => 'error',
                         'title' => 'Periode Tidak Sesuai',
                         'text' => 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year,
+                        'form_data' => $_POST
+                    ];
+                    header('Location: lkh.php');
+                    exit();
+                }
+                
+                // Validasi: Cek apakah tanggal adalah hari libur atau weekend
+                $check_holiday = is_hari_libur_atau_weekend($tanggal_lkh, $conn);
+                if ($check_holiday['is_holiday']) {
+                    $nama_hari_libur = $check_holiday['name'];
+                    if ($check_holiday['type'] == 'weekend') {
+                        $error_msg = 'Tidak dapat menambahkan LKH pada hari ' . $nama_hari_libur . '. LKH hanya dapat ditambahkan pada hari kerja (Senin-Jumat).';
+                    } else {
+                        $error_msg = 'Tidak dapat menambahkan LKH pada tanggal ini (' . $nama_hari_libur . '). Tanggal ini adalah hari libur nasional atau cuti bersama.';
+                    }
+                    
+                    $_SESSION['mobile_notification_keep_modal'] = [
+                        'type' => 'error',
+                        'title' => 'Tanggal Tidak Diperbolehkan',
+                        'text' => $error_msg,
                         'form_data' => $_POST
                     ];
                     header('Location: lkh.php');
@@ -2673,6 +2694,91 @@ ob_clean();
                 currentFileInfo.textContent = '';
             }
         }
+
+        // JavaScript untuk validasi tanggal (weekend dan hari libur)
+        const hariLiburData = <?php echo json_encode(get_all_hari_libur($conn)); ?>;
+        
+        // Buat object untuk quick lookup hari libur
+        const hariLiburLookup = {};
+        hariLiburData.forEach(function(hari) {
+            hariLiburLookup[hari.tanggal_libur] = hari.nama_hari_libur;
+        });
+        
+        function validateTanggalMobile(tanggalStr) {
+            if (!tanggalStr) return { valid: true, message: '' };
+            
+            // Parse tanggal
+            const date = new Date(tanggalStr + 'T00:00:00');
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            // Check weekend
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                return {
+                    valid: false,
+                    message: 'Tidak dapat menambahkan LKH pada hari ' + hariNames[dayOfWeek] + '. LKH hanya dapat ditambahkan pada hari kerja (Senin-Jumat).',
+                    type: 'weekend'
+                };
+            }
+            
+            // Check hari libur nasional
+            if (hariLiburLookup[tanggalStr]) {
+                return {
+                    valid: false,
+                    message: 'Tidak dapat menambahkan LKH pada tanggal ini (' + hariLiburLookup[tanggalStr] + '). Tanggal ini adalah hari libur nasional atau cuti bersama.',
+                    type: 'holiday'
+                };
+            }
+            
+            return {
+                valid: true,
+                message: '',
+                type: 'ok'
+            };
+        }
+        
+        // Add event listener untuk tanggal input
+        const tanggalInput = document.getElementById('tanggalLkh');
+        if (tanggalInput) {
+            tanggalInput.addEventListener('change', function() {
+                const validation = validateTanggalMobile(this.value);
+                if (!validation.valid) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tanggal Tidak Diperbolehkan',
+                        text: validation.message,
+                        confirmButtonText: 'OK'
+                    });
+                    this.value = '';
+                }
+            });
+        }
+        
+        // Validate form submission dengan hari libur check
+        const originalLkhFormSubmitHandler = document.getElementById('lkhForm').onsubmit;
+        let validationOverride = false;
+        
+        document.getElementById('lkhForm').addEventListener('submit', function(e) {
+            if (validationOverride) {
+                validationOverride = false;
+                return;
+            }
+            
+            const tanggalInput = document.getElementById('tanggalLkh');
+            if (tanggalInput && tanggalInput.value) {
+                const validation = validateTanggalMobile(tanggalInput.value);
+                if (!validation.valid) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Tanggal Tidak Diperbolehkan',
+                        text: validation.message,
+                        confirmButtonText: 'OK'
+                    });
+                    return false;
+                }
+            }
+        });
     </script>
 </body>
 </html>
