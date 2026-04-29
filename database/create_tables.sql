@@ -32,3 +32,20 @@ CREATE TABLE IF NOT EXISTS user_fcm_tokens (
     FOREIGN KEY (user_id) REFERENCES pegawai(id_pegawai),
     UNIQUE KEY unique_user_device (user_id, device_id)
 );
+
+-- Create hari_libur table untuk menyimpan hari libur nasional dan cuti bersama
+CREATE TABLE IF NOT EXISTS hari_libur (
+    id_hari_libur INT PRIMARY KEY AUTO_INCREMENT,
+    tanggal_libur DATE NOT NULL UNIQUE,
+    nama_hari_libur VARCHAR(255) NOT NULL,
+    tipe_libur ENUM('nasional', 'cuti_bersama', 'custom') DEFAULT 'nasional',
+    sumber ENUM('api', 'admin') DEFAULT 'admin',
+    keterangan TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NULL,
+    FOREIGN KEY (created_by) REFERENCES pegawai(id_pegawai) ON DELETE SET NULL,
+    INDEX idx_tanggal_libur (tanggal_libur),
+    INDEX idx_tipe_libur (tipe_libur),
+    INDEX idx_sumber (sumber)
+);

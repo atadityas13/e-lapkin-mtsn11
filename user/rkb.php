@@ -142,12 +142,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($action == 'add' || $action == 'edit') {
             $id_rhk = (int)$_POST['id_rhk'];
             $uraian_kegiatan = trim($_POST['uraian_kegiatan']);
-            $kuantitas = trim($_POST['kuantitas']);
             $satuan = trim($_POST['satuan']);
             $bulan = (int)$_POST['bulan'];
             $tahun = (int)$_POST['tahun'];
 
-            if (empty($uraian_kegiatan) || empty($kuantitas) || empty($satuan) || empty($bulan) || empty($tahun)) {
+          if (empty($id_rhk) || empty($uraian_kegiatan) || empty($satuan) || empty($bulan) || empty($tahun)) {
                 set_swal('error', 'Gagal', 'Semua field harus diisi.');
             } else {
                 // Validate satuan against ENUM values
@@ -160,12 +159,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 try {
                     if ($action == 'add') {
+                        // Kuantitas default 0, akan otomatis terupdate saat LKH ditambahkan
+                        $kuantitas_default = 0;
                         $stmt = $conn->prepare("INSERT INTO rkb (id_pegawai, id_rhk, bulan, tahun, uraian_kegiatan, kuantitas, satuan) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->bind_param("iiissss", $id_pegawai_login, $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan);
+                        $stmt->bind_param("iiissis", $id_pegawai_login, $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas_default, $satuan);
                     } else { // action == 'edit'
                         $id_rkb = (int)$_POST['id_rkb'];
-                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, bulan = ?, tahun = ?, uraian_kegiatan = ?, kuantitas = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
-                        $stmt->bind_param("iissssii", $id_rhk, $bulan, $tahun, $uraian_kegiatan, $kuantitas, $satuan, $id_rkb, $id_pegawai_login);
+                        // Tidak update kuantitas karena akan otomatis dihitung dari LKH
+                        $stmt = $conn->prepare("UPDATE rkb SET id_rhk = ?, bulan = ?, tahun = ?, uraian_kegiatan = ?, satuan = ? WHERE id_rkb = ? AND id_pegawai = ?");
+                        $stmt->bind_param("iisssii", $id_rhk, $bulan, $tahun, $uraian_kegiatan, $satuan, $id_rkb, $id_pegawai_login);
                     }
 
                     if ($stmt->execute()) {
@@ -281,8 +283,19 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
 
 // Ambil daftar RHK untuk dropdown
 $rhk_list = [];
-$stmt_rhk_list = $conn->prepare("SELECT id_rhk, nama_rhk FROM rhk WHERE id_pegawai = ? ORDER BY nama_rhk ASC");
-$stmt_rhk_list->bind_param("i", $id_pegawai_login);
+$stmt_rhk_list = $conn->prepare("
+  SELECT r1.id_rhk, r1.nama_rhk
+  FROM rhk r1
+  INNER JOIN (
+    SELECT LOWER(TRIM(nama_rhk)) AS nama_key, MAX(id_rhk) AS max_id_rhk
+    FROM rhk
+    WHERE id_pegawai = ?
+    GROUP BY LOWER(TRIM(nama_rhk))
+  ) r2 ON r1.id_rhk = r2.max_id_rhk
+  WHERE r1.id_pegawai = ?
+  ORDER BY r1.nama_rhk ASC
+");
+$stmt_rhk_list->bind_param("ii", $id_pegawai_login, $id_pegawai_login);
 $stmt_rhk_list->execute();
 $result_rhk_list = $stmt_rhk_list->get_result();
 while ($row = $result_rhk_list->fetch_assoc()) {
@@ -298,8 +311,11 @@ $stmt_previous_rkb = $conn->prepare("
     SELECT 
         r1.uraian_kegiatan,
         r1.kuantitas,
-        r1.satuan
+        r1.satuan,
+    r1.id_rhk,
+    COALESCE(rh.nama_rhk, '') AS nama_rhk
     FROM rkb r1
+  LEFT JOIN rhk rh ON r1.id_rhk = rh.id_rhk
     INNER JOIN (
         SELECT 
             uraian_kegiatan,
@@ -321,7 +337,9 @@ while ($row = $result_previous_rkb->fetch_assoc()) {
     $previous_rkb_list[] = [
         'uraian_kegiatan' => $row['uraian_kegiatan'],
         'kuantitas' => $row['kuantitas'],
-        'satuan' => $row['satuan']
+        'satuan' => $row['satuan'],
+    'id_rhk' => $row['id_rhk'],
+    'nama_rhk' => $row['nama_rhk']
     ];
 }
 
@@ -627,10 +645,7 @@ include __DIR__ . '/../template/topbar.php';
                 </div>
                 <textarea class="form-control" id="uraian_kegiatan_modal" name="uraian_kegiatan" rows="3" required></textarea>
               </div>
-              <div class="mb-3">
-                <label for="kuantitas_modal" class="form-label">Kuantitas Target</label>
-                <input type="text" class="form-control" id="kuantitas_modal" name="kuantitas" placeholder="Contoh: 12" required>
-              </div>
+              <!-- Kuantitas akan otomatis terisi berdasarkan jumlah LKH yang menggunakan RKB ini -->
               <div class="mb-3">
                 <label for="satuan_modal" class="form-label">Satuan Target</label>
                 <select class="form-select" id="satuan_modal" name="satuan" required>
@@ -709,6 +724,8 @@ include __DIR__ . '/../template/topbar.php';
                                     data-uraian="<?php echo htmlspecialchars($prev_rkb['uraian_kegiatan']); ?>"
                                     data-kuantitas="<?php echo htmlspecialchars($prev_rkb['kuantitas']); ?>"
                                     data-satuan="<?php echo htmlspecialchars($prev_rkb['satuan']); ?>"
+                                    data-id-rhk="<?php echo htmlspecialchars($prev_rkb['id_rhk']); ?>"
+                                    data-nama-rhk="<?php echo htmlspecialchars($prev_rkb['nama_rhk']); ?>"
                                     title="Pilih RKB ini">
                               <i class="fas fa-check me-1"></i><small>Gunakan</small>
                             </button>
@@ -774,10 +791,7 @@ include __DIR__ . '/../template/topbar.php';
               <label for="uraian_kegiatan" class="form-label">Uraian Kinerja Bulanan (RKB)</label>
               <textarea class="form-control" id="uraian_kegiatan" name="uraian_kegiatan" rows="3" required><?php echo htmlspecialchars($edit_rkb['uraian_kegiatan']); ?></textarea>
             </div>
-            <div class="mb-3">
-              <label for="kuantitas" class="form-label">Kuantitas Target</label>
-              <input type="text" class="form-control" id="kuantitas" name="kuantitas" value="<?php echo htmlspecialchars($edit_rkb['kuantitas']); ?>" placeholder="Contoh: 12" required>
-            </div>
+            <!-- Kuantitas otomatis: <?php echo htmlspecialchars($edit_rkb['kuantitas']); ?> (berdasarkan jumlah LKH) -->
             <div class="mb-3">
               <label for="satuan" class="form-label">Satuan Target</label>
               <select class="form-select" id="satuan" name="satuan" required>
@@ -1055,17 +1069,48 @@ include __DIR__ . '/../template/topbar.php';
 <script>
   // JavaScript untuk fitur RKB terdahulu
   document.addEventListener('DOMContentLoaded', function() {
+    function normalizeText(value) {
+      return (value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function selectByValueOrText(selectElement, value, text) {
+      let selected = false;
+
+      if (value) {
+        selectElement.value = value;
+        selected = (selectElement.value === String(value));
+      }
+
+      if (!selected && text) {
+        const targetText = normalizeText(text);
+        Array.from(selectElement.options).forEach(function(option) {
+          const optionText = normalizeText(option.textContent);
+          if (!selected && optionText && (optionText === targetText || optionText.includes(targetText) || targetText.includes(optionText))) {
+            selectElement.value = option.value;
+            selected = true;
+          }
+        });
+      }
+
+      return selected;
+    }
+
     // Event listener untuk tombol pilih RKB
     document.querySelectorAll('.pilih-rkb-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         const uraian = this.getAttribute('data-uraian');
         const kuantitas = this.getAttribute('data-kuantitas');
         const satuan = this.getAttribute('data-satuan');
+        const idRhk = this.getAttribute('data-id-rhk');
+        const namaRhk = this.getAttribute('data-nama-rhk');
         
-        // Isi form di modal tambah RKB
+        // Isi form di modal tambah RKB (kuantitas tidak perlu diisi, otomatis dari LKH)
         document.getElementById('uraian_kegiatan_modal').value = uraian;
-        document.getElementById('kuantitas_modal').value = kuantitas;
         document.getElementById('satuan_modal').value = satuan;
+        
+        // Auto-select RHK terkait
+        const rhkSelect = document.getElementById('id_rhk_modal');
+        selectByValueOrText(rhkSelect, idRhk, namaRhk);
         
         // Tutup hanya modal RKB terdahulu, bukan modal tambah RKB
         const modalRkbTerdahulu = bootstrap.Modal.getInstance(document.getElementById('modalRkbTerdahulu'));

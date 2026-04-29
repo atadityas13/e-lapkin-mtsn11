@@ -120,6 +120,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 : '';
             $nama_kegiatan_harian = isset($_POST['nama_kegiatan_harian']) ? trim($_POST['nama_kegiatan_harian']) : '';
 
+            // Validasi: Bulan tanggal LKH harus sama dengan periode RKB aktif
+            if (!empty($tanggal_lkh)) {
+                $bulan_tanggal_lkh = (int)date('m', strtotime($tanggal_lkh));
+                $tahun_tanggal_lkh = (int)date('Y', strtotime($tanggal_lkh));
+                
+                if ($bulan_tanggal_lkh != $filter_month || $tahun_tanggal_lkh != $filter_year) {
+                    $nama_bulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    // Simpan data form untuk restore
+                    $_SESSION['swal_keep_modal'] = [
+                        'type' => 'error',
+                        'title' => 'Periode Tidak Sesuai',
+                        'text' => 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year,
+                        'form_data' => $_POST,
+                        'modal_id' => ($action == 'add') ? 'modalTambahLkh' : 'editMode'
+                    ];
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+                
+                // Validasi: Cek apakah tanggal adalah hari libur atau weekend
+                $check_holiday = is_hari_libur_atau_weekend($tanggal_lkh, $conn);
+                if ($check_holiday['is_holiday']) {
+                    $nama_hari_libur = $check_holiday['name'];
+                    if ($check_holiday['type'] == 'weekend') {
+                        $error_msg = 'Tidak dapat menambahkan LKH pada hari ' . $nama_hari_libur . '. LKH hanya dapat ditambahkan pada hari kerja (Senin-Jumat).';
+                    } else {
+                        $error_msg = 'Tidak dapat menambahkan LKH pada tanggal ini (' . $nama_hari_libur . '). Tanggal ini adalah hari libur nasional atau cuti bersama.';
+                    }
+                    
+                    $_SESSION['swal_keep_modal'] = [
+                        'type' => 'error',
+                        'title' => 'Tanggal Tidak Diperbolehkan',
+                        'text' => $error_msg,
+                        'form_data' => $_POST,
+                        'modal_id' => ($action == 'add') ? 'modalTambahLkh' : 'editMode'
+                    ];
+                    header('Location: lkh.php?month=' . $filter_month . '&year=' . $filter_year);
+                    exit();
+                }
+            }
+
             // Handle file upload (only for add action)
             $lampiran = NULL;
             if ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] == UPLOAD_ERR_OK) {
@@ -172,16 +213,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 try {
+                    // Untuk edit: simpan id_rkb lama untuk update kuantitas
+                    $old_id_rkb = null;
+                    if ($action == 'edit') {
+                        $id_lkh = (int)$_POST['id_lkh'];
+                        $stmt_get_old = $conn->prepare("SELECT id_rkb FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+                        $stmt_get_old->bind_param("ii", $id_lkh, $id_pegawai_login);
+                        $stmt_get_old->execute();
+                        $result_old = $stmt_get_old->get_result();
+                        if ($row_old = $result_old->fetch_assoc()) {
+                            $old_id_rkb = $row_old['id_rkb'];
+                        }
+                        $stmt_get_old->close();
+                    }
+                    
                     if ($action == 'add') {
                         $stmt = $conn->prepare("INSERT INTO lkh (id_pegawai, id_rkb, tanggal_lkh, uraian_kegiatan_lkh, jumlah_realisasi, satuan_realisasi, nama_kegiatan_harian, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $stmt->bind_param("iissssss", $id_pegawai_login, $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $lampiran);
                     } else { // action == 'edit'
-                        $id_lkh = (int)$_POST['id_lkh'];
                         $stmt = $conn->prepare("UPDATE lkh SET id_rkb = ?, tanggal_lkh = ?, uraian_kegiatan_lkh = ?, jumlah_realisasi = ?, satuan_realisasi = ?, nama_kegiatan_harian = ? WHERE id_lkh = ? AND id_pegawai = ?");
                         $stmt->bind_param("isssssii", $id_rkb, $tanggal_lkh, $uraian_kegiatan_lkh, $jumlah_realisasi, $satuan_realisasi, $nama_kegiatan_harian, $id_lkh, $id_pegawai_login);
                     }
 
                     if ($stmt->execute()) {
+                        // Auto-update kuantitas RKB berdasarkan jumlah LKH yang menggunakan RKB tersebut
+                        $lkh_month = date('m', strtotime($tanggal_lkh));
+                        $lkh_year = date('Y', strtotime($tanggal_lkh));
+                        
+                        // Update kuantitas untuk RKB yang baru/saat ini
+                        $stmt_update_rkb = $conn->prepare("
+                            UPDATE rkb 
+                            SET kuantitas = (
+                                SELECT COUNT(*) 
+                                FROM lkh 
+                                WHERE lkh.id_rkb = rkb.id_rkb 
+                                AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
+                                AND YEAR(lkh.tanggal_lkh) = rkb.tahun
+                            )
+                            WHERE id_rkb = ?
+                        ");
+                        $stmt_update_rkb->bind_param("i", $id_rkb);
+                        $stmt_update_rkb->execute();
+                        $stmt_update_rkb->close();
+                        
+                        // Jika edit dan RKB berubah, update juga kuantitas RKB lama
+                        if ($action == 'edit' && $old_id_rkb && $old_id_rkb != $id_rkb) {
+                            $stmt_update_old = $conn->prepare("
+                                UPDATE rkb 
+                                SET kuantitas = (
+                                    SELECT COUNT(*) 
+                                    FROM lkh 
+                                    WHERE lkh.id_rkb = rkb.id_rkb 
+                                    AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
+                                    AND YEAR(lkh.tanggal_lkh) = rkb.tahun
+                                )
+                                WHERE id_rkb = ?
+                            ");
+                            $stmt_update_old->bind_param("i", $old_id_rkb);
+                            $stmt_update_old->execute();
+                            $stmt_update_old->close();
+                        }
+                        
                         set_swal('success', ($action == 'add') ? 'Berhasil' : 'Update Berhasil', ($action == 'add') ? "LKH berhasil ditambahkan!" : "LKH berhasil diperbarui!");
                         echo '<script>window.location="lkh.php?month=' . date('m', strtotime($tanggal_lkh)) . '&year=' . date('Y', strtotime($tanggal_lkh)) . '";</script>';
                         exit();
@@ -289,11 +381,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } elseif ($action == 'delete') {
             $id_lkh_to_delete = (int)$_POST['id_lkh'];
             
-            // Get file name to delete
-            $stmt_get_file = $conn->prepare("SELECT lampiran FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
+            // Get file name and id_rkb to delete and update kuantitas
+            $stmt_get_file = $conn->prepare("SELECT lampiran, id_rkb FROM lkh WHERE id_lkh = ? AND id_pegawai = ?");
             $stmt_get_file->bind_param("ii", $id_lkh_to_delete, $id_pegawai_login);
             $stmt_get_file->execute();
-            $stmt_get_file->bind_result($file_to_delete);
+            $stmt_get_file->bind_result($file_to_delete, $deleted_id_rkb);
             $stmt_get_file->fetch();
             $stmt_get_file->close();
             
@@ -305,6 +397,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($file_to_delete && file_exists(__DIR__ . '/../uploads/lkh/' . $file_to_delete)) {
                     unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
                 }
+                
+                // Auto-update kuantitas RKB
+                if ($deleted_id_rkb) {
+                    $stmt_update_rkb = $conn->prepare("
+                        UPDATE rkb 
+                        SET kuantitas = (
+                            SELECT COUNT(*) 
+                            FROM lkh 
+                            WHERE lkh.id_rkb = rkb.id_rkb 
+                            AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
+                            AND YEAR(lkh.tanggal_lkh) = rkb.tahun
+                        )
+                        WHERE id_rkb = ?
+                    ");
+                    $stmt_update_rkb->bind_param("i", $deleted_id_rkb);
+                    $stmt_update_rkb->execute();
+                    $stmt_update_rkb->close();
+                }
+                
                 set_swal('success', 'Berhasil', 'LKH berhasil dihapus!');
             } else {
                 set_swal('error', 'Gagal', "Gagal menghapus LKH: " . $stmt->error);
@@ -387,7 +498,7 @@ ensure_lampiran_column_lkh($conn);
 
 // Ambil data LKH (tambahkan nama_kegiatan_harian)
 $lkhs = [];
-$stmt_lkh = $conn->prepare("SELECT lkh.id_lkh, lkh.id_rkb, lkh.tanggal_lkh, lkh.uraian_kegiatan_lkh, lkh.jumlah_realisasi, lkh.satuan_realisasi, lkh.lampiran, lkh.nama_kegiatan_harian, rkb.uraian_kegiatan AS rkb_uraian FROM lkh JOIN rkb ON lkh.id_rkb = rkb.id_rkb WHERE lkh.id_pegawai = ? AND MONTH(lkh.tanggal_lkh) = ? AND YEAR(lkh.tanggal_lkh) = ? ORDER BY lkh.tanggal_lkh ASC");
+$stmt_lkh = $conn->prepare("SELECT lkh.id_lkh, lkh.id_rkb, lkh.tanggal_lkh, lkh.uraian_kegiatan_lkh, lkh.jumlah_realisasi, lkh.satuan_realisasi, lkh.lampiran, lkh.nama_kegiatan_harian, rkb.uraian_kegiatan AS rkb_uraian FROM lkh JOIN rkb ON lkh.id_rkb = rkb.id_rkb WHERE lkh.id_pegawai = ? AND MONTH(lkh.tanggal_lkh) = ? AND YEAR(lkh.tanggal_lkh) = ? ORDER BY lkh.id_lkh DESC");
 $stmt_lkh->bind_param("iii", $id_pegawai_login, $filter_month, $filter_year);
 $stmt_lkh->execute();
 $result_lkh = $stmt_lkh->get_result();
@@ -451,30 +562,32 @@ $months = [
 // Ambil daftar LKH terdahulu untuk referensi
 $previous_lkh_list = [];
 
-// Get unique nama_kegiatan_harian and uraian_kegiatan_lkh with latest data (compatible with ONLY_FULL_GROUP_BY)
+// Get unique nama_kegiatan_harian and uraian_kegiatan_lkh with latest data and usage count
 $stmt_previous_lkh = $conn->prepare("
     SELECT 
         l1.nama_kegiatan_harian,
         l1.uraian_kegiatan_lkh,
         l1.jumlah_realisasi,
-        l1.satuan_realisasi
+        l1.satuan_realisasi,
+        l1.id_rkb,
+    COALESCE(r_old.uraian_kegiatan, '') AS rkb_uraian,
+    l2.usage_count
     FROM lkh l1
+  LEFT JOIN rkb r_old ON l1.id_rkb = r_old.id_rkb
     INNER JOIN (
         SELECT 
-            nama_kegiatan_harian,
-            uraian_kegiatan_lkh,
-            MAX(created_at) as max_created_at
+      LOWER(TRIM(nama_kegiatan_harian)) as nama_key,
+      MAX(id_lkh) as max_id_lkh,
+      COUNT(*) as usage_count
         FROM lkh 
         WHERE id_pegawai = ? AND NOT (MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?)
-        GROUP BY nama_kegiatan_harian, uraian_kegiatan_lkh
-    ) l2 ON l1.nama_kegiatan_harian = l2.nama_kegiatan_harian 
-         AND l1.uraian_kegiatan_lkh = l2.uraian_kegiatan_lkh
-         AND l1.created_at = l2.max_created_at
-    WHERE l1.id_pegawai = ? AND NOT (MONTH(l1.tanggal_lkh) = ? AND YEAR(l1.tanggal_lkh) = ?)
-    ORDER BY l1.created_at DESC, l1.nama_kegiatan_harian ASC
+    GROUP BY LOWER(TRIM(nama_kegiatan_harian))
+  ) l2 ON l1.id_lkh = l2.max_id_lkh
+  WHERE l1.id_pegawai = ?
+  ORDER BY l2.usage_count DESC, l1.id_lkh DESC
 ");
 
-$stmt_previous_lkh->bind_param("iiiiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login, $filter_month, $filter_year);
+$stmt_previous_lkh->bind_param("iiii", $id_pegawai_login, $filter_month, $filter_year, $id_pegawai_login);
 $stmt_previous_lkh->execute();
 $result_previous_lkh = $stmt_previous_lkh->get_result();
 
@@ -483,7 +596,10 @@ while ($row = $result_previous_lkh->fetch_assoc()) {
         'nama_kegiatan_harian' => $row['nama_kegiatan_harian'],
         'uraian_kegiatan_lkh' => $row['uraian_kegiatan_lkh'],
         'jumlah_realisasi' => $row['jumlah_realisasi'],
-        'satuan_realisasi' => $row['satuan_realisasi']
+        'satuan_realisasi' => $row['satuan_realisasi'],
+        'id_rkb' => $row['id_rkb'],
+      'rkb_uraian' => $row['rkb_uraian'],
+        'usage_count' => $row['usage_count']
     ];
 }
 
@@ -993,10 +1109,9 @@ include __DIR__ . '/../template/topbar.php';
                   <table class="table table-hover table-sm">
                     <thead class="table-light">
                       <tr>
-                        <th width="25%">Nama Kegiatan</th>
-                        <th width="35%">Uraian Kegiatan LKH</th>
-                        <th width="15%">Jumlah Terakhir</th>
-                        <th width="15%">Satuan Terakhir</th>
+                        <th width="30%">Nama Kegiatan</th>
+                        <th width="50%">Uraian Kegiatan LKH</th>
+                        <th width="10%" class="text-center">Digunakan</th>
                         <th width="10%">Aksi</th>
                       </tr>
                     </thead>
@@ -1011,15 +1126,14 @@ include __DIR__ . '/../template/topbar.php';
                             <div class="fw-semibold"><?php echo htmlspecialchars($prev_lkh['nama_kegiatan_harian']); ?></div>
                           </td>
                           <td>
-                            <div class="text-truncate" style="max-width: 200px;" title="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>">
+                            <div class="text-truncate" style="max-width: 300px;" title="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>">
                               <?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>
                             </div>
                           </td>
                           <td class="text-center">
-                            <span class="badge bg-secondary"><?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?></span>
-                          </td>
-                          <td class="text-center">
-                            <span class="badge bg-primary"><?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?></span>
+                            <span class="badge bg-success" title="Sudah digunakan <?php echo $prev_lkh['usage_count']; ?>x">
+                              <?php echo $prev_lkh['usage_count']; ?>x
+                            </span>
                           </td>
                           <td class="text-center">
                             <button type="button" class="btn btn-sm btn-success pilih-lkh-btn"
@@ -1027,6 +1141,8 @@ include __DIR__ . '/../template/topbar.php';
                                     data-uraian="<?php echo htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']); ?>"
                                     data-jumlah="<?php echo htmlspecialchars($prev_lkh['jumlah_realisasi']); ?>"
                                     data-satuan="<?php echo htmlspecialchars($prev_lkh['satuan_realisasi']); ?>"
+                                    data-id-rkb="<?php echo htmlspecialchars($prev_lkh['id_rkb']); ?>"
+                                    data-rkb-uraian="<?php echo htmlspecialchars($prev_lkh['rkb_uraian']); ?>"
                                     title="Pilih LKH ini">
                               <i class="fas fa-check me-1"></i><small>Gunakan</small>
                             </button>
@@ -1188,6 +1304,36 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php unset($_SESSION['swal']); ?>
     <?php endif; ?>
 
+    // SweetAlert untuk error validasi periode (dengan keep modal)
+    <?php if (isset($_SESSION['swal_keep_modal'])): ?>
+        <?php $swal_data = $_SESSION['swal_keep_modal']; ?>
+        Swal.fire({
+            icon: '<?php echo $swal_data['type']; ?>',
+            title: '<?php echo $swal_data['title']; ?>',
+            text: '<?php echo $swal_data['text']; ?>',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            // Restore form data dan buka modal
+            <?php if ($swal_data['modal_id'] == 'modalTambahLkh'): ?>
+                const formData = <?php echo json_encode($swal_data['form_data']); ?>;
+                
+                // Isi kembali form
+                if (formData.tanggal_lkh) document.getElementById('tanggal_lkh_modal').value = formData.tanggal_lkh;
+                if (formData.id_rkb) document.getElementById('id_rkb_modal').value = formData.id_rkb;
+                if (formData.nama_kegiatan_harian) document.getElementById('nama_kegiatan_harian_modal').value = formData.nama_kegiatan_harian;
+                if (formData.uraian_kegiatan_lkh) document.getElementById('uraian_kegiatan_lkh_modal').value = formData.uraian_kegiatan_lkh;
+                if (formData.jumlah_realisasi) document.getElementById('jumlah_realisasi_modal').value = formData.jumlah_realisasi;
+                if (formData.satuan_realisasi) document.getElementById('satuan_realisasi_modal').value = formData.satuan_realisasi;
+                
+                // Buka modal
+                const modal = new bootstrap.Modal(document.getElementById('modalTambahLkh'));
+                modal.show();
+            <?php endif; ?>
+        });
+        <?php unset($_SESSION['swal_keep_modal']); ?>
+    <?php endif; ?>
+
     // SweetAlert konfirmasi hapus LKH
     document.querySelectorAll('.form-hapus-lkh').forEach(function(form) {
         form.addEventListener('submit', function(e) {
@@ -1227,11 +1373,43 @@ document.addEventListener('DOMContentLoaded', function() {
         const uraian = this.getAttribute('data-uraian');
         const jumlah = this.getAttribute('data-jumlah');
         const satuan = this.getAttribute('data-satuan');
+        const idRkb = this.getAttribute('data-id-rkb');
+        const rkbUraian = this.getAttribute('data-rkb-uraian');
+
+        function normalizeText(value) {
+          return (value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        }
+
+        function selectByValueOrText(selectElement, value, text) {
+          let selected = false;
+
+          if (value) {
+            selectElement.value = value;
+            selected = (selectElement.value === String(value));
+          }
+
+          if (!selected && text) {
+            const targetText = normalizeText(text);
+            Array.from(selectElement.options).forEach(function(option) {
+              const optionText = normalizeText(option.textContent);
+              if (!selected && optionText && (optionText === targetText || optionText.includes(targetText) || targetText.includes(optionText))) {
+                selectElement.value = option.value;
+                selected = true;
+              }
+            });
+          }
+
+          return selected;
+        }
         
         // Isi form di modal tambah LKH
         document.getElementById('nama_kegiatan_harian_modal').value = nama;
         document.getElementById('uraian_kegiatan_lkh_modal').value = uraian;
         document.getElementById('jumlah_realisasi_modal').value = jumlah;
+        
+        // Auto-select RKB terkait
+        const rkbSelect = document.getElementById('id_rkb_modal');
+        selectByValueOrText(rkbSelect, idRkb, rkbUraian);
         
         // Set satuan dropdown berdasarkan mapping
         const satuanMap = {
@@ -1324,6 +1502,134 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
+    // JavaScript untuk validasi tanggal (weekend dan hari libur)
+    const tanggalInputModal = document.getElementById('tanggal_lkh_modal');
+    const tanggalInputEdit = document.getElementById('tanggal_lkh');
+    const hariLiburData = <?php echo json_encode(get_all_hari_libur($conn)); ?>;
+    
+    // Buat object untuk quick lookup hari libur
+    const hariLiburLookup = {};
+    hariLiburData.forEach(function(hari) {
+        hariLiburLookup[hari.tanggal_libur] = hari.nama_hari_libur;
+    });
+    
+    function validateTanggal(tanggalStr) {
+        // Parse tanggal
+        const date = new Date(tanggalStr + 'T00:00:00');
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        // Check weekend
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            return {
+                valid: false,
+                message: 'Tidak dapat menambahkan LKH pada hari ' + hariNames[dayOfWeek] + '. LKH hanya dapat ditambahkan pada hari kerja (Senin-Jumat).',
+                type: 'weekend'
+            };
+        }
+        
+        // Check hari libur nasional
+        if (hariLiburLookup[tanggalStr]) {
+            return {
+                valid: false,
+                message: 'Tidak dapat menambahkan LKH pada tanggal ini (' + hariLiburLookup[tanggalStr] + '). Tanggal ini adalah hari libur nasional atau cuti bersama.',
+                type: 'holiday'
+            };
+        }
+        
+        return {
+            valid: true,
+            message: '',
+            type: 'ok'
+        };
+    }
+    
+    function updateDateValidationDisplay(inputElement, isValid, message) {
+        const formControl = inputElement.parentElement;
+        const invalidFeedback = formControl.querySelector('.invalid-feedback');
+        
+        if (isValid) {
+            inputElement.classList.remove('is-invalid');
+            inputElement.classList.add('is-valid');
+            if (invalidFeedback) {
+                invalidFeedback.style.display = 'none';
+            }
+        } else {
+            inputElement.classList.remove('is-valid');
+            inputElement.classList.add('is-invalid');
+            if (invalidFeedback) {
+                invalidFeedback.textContent = message;
+                invalidFeedback.style.display = 'block';
+            } else {
+                // Create feedback element if not exists
+                const feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                feedback.textContent = message;
+                feedback.style.display = 'block';
+                formControl.appendChild(feedback);
+            }
+        }
+    }
+    
+    // Add event listeners untuk modal input
+    if (tanggalInputModal) {
+        tanggalInputModal.addEventListener('change', function() {
+            const validation = validateTanggal(this.value);
+            updateDateValidationDisplay(this, validation.valid, validation.message);
+        });
+        
+        // Also validate on blur
+        tanggalInputModal.addEventListener('blur', function() {
+            if (this.value) {
+                const validation = validateTanggal(this.value);
+                updateDateValidationDisplay(this, validation.valid, validation.message);
+            }
+        });
+    }
+    
+    // Add event listeners untuk edit mode
+    if (tanggalInputEdit) {
+        tanggalInputEdit.addEventListener('change', function() {
+            const validation = validateTanggal(this.value);
+            updateDateValidationDisplay(this, validation.valid, validation.message);
+        });
+        
+        // Also validate on blur
+        tanggalInputEdit.addEventListener('blur', function() {
+            if (this.value) {
+                const validation = validateTanggal(this.value);
+                updateDateValidationDisplay(this, validation.valid, validation.message);
+            }
+        });
+    }
+    
+    // Validate form sebelum submit
+    const formTambahLkh = document.querySelector('form[action="lkh.php"]');
+    if (formTambahLkh) {
+        formTambahLkh.addEventListener('submit', function(e) {
+            let tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
+            if (!tanggalInput) {
+                // Jika tidak ada di form biasa, cek di modal
+                tanggalInput = tanggalInputModal;
+            }
+            
+            if (tanggalInput && tanggalInput.value) {
+                const validation = validateTanggal(tanggalInput.value);
+                if (!validation.valid) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Tanggal Tidak Diperbolehkan',
+                        text: validation.message,
+                        confirmButtonText: 'OK'
+                    });
+                    updateDateValidationDisplay(tanggalInput, false, validation.message);
+                    return false;
+                }
+            }
+        });
+    }
+    
     // Reset form ketika modal tambah LKH ditutup (hanya reset jika benar-benar ditutup oleh user)
     const modalTambahLkhElement = document.getElementById('modalTambahLkh');
     if (modalTambahLkhElement) {
@@ -1337,6 +1643,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const tanggalInput = this.querySelector('input[name="tanggal_lkh"]');
           if (tanggalInput) {
             tanggalInput.value = '<?php echo $current_date; ?>';
+            tanggalInput.classList.remove('is-invalid', 'is-valid');
           }
         }
       });
