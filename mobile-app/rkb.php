@@ -1300,7 +1300,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                                 <span class="badge bg-primary"><?= htmlspecialchars($prev_rkb['satuan']) ?></span>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selectPreviousRkb('<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($prev_rkb['kuantitas']) ?>', '<?= htmlspecialchars($prev_rkb['satuan']) ?>')">
+                                                    onclick="selectPreviousRkb(this)">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -1420,7 +1420,12 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             new bootstrap.Modal(document.getElementById('previousRkbModal')).show();
         }
 
-        function selectPreviousRkb(uraian, kuantitas, satuan) {
+        function selectPreviousRkb(btn) {
+            const item = btn.closest('.previous-rkb-item');
+            const uraian = item.getAttribute('data-uraian');
+            const kuantitas = item.getAttribute('data-kuantitas');
+            const satuan = item.getAttribute('data-satuan');
+
             document.getElementById('uraian_kegiatan_modal').value = uraian;
             document.getElementById('kuantitas_modal').value = kuantitas;
             document.getElementById('satuan_modal').value = satuan;

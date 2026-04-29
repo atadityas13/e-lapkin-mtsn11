@@ -821,7 +821,7 @@ ob_clean();
                                                 <span class="badge bg-success"><?= htmlspecialchars($prev_rhk['target']) ?></span>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selectPreviousRhk('<?= htmlspecialchars($prev_rhk['nama_rhk']) ?>', '<?= htmlspecialchars($prev_rhk['aspek']) ?>', '<?= htmlspecialchars($prev_rhk['target']) ?>')">
+                                                    onclick="selectPreviousRhk(this)">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -926,7 +926,12 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('previousRhkModal')).show();
         }
 
-        function selectPreviousRhk(nama, aspek, target) {
+        function selectPreviousRhk(btn) {
+            const item = btn.closest('.previous-rhk-item');
+            const nama = item.getAttribute('data-nama');
+            const aspek = item.getAttribute('data-aspek');
+            const target = item.getAttribute('data-target');
+
             document.getElementById('namaRhk').value = nama;
             document.getElementById('aspek').value = aspek;
             document.getElementById('target').value = target;

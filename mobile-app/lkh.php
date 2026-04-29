@@ -1750,7 +1750,7 @@ ob_clean();
                                                 <span class="badge bg-secondary me-1"><?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?></span>
                                                 <span class="badge bg-primary"><?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?></span>
                                             </div>                            <button type="button" class="btn btn-sm btn-success" 
-                                    onclick="selectPreviousLkh('<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($prev_lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($prev_lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($prev_lkh['satuan_realisasi']) ?>')">
+                                    onclick="selectPreviousLkh(this)">
                                 <i class="fas fa-check me-1"></i>Gunakan
                             </button>
                                         </div>
@@ -1975,7 +1975,13 @@ ob_clean();
             new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
         }
 
-        function selectPreviousLkh(nama, uraian, jumlah, satuan) {
+        function selectPreviousLkh(btn) {
+            const item = btn.closest('.previous-lkh-item');
+            const nama = item.getAttribute('data-nama');
+            const uraian = item.getAttribute('data-uraian');
+            const jumlah = item.getAttribute('data-jumlah');
+            const satuan = item.getAttribute('data-satuan');
+
             document.getElementById('namaKegiatan').value = nama;
             document.getElementById('uraianKegiatan').value = uraian;
             document.getElementById('jumlahRealisasi').value = jumlah;
@@ -2002,6 +2008,15 @@ ob_clean();
                 timer: 1500,
                 showConfirmButton: false
             });
+            
+            // Ensure add LKH modal stays open
+            setTimeout(function() {
+                const modalLkh = bootstrap.Modal.getInstance(document.getElementById('lkhModal'));
+                if (!modalLkh || !modalLkh._isShown) {
+                    const newModalLkh = new bootstrap.Modal(document.getElementById('lkhModal'));
+                    newModalLkh.show();
+                }
+            }, 100);
         }
 
         // Search functionality for previous LKH modal
