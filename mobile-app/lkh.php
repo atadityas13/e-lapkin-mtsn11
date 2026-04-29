@@ -2148,7 +2148,7 @@ ob_clean();
             document.getElementById('jumlahRealisasi').value = jumlah;
             
             // Auto-select RKB terkait
-            const rkbSelect = document.getElementById('rkbTerkait');
+            const rkbSelect = document.getElementById('rkbSelect');
             let selected = false;
             
             if (idRkb) {
