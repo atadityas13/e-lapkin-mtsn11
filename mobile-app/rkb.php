@@ -77,6 +77,13 @@ $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $filter_month = $periode_aktif['bulan'];
 $filter_year = $periode_aktif['tahun'];
 
+if ($is_talim_embed) {
+    ensureTalimPeriod($conn, $id_pegawai_login);
+    $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
+    $filter_month = $periode_aktif['bulan'];
+    $filter_year = $periode_aktif['tahun'];
+}
+
 $talim_technical_rhk_id = 0;
 if ($is_talim_embed && function_exists('ensureTalimTechnicalRhk')) {
     $talim_technical_rhk_id = ensureTalimTechnicalRhk($conn, $id_pegawai_login, $filter_year);
@@ -118,14 +125,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $bulan_aktif_baru = (int)$_POST['bulan_aktif'];
         set_bulan_aktif($conn, $id_pegawai_login, $bulan_aktif_baru);
         set_mobile_notification('success', 'Periode Diubah', 'Periode bulan aktif berhasil diubah.');
-        header('Location: rkb.php');
+        header('Location: ' . talimRedirect('rkb.php'));
         exit();
     }
 
     // Prevent actions if RKB is already approved
     if (!$is_talim_embed && $status_verval_rkb == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah.');
-        header('Location: rkb.php');
+        header('Location: ' . talimRedirect('rkb.php'));
         exit();
     }
 
@@ -133,7 +140,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $action = $_POST['action'];
 
         if ($action == 'add' || $action == 'edit') {
-            $id_rhk = $is_talim_embed ? $talim_technical_rhk_id : (int)$_POST['id_rhk'];
+            $id_rhk = $is_talim_embed
+                ? resolveTalimRhkId($conn, $id_pegawai_login, $filter_year, (int) ($_POST['id_rhk'] ?? 0))
+                : (int) ($_POST['id_rhk'] ?? 0);
             $uraian_kegiatan = trim($_POST['uraian_kegiatan']);
             $satuan = trim($_POST['satuan']);
             
@@ -146,13 +155,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if (!in_array($file_extension, $allowed_extensions)) {
                     set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                    header('Location: rkb.php');
+                    header('Location: ' . talimRedirect('rkb.php'));
                     exit();
                 }
                 
                 if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
                     set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                    header('Location: rkb.php');
+                    header('Location: ' . talimRedirect('rkb.php'));
                     exit();
                 }
                 
@@ -168,7 +177,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $lampiran = $file_name;
                 } else {
                     set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
-                    header('Location: rkb.php');
+                    header('Location: ' . talimRedirect('rkb.php'));
                     exit();
                 }
             } elseif ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
@@ -187,7 +196,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
                     
                 set_mobile_notification('error', 'Gagal Upload', $error_msg);
-                header('Location: rkb.php');
+                header('Location: ' . talimRedirect('rkb.php'));
                 exit();
             }
 
@@ -199,7 +208,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $valid_satuan = ['Kegiatan','JP','Dokumen','Laporan','Hari','Jam','Menit','Unit'];
                 if (!in_array($satuan, $valid_satuan)) {
                     set_mobile_notification('error', 'Gagal', 'Satuan tidak valid. Pilih salah satu: ' . implode(', ', $valid_satuan));
-                    header('Location: rkb.php');
+                    header('Location: ' . talimRedirect('rkb.php'));
                     exit();
                 }
                 
@@ -209,7 +218,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $kuantitas_default = 0;
                         // Match web version database structure
                         $stmt = $conn->prepare("INSERT INTO rkb (id_pegawai, id_rhk, bulan, tahun, uraian_kegiatan, kuantitas, satuan, lampiran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->bind_param("iiississ", $id_pegawai_login, $id_rhk, $filter_month, $filter_year, $uraian_kegiatan, $kuantitas_default, $satuan, $lampiran);
+                        $stmt->bind_param("iiiisiss", $id_pegawai_login, $id_rhk, $filter_month, $filter_year, $uraian_kegiatan, $kuantitas_default, $satuan, $lampiran);
                     } else {
                         $id_rkb = (int)$_POST['id_rkb'];
                         // Tidak update kuantitas karena akan otomatis dihitung dari LKH
@@ -235,7 +244,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                 }
             }
-            header('Location: rkb.php');
+            header('Location: ' . talimRedirect('rkb.php'));
             exit();
             
         } elseif ($action == 'delete') {
@@ -251,7 +260,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if ($jumlah_lkh > 0) {
                 set_mobile_notification('error', 'Gagal', 'RKB tidak dapat dihapus karena sudah digunakan pada LKH.');
-                header('Location: rkb.php');
+                header('Location: ' . talimRedirect('rkb.php'));
                 exit();
             }
             
@@ -275,7 +284,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 set_mobile_notification('error', 'Gagal', "Gagal menghapus RKB: " . $stmt->error);
             }
             $stmt->close();
-            header('Location: rkb.php');
+            header('Location: ' . talimRedirect('rkb.php'));
             exit();
         }
     }
@@ -284,7 +293,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['ajukan_verval_rkb'])) {
         if ($status_verval_rkb == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: rkb.php');
+            header('Location: ' . talimRedirect('rkb.php'));
             exit();
         }
         
@@ -298,7 +307,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         if ($count_rkb == 0) {
             set_mobile_notification('error', 'Gagal', 'Tidak dapat mengajukan verval karena belum ada data RKB untuk periode ini.');
-            header('Location: rkb.php');
+            header('Location: ' . talimRedirect('rkb.php'));
             exit();
         }
         
@@ -310,13 +319,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal mengajukan verval RKB: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: rkb.php');
+        header('Location: ' . talimRedirect('rkb.php'));
         exit();
         
     } elseif (isset($_POST['batal_verval_rkb'])) {
         if ($status_verval_rkb == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: rkb.php');
+            header('Location: ' . talimRedirect('rkb.php'));
             exit();
         }
         
@@ -328,7 +337,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal membatalkan verval RKB: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: rkb.php');
+        header('Location: ' . talimRedirect('rkb.php'));
         exit();
     }
 }
@@ -835,6 +844,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
     </style>
     <?= getMobileHeaderCSS() ?>
+    <?= ($is_talim_embed && function_exists('talimEmbedCss')) ? talimEmbedCss() : '' ?>
 </head>
 <body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">
     <!-- Header -->
@@ -873,7 +883,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <strong>Informasi:</strong> Periode bulan untuk RKB belum diatur. Silakan pilih periode bulan yang akan digunakan.
                         </div>
                         <p>Silakan pilih periode bulan yang akan digunakan untuk Rencana Kerja Bulanan (RKB) Anda:</p>
-                        <form id="setBulanForm" method="POST">
+                        <form id="setBulanForm" method="POST" action="<?= htmlspecialchars(talimRedirect('rkb.php')) ?>">
+                            <?php if ($is_talim_embed): ?>
+                            <input type="hidden" name="talim" value="1">
+                            <?php endif; ?>
                             <div class="mb-3">
                                 <label for="bulan_aktif_modal" class="form-label fw-semibold">Pilih Bulan Periode:</label>
                                 <select class="form-select" id="bulan_aktif_modal" name="bulan_aktif" required>
@@ -1074,6 +1087,18 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                     <?php endif; ?>
                                 </div>
                             </div>
+                            <?php if ($is_talim_embed): ?>
+                            <div class="talim-card-actions d-flex flex-column gap-1 ms-2">
+                                <button type="button" class="btn btn-sm btn-outline-warning" title="Edit RKB"
+                                    onclick="editRkb(<?= $rkb['id_rkb'] ?>, <?= $rkb['id_rhk'] ?>, '<?= htmlspecialchars($rkb['uraian_kegiatan'], ENT_QUOTES) ?>', '<?= htmlspecialchars($rkb['kuantitas'], ENT_QUOTES) ?>', '<?= htmlspecialchars($rkb['satuan'], ENT_QUOTES) ?>')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Hapus RKB"
+                                    onclick="deleteRkb(<?= $rkb['id_rkb'] ?>)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <?php else: ?>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" style="width: 35px; height: 35px;">
                                     <i class="fas fa-ellipsis-v"></i>
@@ -1081,18 +1106,19 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
                                         <a class="dropdown-item" href="#" onclick="editRkb(<?= $rkb['id_rkb'] ?>, <?= $rkb['id_rhk'] ?>, '<?= htmlspecialchars($rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($rkb['kuantitas']) ?>', '<?= htmlspecialchars($rkb['satuan']) ?>')" 
-                                           <?= (!$is_talim_embed && ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui')) ? 'style="display:none;"' : '' ?>>
+                                           <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                             <i class="fas fa-edit me-2 text-warning"></i>Edit RKB
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteRkb(<?= $rkb['id_rkb'] ?>)"
-                                           <?= (!$is_talim_embed && ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui')) ? 'style="display:none;"' : '' ?>>
+                                           <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                             <i class="fas fa-trash me-2"></i>Hapus RKB
                                         </a>
                                     </li>
                                 </ul>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -1113,14 +1139,17 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
     <!-- Add/Edit RKB Modal -->
     <div class="modal fade" id="rkbModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form id="rkbForm" method="POST" enctype="multipart/form-data">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+            <form id="rkbForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('rkb.php')) ?>">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="rkbModalTitle">Tambah RKB</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <?php if ($is_talim_embed): ?>
+                        <input type="hidden" name="talim" value="1">
+                        <?php endif; ?>
                         <input type="hidden" name="action" id="rkbAction" value="add">
                         <input type="hidden" name="id_rkb" id="rkbId">
                         
@@ -1344,7 +1373,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     </div>
 
     <!-- Hidden Forms for Actions -->
-    <form id="deleteForm" method="POST" style="display: none;">
+    <form id="deleteForm" method="POST" action="<?= htmlspecialchars(talimRedirect('rkb.php')) ?>" style="display: none;">
+        <?php if ($is_talim_embed): ?>
+        <input type="hidden" name="talim" value="1">
+        <?php endif; ?>
         <input type="hidden" name="action" value="delete">
         <input type="hidden" name="id_rkb" id="deleteId">
     </form>
@@ -1364,9 +1396,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         // Show notifications
         <?php if (isset($_SESSION['mobile_notification'])): ?>
             Swal.fire({
-                icon: '<?= $_SESSION['mobile_notification']['type'] ?>',
-                title: '<?= $_SESSION['mobile_notification']['title'] ?>',
-                text: '<?= $_SESSION['mobile_notification']['text'] ?>',
+                icon: <?= json_encode($_SESSION['mobile_notification']['type']) ?>,
+                title: <?= json_encode($_SESSION['mobile_notification']['title']) ?>,
+                text: <?= json_encode($_SESSION['mobile_notification']['text']) ?>,
                 timer: 3000,
                 showConfirmButton: false
             });
@@ -1417,6 +1449,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             document.getElementById('rkbAction').value = 'add';
             document.getElementById('rkbId').value = '';
             document.getElementById('rkbForm').reset();
+            document.getElementById('rkbAction').value = 'add';
             <?php if ($is_talim_embed): ?>
             document.getElementById('id_rhk_modal').value = '<?= (int) $talim_technical_rhk_id ?>';
             <?php endif; ?>

@@ -44,6 +44,13 @@ $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $filter_month = $periode_aktif['bulan'];
 $filter_year = $periode_aktif['tahun'];
 
+if ($is_talim_embed) {
+    ensureTalimPeriod($conn, $id_pegawai_login);
+    $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
+    $filter_month = $periode_aktif['bulan'];
+    $filter_year = $periode_aktif['tahun'];
+}
+
 // Get active period for display
 $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
@@ -70,7 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Prevent actions if LKH is already approved
     if (!$is_talim_embed && $status_verval_lkh == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah.');
-        header('Location: lkh.php');
+        header('Location: ' . talimRedirect('lkh.php'));
         exit();
     }
 
@@ -106,7 +113,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'text' => 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year,
                         'form_data' => $_POST
                     ];
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
                 
@@ -126,7 +133,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'text' => $error_msg,
                         'form_data' => $_POST
                     ];
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
             }
@@ -140,13 +147,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if (!in_array($file_extension, $allowed_extensions)) {
                     set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
                 
                 if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
                     set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
                 
@@ -162,7 +169,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $lampiran = $file_name;
                 } else {
                     set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
             } elseif ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
@@ -181,7 +188,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
                     
                 set_mobile_notification('error', 'Gagal Upload', $error_msg);
-                header('Location: lkh.php');
+                header('Location: ' . talimRedirect('lkh.php'));
                 exit();
             }
 
@@ -260,7 +267,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     set_mobile_notification('error', 'Gagal', 'Terjadi kesalahan database. Periksa data yang dimasukkan.');
                 }
             }
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
             
         } elseif ($action == 'delete') {
@@ -305,7 +312,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 set_mobile_notification('error', 'Gagal', "Gagal menghapus LKH: " . $stmt->error);
             }
             $stmt->close();
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
         } elseif ($action == 'add_attachment') {
             $id_lkh = (int)$_POST['id_lkh'];
@@ -318,13 +325,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if (!in_array($file_extension, $allowed_extensions)) {
                     set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
                 
                 if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
                     set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                    header('Location: lkh.php');
+                    header('Location: ' . talimRedirect('lkh.php'));
                     exit();
                 }
                 
@@ -357,7 +364,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 set_mobile_notification('error', 'Gagal', 'Tidak ada file yang dipilih atau terjadi kesalahan upload.');
             }
             
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
         } elseif ($action == 'remove_attachment') {
             $id_lkh = (int)$_POST['id_lkh'];
@@ -385,7 +392,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             $stmt->close();
             
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
         }
     }
@@ -394,7 +401,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['ajukan_verval_lkh'])) {
         if ($status_verval_lkh == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
         }
         
@@ -408,7 +415,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         if ($count_lkh == 0) {
             set_mobile_notification('error', 'Gagal', 'Tidak dapat mengajukan verval karena belum ada data LKH untuk periode ini.');
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
         }
         
@@ -420,13 +427,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal mengajukan verval LKH: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: lkh.php');
+        header('Location: ' . talimRedirect('lkh.php'));
         exit();
         
     } elseif (isset($_POST['batal_verval_lkh'])) {
         if ($status_verval_lkh == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: lkh.php');
+            header('Location: ' . talimRedirect('lkh.php'));
             exit();
         }
         
@@ -438,7 +445,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal membatalkan verval LKH: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: lkh.php');
+        header('Location: ' . talimRedirect('lkh.php'));
         exit();
     }
 }
@@ -1549,6 +1556,18 @@ ob_clean();
                                     <?php endif; ?>
                                 </div>
                             </div>
+                            <?php if ($is_talim_embed): ?>
+                            <div class="talim-card-actions d-flex flex-column gap-1 ms-2">
+                                <button type="button" class="btn btn-sm btn-outline-warning" title="Edit LKH"
+                                    onclick="editLkh(<?= $lkh['id_lkh'] ?>, '<?= htmlspecialchars($lkh['tanggal_lkh'], ENT_QUOTES) ?>', '<?= $lkh['id_rkb'] ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian'], ENT_QUOTES) ?>', '<?= htmlspecialchars($lkh['uraian_kegiatan_lkh'], ENT_QUOTES) ?>', '<?= htmlspecialchars($lkh['jumlah_realisasi'], ENT_QUOTES) ?>', '<?= htmlspecialchars($lkh['satuan_realisasi'], ENT_QUOTES) ?>')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Hapus LKH"
+                                    onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <?php else: ?>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center" 
                                         data-bs-toggle="dropdown" 
@@ -1557,7 +1576,7 @@ ob_clean();
                                     <i class="fas fa-ellipsis-v text-muted"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>, '<?= htmlspecialchars($lkh['tanggal_lkh']) ?>', '<?= $lkh['id_rkb'] ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($lkh['satuan_realisasi']) ?>')">
                                             <i class="fas fa-edit text-warning"></i>
                                             <span>Edit</span>
@@ -1570,21 +1589,21 @@ ob_clean();
                                             <span>Lihat Lampiran</span>
                                         </a>
                                     </li>
-                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item" href="#" onclick="removeAttachment(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-trash text-danger"></i>
                                             <span>Hapus Lampiran</span>
                                         </a>
                                     </li>
                                     <?php else: ?>
-                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item" href="#" onclick="addAttachment(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-plus text-success"></i>
                                             <span>Tambah Lampiran</span>
                                         </a>
                                     </li>
                                     <?php endif; ?>
-                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
+                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-trash text-danger"></i>
                                             <span>Hapus</span>
@@ -1592,6 +1611,7 @@ ob_clean();
                                     </li>
                                 </ul>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -1609,14 +1629,17 @@ ob_clean();
 
     <!-- Add/Edit LKH Modal -->
     <div class="modal fade" id="lkhModal" tabindex="-1">
-        <div class="modal-dialog">
-            <form id="lkhForm" method="POST" enctype="multipart/form-data">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+            <form id="lkhForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('lkh.php')) ?>">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="lkhModalTitle">Tambah LKH</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <?php if ($is_talim_embed): ?>
+                        <input type="hidden" name="talim" value="1">
+                        <?php endif; ?>
                         <input type="hidden" name="action" id="lkhAction" value="add">
                         <input type="hidden" name="id_lkh" id="lkhId">
                         
@@ -1927,7 +1950,10 @@ ob_clean();
     </div>
 
     <!-- Hidden Forms for Actions -->
-    <form id="deleteForm" method="POST" style="display: none;">
+    <form id="deleteForm" method="POST" action="<?= htmlspecialchars(talimRedirect('lkh.php')) ?>" style="display: none;">
+        <?php if ($is_talim_embed): ?>
+        <input type="hidden" name="talim" value="1">
+        <?php endif; ?>
         <input type="hidden" name="action" value="delete">
         <input type="hidden" name="id_lkh" id="deleteId">
     </form>
@@ -1993,9 +2019,9 @@ ob_clean();
         // Show notifications
         <?php if (isset($_SESSION['mobile_notification'])): ?>
             Swal.fire({
-                icon: '<?= $_SESSION['mobile_notification']['type'] ?>',
-                title: '<?= $_SESSION['mobile_notification']['title'] ?>',
-                text: '<?= $_SESSION['mobile_notification']['text'] ?>',
+                icon: <?= json_encode($_SESSION['mobile_notification']['type']) ?>,
+                title: <?= json_encode($_SESSION['mobile_notification']['title']) ?>,
+                text: <?= json_encode($_SESSION['mobile_notification']['text']) ?>,
                 timer: 3000,
                 showConfirmButton: false
             });
@@ -2006,9 +2032,9 @@ ob_clean();
         <?php if (isset($_SESSION['mobile_notification_keep_modal'])): ?>
             <?php $mobile_swal_data = $_SESSION['mobile_notification_keep_modal']; ?>
             Swal.fire({
-                icon: '<?= $mobile_swal_data['type'] ?>',
-                title: '<?= $mobile_swal_data['title'] ?>',
-                text: '<?= $mobile_swal_data['text'] ?>',
+                icon: <?= json_encode($mobile_swal_data['type']) ?>,
+                title: <?= json_encode($mobile_swal_data['title']) ?>,
+                text: <?= json_encode($mobile_swal_data['text']) ?>,
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#3085d6'
             }).then((result) => {
@@ -2681,24 +2707,37 @@ ob_clean();
         }
 
         // Enhanced form submission with loading state
+        let lkhFormSubmitting = false;
         document.getElementById('lkhForm').addEventListener('submit', function(e) {
+            if (lkhFormSubmitting) {
+                return;
+            }
+
             e.preventDefault();
-            
+
             if (!validateForm()) {
                 return;
             }
-            
+
+            const tanggalInput = document.getElementById('tanggalLkh');
+            if (tanggalInput && tanggalInput.value) {
+                const validation = validateTanggalMobile(tanggalInput.value);
+                if (!validation.valid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Tanggal Tidak Diperbolehkan',
+                        text: validation.message,
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+            }
+
             const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.innerHTML;
-            
-            // Show loading state
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...';
             submitBtn.disabled = true;
-            
-            // Submit form after short delay for better UX
-            setTimeout(() => {
-                this.submit();
-            }, 500);
+            lkhFormSubmitting = true;
+            HTMLFormElement.prototype.submit.call(this);
         });
         
         // Reset form function
@@ -2775,31 +2814,6 @@ ob_clean();
             });
         }
         
-        // Validate form submission dengan hari libur check
-        const originalLkhFormSubmitHandler = document.getElementById('lkhForm').onsubmit;
-        let validationOverride = false;
-        
-        document.getElementById('lkhForm').addEventListener('submit', function(e) {
-            if (validationOverride) {
-                validationOverride = false;
-                return;
-            }
-            
-            const tanggalInput = document.getElementById('tanggalLkh');
-            if (tanggalInput && tanggalInput.value) {
-                const validation = validateTanggalMobile(tanggalInput.value);
-                if (!validation.valid) {
-                    e.preventDefault();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Tanggal Tidak Diperbolehkan',
-                        text: validation.message,
-                        confirmButtonText: 'OK'
-                    });
-                    return false;
-                }
-            }
-        });
     </script>
 </body>
 </html>

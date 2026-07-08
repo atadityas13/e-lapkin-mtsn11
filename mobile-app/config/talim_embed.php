@@ -10,7 +10,8 @@ function isTalimEmbed(): bool
 {
     return (isset($_SESSION['mobile_simpatisans']) && $_SESSION['mobile_simpatisans'] === true)
         || (isset($_GET['talim']) && $_GET['talim'] === '1')
-        || (isset($_GET['embed']) && $_GET['embed'] === 'talim');
+        || (isset($_GET['embed']) && $_GET['embed'] === 'talim')
+        || (isset($_POST['talim']) && $_POST['talim'] === '1');
 }
 
 function talimCanDirectGenerate(): bool
@@ -20,9 +21,56 @@ function talimCanDirectGenerate(): bool
 
 function talimRedirect(string $path): string
 {
-    return isTalimEmbed() && !str_contains($path, '?')
-        ? $path . '?talim=1'
-        : $path;
+    if (!isTalimEmbed()) {
+        return $path;
+    }
+    if (str_contains($path, 'talim=1')) {
+        return $path;
+    }
+    $separator = str_contains($path, '?') ? '&' : '?';
+
+    return $path . $separator . 'talim=1';
+}
+
+function talimRedirectLocation(string $path): never
+{
+    header('Location: ' . talimRedirect($path));
+    exit();
+}
+
+function ensureTalimPeriod(mysqli $conn, int $idPegawai): void
+{
+    if (!isTalimEmbed()) {
+        return;
+    }
+
+    $stmt = $conn->prepare('SELECT bulan_aktif, tahun_aktif FROM pegawai WHERE id_pegawai = ? LIMIT 1');
+    if ($stmt === false) {
+        return;
+    }
+
+    $stmt->bind_param('i', $idPegawai);
+    $stmt->execute();
+    $stmt->bind_result($bulanAktif, $tahunAktif);
+    $stmt->fetch();
+    $stmt->close();
+
+    if ($bulanAktif !== null && $tahunAktif !== null) {
+        return;
+    }
+
+    $bulanNow = (int) date('m');
+    $tahunNow = (int) date('Y');
+    $stmt = $conn->prepare(
+        'UPDATE pegawai SET bulan_aktif = COALESCE(bulan_aktif, ?), tahun_aktif = COALESCE(tahun_aktif, ?) WHERE id_pegawai = ?'
+    );
+    if ($stmt === false) {
+        return;
+    }
+
+    $stmt->bind_param('iii', $bulanNow, $tahunNow, $idPegawai);
+    $stmt->execute();
+    $stmt->close();
 }
 
 function ensureTalimTechnicalRhk(mysqli $conn, int $idPegawai, int $tahun): int
@@ -30,11 +78,24 @@ function ensureTalimTechnicalRhk(mysqli $conn, int $idPegawai, int $tahun): int
     $nama = 'Kinerja Guru Ta\'lim ' . $tahun;
 
     $stmt = $conn->prepare('SELECT id_rhk FROM rhk WHERE id_pegawai = ? AND nama_rhk = ? ORDER BY id_rhk DESC LIMIT 1');
+    if ($stmt === false) {
+        error_log('ensureTalimTechnicalRhk prepare(select) failed: ' . $conn->error);
+
+        return 0;
+    }
+
     $stmt->bind_param('is', $idPegawai, $nama);
-    $stmt->execute();
+    if ($stmt->execute() === false) {
+        error_log('ensureTalimTechnicalRhk execute(select) failed: ' . $stmt->error);
+        $stmt->close();
+
+        return 0;
+    }
+
     $stmt->bind_result($idRhk);
     if ($stmt->fetch()) {
         $stmt->close();
+
         return (int) $idRhk;
     }
     $stmt->close();
@@ -42,12 +103,34 @@ function ensureTalimTechnicalRhk(mysqli $conn, int $idPegawai, int $tahun): int
     $aspek = 'Kuantitas';
     $target = 'Kinerja bulanan dan harian guru melalui Ta\'lim';
     $stmt = $conn->prepare('INSERT INTO rhk (id_pegawai, nama_rhk, aspek, target) VALUES (?, ?, ?, ?)');
+    if ($stmt === false) {
+        error_log('ensureTalimTechnicalRhk prepare(insert) failed: ' . $conn->error);
+
+        return 0;
+    }
+
     $stmt->bind_param('isss', $idPegawai, $nama, $aspek, $target);
-    $stmt->execute();
+    if ($stmt->execute() === false) {
+        error_log('ensureTalimTechnicalRhk execute(insert) failed: ' . $stmt->error);
+        $stmt->close();
+
+        return 0;
+    }
+
     $newId = (int) $conn->insert_id;
     $stmt->close();
 
     return $newId;
+}
+
+function resolveTalimRhkId(mysqli $conn, int $idPegawai, int $tahun, int $postedRhkId = 0): int
+{
+    $technicalId = ensureTalimTechnicalRhk($conn, $idPegawai, $tahun);
+    if ($technicalId > 0) {
+        return $technicalId;
+    }
+
+    return $postedRhkId > 0 ? $postedRhkId : 0;
 }
 
 function talimEmbedCss(): string
@@ -90,6 +173,51 @@ function talimEmbedCss(): string
         body.talim-embed .btn-outline-info {
             border-color: #0891b2 !important;
             color: #0e7490 !important;
+        }
+        body.talim-embed .talim-card-actions .btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+        body.talim-embed .modal-dialog {
+            margin: 16px auto 156px !important;
+            max-width: calc(100% - 24px);
+            max-height: calc(100vh - 188px);
+        }
+        body.talim-embed .modal-dialog-centered {
+            align-items: flex-start !important;
+            min-height: calc(100% - 172px) !important;
+            padding-top: 4px;
+        }
+        body.talim-embed .modal-content {
+            max-height: calc(100vh - 188px);
+            display: flex;
+            flex-direction: column;
+            border-radius: 18px !important;
+            overflow: hidden;
+        }
+        body.talim-embed .modal-body {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 12px;
+        }
+        body.talim-embed .modal-footer {
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            z-index: 2;
+        }
+        body.talim-embed .dropdown-menu {
+            z-index: 10050 !important;
+            margin-bottom: 8px;
         }
     </style>';
 }
