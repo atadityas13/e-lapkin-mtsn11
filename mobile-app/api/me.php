@@ -19,9 +19,10 @@ $requireFirstExisting = function (array $candidates, string $label) {
 };
 
 $loadedDatabasePath = $requireFirstExisting([
-    // Dari mobile-app/api/me.php ke root/config/database.php: naik 3 level.
-    __DIR__ . '/../../../config/database.php',
+    // Dari mobile-app/api/me.php ke e-lapkin-mtsn11/config/database.php: naik 2 level.
     __DIR__ . '/../../config/database.php',
+    // Fallback jika struktur server berbeda.
+    __DIR__ . '/../../../config/database.php',
 ], 'database.php');
 
 $connDebugOk = isset($conn) && ($conn instanceof mysqli);
