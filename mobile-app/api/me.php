@@ -2,10 +2,11 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-$requireFirstExisting = function (array $candidates, string $label) {
+// PENTING: closure hanya MENGEMBALIKAN path, `require` dilakukan di scope file ini,
+// supaya variabel top-level file config ($conn, $host, dst.) tidak terjebak di scope closure.
+$resolveFirstExisting = function (array $candidates, string $label) {
     foreach ($candidates as $path) {
         if (is_file($path)) {
-            require_once $path;
             return $path;
         }
     }
@@ -18,12 +19,14 @@ $requireFirstExisting = function (array $candidates, string $label) {
     exit;
 };
 
-$loadedDatabasePath = $requireFirstExisting([
+$loadedDatabasePath = $resolveFirstExisting([
     // Dari mobile-app/api/me.php ke e-lapkin-mtsn11/config/database.php: naik 2 level.
     __DIR__ . '/../../config/database.php',
     // Fallback jika struktur server berbeda.
     __DIR__ . '/../../../config/database.php',
 ], 'database.php');
+
+require_once $loadedDatabasePath;
 
 $connFallbackAttempted = false;
 if (!isset($conn) || !($conn instanceof mysqli)) {
@@ -54,12 +57,14 @@ if (! $connDebugOk) {
     exit;
 }
 
-$loadedMobileAppsPath = $requireFirstExisting([
+$loadedMobileAppsPath = $resolveFirstExisting([
     // mobile-app/config/mobile_apps.php dari mobile-app/api/: naik 1 level
     __DIR__ . '/../config/mobile_apps.php',
     // root/config/mobile_apps.php (kalau ada)
     __DIR__ . '/../../../config/mobile_apps.php',
 ], 'mobile_apps.php');
+
+require_once $loadedMobileAppsPath;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);

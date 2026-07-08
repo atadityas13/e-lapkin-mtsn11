@@ -25,11 +25,12 @@ register_shutdown_function(function () {
 });
 
 // Lokasi file config bisa berbeda antar layout (root config/ vs mobile-app/config/).
-// Cari di beberapa kandidat agar tahan terhadap perbedaan struktur folder.
-$requireFirstExisting = function (array $candidates, string $label) {
+// PENTING: closure hanya MENGEMBALIKAN path, `require` dilakukan di scope file ini.
+// Kalau `require` dijalankan di dalam fungsi/closure, variabel top-level file config
+// ($conn, $host, dst.) akan masuk ke scope lokal closure dan hilang setelah return.
+$resolveFirstExisting = function (array $candidates, string $label) {
     foreach ($candidates as $path) {
         if (is_file($path)) {
-            require_once $path;
             return $path;
         }
     }
@@ -42,7 +43,7 @@ $requireFirstExisting = function (array $candidates, string $label) {
     exit;
 };
 
-$loadedDatabasePath = $requireFirstExisting([
+$loadedDatabasePath = $resolveFirstExisting([
     // Dari mobile-app/api/auth/sso.php ke e-lapkin-mtsn11/config/database.php: naik 3 level.
     __DIR__ . '/../../../config/database.php',
     // Fallback layout lain (jika suatu saat dipindah).
@@ -50,6 +51,8 @@ $loadedDatabasePath = $requireFirstExisting([
     // Paling belakang: jika struktur server berbeda.
     __DIR__ . '/../../../../config/database.php',
 ], 'database.php');
+
+require_once $loadedDatabasePath;
 
 $connFallbackAttempted = false;
 if (!isset($conn) || !($conn instanceof mysqli)) {
@@ -82,13 +85,15 @@ if (! $connDebugOk) {
     exit;
 }
 
-$loadedMobileAppsPath = $requireFirstExisting([
+$loadedMobileAppsPath = $resolveFirstExisting([
     // mobile-app/config/mobile_apps.php dari mobile-app/api/auth/: naik 2 level
     __DIR__ . '/../../config/mobile_apps.php',
     // root/config/mobile_apps.php (kalau ada)
     __DIR__ . '/../../../../config/mobile_apps.php',
     __DIR__ . '/../../../config/mobile_apps.php',
 ], 'mobile_apps.php');
+
+require_once $loadedMobileAppsPath;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
