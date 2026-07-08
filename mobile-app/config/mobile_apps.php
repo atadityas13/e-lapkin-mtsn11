@@ -51,14 +51,27 @@ function resolveMobileApp(): ?array
     global $MOBILE_APPS;
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
+    // Normalisasi untuk menghindari mismatch akibat karakter tak terlihat
+    // (spasi ekstra, CR/LF, control chars, atau BOM).
+    $userAgent = str_replace("\r", '', $userAgent);
+    $userAgent = str_replace("\n", '', $userAgent);
+    $userAgent = preg_replace('/^\xEF\xBB\xBF/', '', $userAgent); // BOM
+    $userAgent = trim($userAgent);
+    $userAgent = preg_replace('/\s+/', ' ', $userAgent);
+
     foreach ($MOBILE_APPS as $app) {
+        $expectedUa = (string) ($app['user_agent'] ?? '');
+        $expectedUa = preg_replace('/^\xEF\xBB\xBF/', '', $expectedUa);
+        $expectedUa = trim($expectedUa);
+        $expectedUa = preg_replace('/\s+/', ' ', $expectedUa);
+
         // Beberapa HTTP client bisa menambahkan suffix (mis. versi/library).
         // Jadi selain exact match, kita izinkan match sebagai substring.
-        if ($userAgent === $app['user_agent']) {
+        if ($userAgent === $expectedUa) {
             return $app;
         }
 
-        if ($userAgent !== '' && stripos($userAgent, $app['user_agent']) !== false) {
+        if ($userAgent !== '' && $expectedUa !== '' && stripos($userAgent, $expectedUa) !== false) {
             return $app;
         }
     }
@@ -71,11 +84,18 @@ function validateMobileUserAgentForApp(): array
     $app = resolveMobileApp();
     if (!$app) {
         $receivedUserAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $normalized = $receivedUserAgent;
+        $normalized = str_replace("\r", '', $normalized);
+        $normalized = str_replace("\n", '', $normalized);
+        $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $normalized);
+        $normalized = trim($normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
         http_response_code(403);
         die(json_encode([
             'error' => 'Access denied. Mobile app access only.',
             'code' => 'INVALID_USER_AGENT',
             'received_user_agent' => $receivedUserAgent,
+            'received_user_agent_normalized' => $normalized,
         ]));
     }
 
