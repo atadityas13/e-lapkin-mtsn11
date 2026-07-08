@@ -1311,7 +1311,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                                 <span class="badge bg-primary"><?= htmlspecialchars($prev_rkb['satuan']) ?></span>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selectPreviousRkb('<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($prev_rkb['kuantitas']) ?>', '<?= htmlspecialchars($prev_rkb['satuan']) ?>', '<?= htmlspecialchars($prev_rkb['id_rhk']) ?>', '<?= htmlspecialchars($prev_rkb['nama_rhk']) ?>')">
+                                                    onclick="selectPreviousRkb(this)">
                                                 <i class="fas fa-check me-1"></i>Gunakan
                                             </button>
                                         </div>
@@ -1431,7 +1431,13 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             new bootstrap.Modal(document.getElementById('previousRkbModal')).show();
         }
 
-        function selectPreviousRkb(uraian, kuantitas, satuan, idRhk, namaRhk) {
+        function selectPreviousRkb(btn) {
+            const item = btn.closest('.previous-rkb-item');
+            const uraian = item.getAttribute('data-uraian');
+            const kuantitas = item.getAttribute('data-kuantitas');
+            const satuan = item.getAttribute('data-satuan');
+            const idRhk = item.getAttribute('data-id-rhk');
+            const namaRhk = item.getAttribute('data-nama-rhk');
             document.getElementById('uraian_kegiatan_modal').value = uraian;
             // Kuantitas tidak perlu diisi, otomatis dari LKH
             document.getElementById('satuan_modal').value = satuan;
