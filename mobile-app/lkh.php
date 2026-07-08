@@ -20,6 +20,7 @@ checkMobileLogin();
 $userData = getMobileSessionData();
 $id_pegawai_login = $userData['id_pegawai'];
 $nama_pegawai_login = $userData['nama'];
+$is_talim_embed = function_exists('isTalimEmbed') && isTalimEmbed();
 
 $current_date = date('Y-m-d');
 $current_month = (int)date('m');
@@ -67,7 +68,7 @@ function set_mobile_notification($type, $title, $text) {
 // Handle POST requests
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Prevent actions if LKH is already approved
-    if ($status_verval_lkh == 'disetujui') {
+    if (!$is_talim_embed && $status_verval_lkh == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah.');
         header('Location: lkh.php');
         exit();
@@ -1382,8 +1383,9 @@ ob_clean();
             background: rgba(102, 126, 234, 0.5);
         }
     </style>
+    <?= (function_exists('isTalimEmbed') && isTalimEmbed() && function_exists('talimEmbedCss')) ? talimEmbedCss() : '' ?>
 </head>
-<body>
+<body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">
     <!-- Header -->
     <?php renderMobileHeader('LKH', 'Laporan Kinerja Harian', 'dashboard.php', $userData, $activePeriod); ?>
 
@@ -1417,7 +1419,7 @@ ob_clean();
                 </h6>
                 
                 <!-- Status Alert -->
-                <?php if ($status_verval_lkh == 'diajukan'): ?>
+                <?php if (!$is_talim_embed && $status_verval_lkh == 'diajukan'): ?>
                     <div class="verification-status">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-clock text-info me-2 fs-5"></i>
@@ -1427,7 +1429,7 @@ ob_clean();
                             </div>
                         </div>
                     </div>
-                <?php elseif ($status_verval_lkh == 'disetujui'): ?>
+                <?php elseif (!$is_talim_embed && $status_verval_lkh == 'disetujui'): ?>
                     <div class="verification-status" style="border-left-color: #28a745;">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-check-circle text-success me-2 fs-5"></i>
@@ -1437,7 +1439,7 @@ ob_clean();
                             </div>
                         </div>
                     </div>
-                <?php elseif ($status_verval_lkh == 'ditolak'): ?>
+                <?php elseif (!$is_talim_embed && $status_verval_lkh == 'ditolak'): ?>
                     <div class="verification-status" style="border-left-color: #dc3545;">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-times-circle text-danger me-2 fs-5"></i>
@@ -1456,11 +1458,11 @@ ob_clean();
                         <i class="fas fa-eye me-1"></i>Preview LKH
                     </button>
                     
-                    <?php if ($status_verval_lkh == 'diajukan'): ?>
+                    <?php if (!$is_talim_embed && $status_verval_lkh == 'diajukan'): ?>
                         <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
                             <i class="fas fa-times me-1"></i>Batal Ajukan
                         </button>
-                    <?php elseif ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak'): ?>
+                    <?php elseif (!$is_talim_embed && ($status_verval_lkh == '' || $status_verval_lkh == null || $status_verval_lkh == 'ditolak')): ?>
                         <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
                             <?= empty($lkhs) ? 'disabled' : '' ?>>
                             <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
@@ -1536,12 +1538,12 @@ ob_clean();
                                             <i class="fas fa-eye me-1"></i>Lihat lampiran
                                         </button>
                                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAttachment(<?= $lkh['id_lkh'] ?>)"
-                                            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : '' ?>>
+                                            <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'disabled' : '' ?>>
                                             <i class="fas fa-trash me-1"></i>Hapus lampiran
                                         </button>
                                     <?php else: ?>
                                         <button type="button" class="btn btn-sm btn-outline-success" onclick="addAttachment(<?= $lkh['id_lkh'] ?>)"
-                                            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'disabled' : '' ?>>
+                                            <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'disabled' : '' ?>>
                                             <i class="fas fa-plus me-1"></i>Lampiran
                                         </button>
                                     <?php endif; ?>
@@ -1555,7 +1557,7 @@ ob_clean();
                                     <i class="fas fa-ellipsis-v text-muted"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item" href="#" onclick="editLkh(<?= $lkh['id_lkh'] ?>, '<?= htmlspecialchars($lkh['tanggal_lkh']) ?>', '<?= $lkh['id_rkb'] ?>', '<?= htmlspecialchars($lkh['nama_kegiatan_harian']) ?>', '<?= htmlspecialchars($lkh['uraian_kegiatan_lkh']) ?>', '<?= htmlspecialchars($lkh['jumlah_realisasi']) ?>', '<?= htmlspecialchars($lkh['satuan_realisasi']) ?>')">
                                             <i class="fas fa-edit text-warning"></i>
                                             <span>Edit</span>
@@ -1568,21 +1570,21 @@ ob_clean();
                                             <span>Lihat Lampiran</span>
                                         </a>
                                     </li>
-                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item" href="#" onclick="removeAttachment(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-trash text-danger"></i>
                                             <span>Hapus Lampiran</span>
                                         </a>
                                     </li>
                                     <?php else: ?>
-                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item" href="#" onclick="addAttachment(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-plus text-success"></i>
                                             <span>Tambah Lampiran</span>
                                         </a>
                                     </li>
                                     <?php endif; ?>
-                                    <li <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                    <li <?= (!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) ? 'style="display:none;"' : '' ?>>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteLkh(<?= $lkh['id_lkh'] ?>)">
                                             <i class="fas fa-trash text-danger"></i>
                                             <span>Hapus</span>
@@ -1600,7 +1602,7 @@ ob_clean();
     <!-- Floating Action Button -->
     <div class="floating-action">
         <button class="floating-btn" onclick="showAddModal()" title="Tambah LKH"
-            <?= ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui' || $periode_rkb_belum_diatur) ? 'style="display:none;"' : '' ?>>
+            <?= ((!$is_talim_embed && ($status_verval_lkh == 'diajukan' || $status_verval_lkh == 'disetujui')) || $periode_rkb_belum_diatur) ? 'style="display:none;"' : '' ?>>
             <i class="fas fa-plus"></i>
         </button>
     </div>

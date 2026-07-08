@@ -6,6 +6,10 @@
 
 // Get current page name from the URL
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
+
+if (function_exists('isTalimEmbed') && isTalimEmbed()) {
+    return;
+}
 ?>
 
 <style>

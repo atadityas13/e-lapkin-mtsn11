@@ -51,8 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
     
-    // Check if LKH exists and is approved for this period
-    $stmt_check = $conn->prepare("SELECT COUNT(*) FROM lkh WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ? AND status_verval = 'disetujui'");
+    // Check if LKH exists and is approved for this period.
+    // Ta'lim embed mode can generate directly once LKH data exists.
+    $directGenerate = function_exists('talimCanDirectGenerate') && talimCanDirectGenerate();
+    $approvalSql = $directGenerate ? '' : " AND status_verval = 'disetujui'";
+    $stmt_check = $conn->prepare("SELECT COUNT(*) FROM lkh WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?" . $approvalSql);
     $stmt_check->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
     $stmt_check->execute();
     $stmt_check->bind_result($count_approved);
@@ -60,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt_check->close();
     
     if ($count_approved == 0) {
-        set_mobile_notification('error', 'Gagal', 'LKH belum disetujui untuk periode tersebut.');
+        set_mobile_notification('error', 'Gagal', $directGenerate ? 'Data LKH belum tersedia untuk periode tersebut.' : 'LKH belum disetujui untuk periode tersebut.');
         header('Location: laporan.php');
         exit();
     }

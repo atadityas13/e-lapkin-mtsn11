@@ -5,6 +5,10 @@
  */
 
 function renderMobileHeader($pageTitle, $pageSubtitle, $backUrl = 'dashboard.php', $userData = null, $activePeriod = null) {
+    if (function_exists('isTalimEmbed') && isTalimEmbed()) {
+        return;
+    }
+
     // Get user data if not provided
     if (!$userData) {
         $userData = getMobileSessionData();
@@ -40,6 +44,10 @@ function renderMobileHeader($pageTitle, $pageSubtitle, $backUrl = 'dashboard.php
 }
 
 function getMobileHeaderCSS() {
+    if (function_exists('isTalimEmbed') && isTalimEmbed()) {
+        return function_exists('talimEmbedCss') ? talimEmbedCss() : '';
+    }
+
     return '
     <style>
         .nav-header {

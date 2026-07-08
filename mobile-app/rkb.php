@@ -20,6 +20,7 @@ checkMobileLogin();
 $userData = getMobileSessionData();
 $id_pegawai_login = $userData['id_pegawai'];
 $nama_pegawai_login = $userData['nama'];
+$is_talim_embed = function_exists('isTalimEmbed') && isTalimEmbed();
 
 $current_date = date('Y-m-d');
 $current_month = (int)date('m');
@@ -76,6 +77,11 @@ $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $filter_month = $periode_aktif['bulan'];
 $filter_year = $periode_aktif['tahun'];
 
+$talim_technical_rhk_id = 0;
+if ($is_talim_embed && function_exists('ensureTalimTechnicalRhk')) {
+    $talim_technical_rhk_id = ensureTalimTechnicalRhk($conn, $id_pegawai_login, $filter_year);
+}
+
 // Check if period has been set before
 $stmt_check_bulan = $conn->prepare("SELECT bulan_aktif FROM pegawai WHERE id_pegawai = ?");
 $stmt_check_bulan->bind_param("i", $id_pegawai_login);
@@ -117,7 +123,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Prevent actions if RKB is already approved
-    if ($status_verval_rkb == 'disetujui') {
+    if (!$is_talim_embed && $status_verval_rkb == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah.');
         header('Location: rkb.php');
         exit();
@@ -127,7 +133,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $action = $_POST['action'];
 
         if ($action == 'add' || $action == 'edit') {
-            $id_rhk = (int)$_POST['id_rhk'];
+            $id_rhk = $is_talim_embed ? $talim_technical_rhk_id : (int)$_POST['id_rhk'];
             $uraian_kegiatan = trim($_POST['uraian_kegiatan']);
             $satuan = trim($_POST['satuan']);
             
@@ -385,7 +391,7 @@ while ($row = $result_rhk_list->fetch_assoc()) {
 $stmt_rhk_list->close();
 
 // Check if RHK period is not set
-$periode_rhk_belum_diatur = empty($rhk_list);
+$periode_rhk_belum_diatur = !$is_talim_embed && empty($rhk_list);
 
 // Get previous RKB list for reference (same logic as web version)
 $previous_rkb_list = [];
@@ -830,7 +836,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     </style>
     <?= getMobileHeaderCSS() ?>
 </head>
-<body>
+<body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">
     <!-- Header -->
     <?php renderMobileHeader('RKB', 'Rencana Kerja Bulanan', 'dashboard.php', $userData, $activePeriod); ?>
 
@@ -904,7 +910,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 </div>
                 
                 <!-- Status Alert -->
-                <?php if ($status_verval_rkb == 'diajukan'): ?>
+                <?php if (!$is_talim_embed && $status_verval_rkb == 'diajukan'): ?>
                     <div class="verification-status">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-clock text-info me-2 fs-5"></i>
@@ -914,7 +920,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             </div>
                         </div>
                     </div>
-                <?php elseif ($status_verval_rkb == 'disetujui'): ?>
+                <?php elseif (!$is_talim_embed && $status_verval_rkb == 'disetujui'): ?>
                     <div class="verification-status" style="border-left-color: #28a745;">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-check-circle text-success me-2 fs-5"></i>
@@ -924,7 +930,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             </div>
                         </div>
                     </div>
-                <?php elseif ($status_verval_rkb == 'ditolak'): ?>
+                <?php elseif (!$is_talim_embed && $status_verval_rkb == 'ditolak'): ?>
                     <div class="verification-status" style="border-left-color: #dc3545;">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-times-circle text-danger me-2 fs-5"></i>
@@ -943,11 +949,11 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                         <i class="fas fa-eye me-1"></i>Preview RKB
                     </button>
                     
-                    <?php if ($status_verval_rkb == 'diajukan'): ?>
+                    <?php if (!$is_talim_embed && $status_verval_rkb == 'diajukan'): ?>
                         <button class="btn btn-warning btn-sm" onclick="confirmCancelVerval()">
                             <i class="fas fa-times me-1"></i>Batal Ajukan
                         </button>
-                    <?php elseif ($status_verval_rkb == '' || $status_verval_rkb == null || $status_verval_rkb == 'ditolak'): ?>
+                    <?php elseif (!$is_talim_embed && ($status_verval_rkb == '' || $status_verval_rkb == null || $status_verval_rkb == 'ditolak')): ?>
                         <button class="btn btn-success btn-sm" onclick="confirmSubmitVerval()" 
                             <?= empty($rkbs) ? 'disabled' : '' ?>>
                             <i class="fas fa-paper-plane me-1"></i>Ajukan Verval
@@ -1075,13 +1081,13 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
                                         <a class="dropdown-item" href="#" onclick="editRkb(<?= $rkb['id_rkb'] ?>, <?= $rkb['id_rhk'] ?>, '<?= htmlspecialchars($rkb['uraian_kegiatan']) ?>', '<?= htmlspecialchars($rkb['kuantitas']) ?>', '<?= htmlspecialchars($rkb['satuan']) ?>')" 
-                                           <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                           <?= (!$is_talim_embed && ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui')) ? 'style="display:none;"' : '' ?>>
                                             <i class="fas fa-edit me-2 text-warning"></i>Edit RKB
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-danger" href="#" onclick="deleteRkb(<?= $rkb['id_rkb'] ?>)"
-                                           <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui') ? 'style="display:none;"' : '' ?>>
+                                           <?= (!$is_talim_embed && ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui')) ? 'style="display:none;"' : '' ?>>
                                             <i class="fas fa-trash me-2"></i>Hapus RKB
                                         </a>
                                     </li>
@@ -1097,7 +1103,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     <!-- Floating Action Button -->
     <div class="floating-action">
         <button class="floating-btn" onclick="showAddModal()" title="Tambah RKB"
-            <?= ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui' || $periode_rhk_belum_diatur) ? 'style="display:none;"' : '' ?>>
+            <?= ((!$is_talim_embed && ($status_verval_rkb == 'diajukan' || $status_verval_rkb == 'disetujui')) || $periode_rhk_belum_diatur) ? 'style="display:none;"' : '' ?>>
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -1123,7 +1129,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <input type="text" class="form-control" value="<?= $months[$filter_month] . ' ' . $filter_year ?>" readonly>
                         </div>
                         
-                        <div class="mb-3">
+                        <div class="mb-3 <?= $is_talim_embed ? 'talim-hidden' : '' ?>">
                             <label for="id_rhk_modal" class="form-label">Pilih RHK Terkait <span class="text-danger">*</span></label>
                             <select class="form-select" id="id_rhk_modal" name="id_rhk" required>
                                 <option value="">-- Pilih RHK --</option>

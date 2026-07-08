@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/mobile_apps.php';
+require_once __DIR__ . '/talim_embed.php';
 
 // Legacy constants for backward compatibility
 define('MOBILE_PACKAGE_NAME', $MOBILE_APPS['elapkin']['package']);

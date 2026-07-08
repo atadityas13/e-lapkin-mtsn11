@@ -20,6 +20,7 @@ checkMobileLogin();
 $userData = getMobileSessionData();
 $id_pegawai_login = $userData['id_pegawai'];
 $nama_pegawai_login = $userData['nama'];
+$is_talim_embed = function_exists('isTalimEmbed') && isTalimEmbed();
 
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -514,7 +515,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     </style>
     <?= getMobileHeaderCSS() ?>
 </head>
-<body>
+<body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">
     <div class="mobile-container">
         <!-- Loader "Tunggu sebentar..." jika proses generate sedang berlangsung -->
         <?php if (isset($_SESSION['mobile_loader']) && $_SESSION['mobile_loader']): ?>
@@ -543,7 +544,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 <div>
                     <div class="fw-semibold text-info mb-1">Informasi Laporan</div>
                     <small class="text-muted">
-                        LKB & LKH dapat digenerate jika data sudah disetujui oleh Pejabat Penilai. 
+                        <?= $is_talim_embed
+                            ? 'LKB & LKH dapat digenerate langsung dari Ta\'lim setelah data RKB/LKH tersedia.'
+                            : 'LKB & LKH dapat digenerate jika data sudah disetujui oleh Pejabat Penilai.' ?> 
                         File akan tersimpan dalam format PDF dan dapat diunduh kapan saja.
                     </small>
                 </div>
@@ -606,7 +609,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
                             if ($count_rkb == 0) continue; // Skip months without RKB
                             
-                            if ($status_verval_rkb === 'disetujui'):
+                            if ($status_verval_rkb === 'disetujui' || talimCanDirectGenerate()):
                                 $pdf_exists_lkb = lkb_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
                                 $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
                             ?>
@@ -615,7 +618,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         <div>
                                             <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
                                             <span class="badge bg-success badge-status">
-                                                <i class="fas fa-check-circle me-1"></i>Disetujui
+                                                <i class="fas fa-check-circle me-1"></i><?= $is_talim_embed ? 'Siap Generate' : 'Disetujui' ?>
                                             </span>
                                         </div>
                                         <div class="report-actions">
@@ -700,7 +703,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
                             if ($count_lkh == 0) continue; // Skip months without LKH
                             
-                            if ($status_verval_lkh === 'disetujui'):
+                            if ($status_verval_lkh === 'disetujui' || talimCanDirectGenerate()):
                                 $pdf_exists_lkh = lkh_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
                                 $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
                             ?>
@@ -709,7 +712,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         <div>
                                             <div class="report-period"><?= $months[$bulan] ?> <?= $tahun ?></div>
                                             <span class="badge bg-success badge-status">
-                                                <i class="fas fa-check-circle me-1"></i>Disetujui
+                                                <i class="fas fa-check-circle me-1"></i><?= $is_talim_embed ? 'Siap Generate' : 'Disetujui' ?>
                                             </span>
                                         </div>
                                         <div class="report-actions">

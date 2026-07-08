@@ -248,7 +248,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Set loader flag for laporan.php
     $_SESSION['mobile_loader'] = true;
 
-    $stmt_check = $conn->prepare("SELECT COUNT(*) FROM rkb WHERE id_pegawai = ? AND bulan = ? AND tahun = ? AND status_verval = 'disetujui'");
+    $directGenerate = function_exists('talimCanDirectGenerate') && talimCanDirectGenerate();
+    $approvalSql = $directGenerate ? '' : " AND status_verval = 'disetujui'";
+    $stmt_check = $conn->prepare("SELECT COUNT(*) FROM rkb WHERE id_pegawai = ? AND bulan = ? AND tahun = ?" . $approvalSql);
     $stmt_check->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
     $stmt_check->execute();
     $stmt_check->bind_result($count_approved);
@@ -257,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($count_approved == 0) {
         unset($_SESSION['mobile_loader']);
-        set_mobile_notification('error', 'Gagal', 'RKB belum disetujui untuk periode tersebut.');
+        set_mobile_notification('error', 'Gagal', $directGenerate ? 'Data RKB belum tersedia untuk periode tersebut.' : 'RKB belum disetujui untuk periode tersebut.');
         header('Location: laporan.php');
         exit();
     }
