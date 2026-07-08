@@ -3,34 +3,17 @@
  * Mobile Session Management for E-LAPKIN
  */
 
-// Mobile app configuration
-define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
-define('MOBILE_PACKAGE_NAME', 'id.sch.mtsn11majalengka.elapkin');
-define('MOBILE_USER_AGENT', 'E-LAPKIN-MTSN11-Mobile-App/1.0');
+require_once __DIR__ . '/mobile_apps.php';
 
-// Generate mobile token (using Asia/Jakarta timezone to match Android)
-function generateMobileToken() {
-    // Use Asia/Jakarta timezone to match Android app behavior
-    $originalTimezone = date_default_timezone_get();
-    date_default_timezone_set('Asia/Jakarta');
-    
-    $currentDate = date('Y-m-d');
-    $input = MOBILE_SECRET_KEY . $currentDate;
-    $token = md5($input);
-    
-    date_default_timezone_set($originalTimezone);
-    return $token;
-}
+// Legacy constants for backward compatibility
+define('MOBILE_PACKAGE_NAME', $MOBILE_APPS['elapkin']['package']);
+define('MOBILE_USER_AGENT', $MOBILE_APPS['elapkin']['user_agent']);
 
 // Alternative function to try different date formats if needed
 function generateMobileTokenWithTimezone($timezone = 'UTC') {
     $originalTimezone = date_default_timezone_get();
     date_default_timezone_set($timezone);
-    
-    $currentDate = date('Y-m-d');
-    $input = MOBILE_SECRET_KEY . $currentDate;
-    $token = md5($input);
-    
+    $token = generateMobileTokenForDate(date('Y-m-d'));
     date_default_timezone_set($originalTimezone);
     return $token;
 }
@@ -72,19 +55,17 @@ function validateMobileToken() {
 
 // Validate package name
 function validatePackageName() {
-    // Handle both uppercase and lowercase header names
-    $headers = getallheaders();
-    $receivedPackage = '';
-    
-    if (isset($headers['X-App-Package'])) {
-        $receivedPackage = $headers['X-App-Package'];
-    } elseif (isset($headers['x-app-package'])) {
-        $receivedPackage = $headers['x-app-package'];
-    } elseif (isset($_SERVER['HTTP_X_APP_PACKAGE'])) {
-        $receivedPackage = $_SERVER['HTTP_X_APP_PACKAGE'];
+    $app = resolveMobileApp();
+    if (!$app) {
+        http_response_code(403);
+        die(json_encode([
+            'error' => 'Access denied. Mobile app access only.',
+            'code' => 'INVALID_USER_AGENT'
+        ]));
     }
-    
-    if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
+
+    $receivedPackage = getRequestHeader('X-App-Package');
+    if ($receivedPackage !== $app['package']) {
         http_response_code(403);
         die(json_encode([
             'error' => 'Invalid app package.',
@@ -95,15 +76,7 @@ function validatePackageName() {
 
 // User Agent validation
 function validateMobileUserAgent() {
-    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    
-    if ($user_agent !== MOBILE_USER_AGENT) {
-        http_response_code(403);
-        die(json_encode([
-            'error' => 'Access denied. Mobile app access only.',
-            'code' => 'INVALID_USER_AGENT'
-        ]));
-    }
+    validateMobileUserAgentForApp();
 }
 
 // Comprehensive mobile security check

@@ -8,75 +8,13 @@ ob_start();
 
 session_start();
 
-// Mobile app configuration (define here to avoid including full mobile_session.php)
-define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
-define('MOBILE_PACKAGE_NAME', 'id.sch.mtsn11majalengka.elapkin');
-define('MOBILE_USER_AGENT', 'E-LAPKIN-MTSN11-Mobile-App/1.0');
-
-// Generate mobile token for validation
-function generateLoginToken() {
-    $originalTimezone = date_default_timezone_get();
-    date_default_timezone_set('Asia/Jakarta');
-    
-    $currentDate = date('Y-m-d');
-    $input = MOBILE_SECRET_KEY . $currentDate;
-    $token = md5($input);
-    
-    date_default_timezone_set($originalTimezone);
-    return $token;
-}
+// Mobile app configuration — shared with API endpoints
+require_once __DIR__ . '/config/mobile_apps.php';
 
 // For login page, validate User Agent and optionally validate token/package if provided
 function validateLoginAccess() {
-    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    
-    // Always validate User Agent
-    if ($user_agent !== MOBILE_USER_AGENT) {
-        http_response_code(403);
-        die(json_encode([
-            'error' => 'Access denied. This mobile interface is only accessible via the official E-LAPKIN Mobile App.',
-            'required_user_agent' => MOBILE_USER_AGENT
-        ]));
-    }
-    
-    // If token and package headers are provided, validate them too
-    $headers = getallheaders();
-    $receivedToken = '';
-    $receivedPackage = '';
-    
-    // Handle case-insensitive headers
-    if (isset($headers['X-Mobile-Token'])) {
-        $receivedToken = $headers['X-Mobile-Token'];
-    } elseif (isset($headers['x-mobile-token'])) {
-        $receivedToken = $headers['x-mobile-token'];
-    }
-    
-    if (isset($headers['X-App-Package'])) {
-        $receivedPackage = $headers['X-App-Package'];
-    } elseif (isset($headers['x-app-package'])) {
-        $receivedPackage = $headers['x-app-package'];
-    }
-    
-    if (!empty($receivedToken) && !empty($receivedPackage)) {
-        // Validate token
-        $expectedToken = generateLoginToken();
-        if ($receivedToken !== $expectedToken) {
-            http_response_code(403);
-            die(json_encode([
-                'error' => 'Invalid mobile token.',
-                'code' => 'INVALID_TOKEN'
-            ]));
-        }
-        
-        // Validate package
-        if ($receivedPackage !== MOBILE_PACKAGE_NAME) {
-            http_response_code(403);
-            die(json_encode([
-                'error' => 'Invalid app package.',
-                'code' => 'INVALID_PACKAGE'
-            ]));
-        }
-    }
+    $app = validateMobileUserAgentForApp();
+    validateOptionalMobileHeaders($app);
 }
 
 // Validate access for login page
