@@ -210,9 +210,20 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
     $namaPenilai = trim($profile['nama_penilai'] ?? '');
 
     $stmt = $conn->prepare('SELECT id_pegawai FROM pegawai WHERE nip = ? LIMIT 1');
+    if ($stmt === false) {
+        error_log('syncFeatureShadowPegawai prepare(select) failed: '.$conn->error);
+        return null;
+    }
+
     $stmt->bind_param('s', $nip);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
+    if ($stmt->execute() === false) {
+        error_log('syncFeatureShadowPegawai execute(select) failed: '.$conn->error);
+        $stmt->close();
+        return null;
+    }
+
+    $result = $stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
     $stmt->close();
 
     if ($row) {
@@ -220,9 +231,17 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
         $stmt = $conn->prepare(
             'UPDATE pegawai SET nama = ?, jabatan = ?, unit_kerja = ?, nip_penilai = ?, nama_penilai = ?, status = ? WHERE id_pegawai = ?'
         );
+        if ($stmt === false) {
+            error_log('syncFeatureShadowPegawai prepare(update) failed: '.$conn->error);
+            return null;
+        }
         $status = 'approved';
         $stmt->bind_param('ssssssi', $nama, $jabatan, $unitKerja, $nipPenilai, $namaPenilai, $status, $id);
-        $stmt->execute();
+        if ($stmt->execute() === false) {
+            error_log('syncFeatureShadowPegawai execute(update) failed: '.$conn->error);
+            $stmt->close();
+            return null;
+        }
         $stmt->close();
         return $id;
     }
@@ -233,8 +252,14 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
     $stmt = $conn->prepare(
         'INSERT INTO pegawai (nip, password, nama, jabatan, unit_kerja, nip_penilai, nama_penilai, role, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
+    if ($stmt === false) {
+        error_log('syncFeatureShadowPegawai prepare(insert) failed: '.$conn->error);
+        return null;
+    }
+
     $stmt->bind_param('sssssssss', $nip, $passwordHash, $nama, $jabatan, $unitKerja, $nipPenilai, $namaPenilai, $role, $status);
-    if (!$stmt->execute()) {
+    if ($stmt->execute() === false) {
+        error_log('syncFeatureShadowPegawai execute(insert) failed: '.$conn->error);
         $stmt->close();
         return null;
     }
