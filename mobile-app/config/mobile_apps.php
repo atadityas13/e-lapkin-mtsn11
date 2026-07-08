@@ -90,12 +90,34 @@ function validateMobileUserAgentForApp(): array
         $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $normalized);
         $normalized = trim($normalized);
         $normalized = preg_replace('/\s+/', ' ', $normalized);
+
+        // Detail debugging: tampilkan hex supaya bisa melihat karakter tak terlihat
+        global $MOBILE_APPS;
+        $expectedDebug = [];
+        foreach ($MOBILE_APPS as $key => $a) {
+            $expectedUa = (string) ($a['user_agent'] ?? '');
+            $expectedUaNorm = $expectedUa;
+            $expectedUaNorm = str_replace("\r", '', $expectedUaNorm);
+            $expectedUaNorm = str_replace("\n", '', $expectedUaNorm);
+            $expectedUaNorm = preg_replace('/^\xEF\xBB\xBF/', '', $expectedUaNorm);
+            $expectedUaNorm = trim($expectedUaNorm);
+            $expectedUaNorm = preg_replace('/\s+/', ' ', $expectedUaNorm);
+            $expectedDebug[] = [
+                'key' => $key,
+                'user_agent' => $expectedUa,
+                'user_agent_normalized' => $expectedUaNorm,
+                'hex' => bin2hex($expectedUaNorm),
+            ];
+        }
+
         http_response_code(403);
         die(json_encode([
             'error' => 'Access denied. Mobile app access only.',
             'code' => 'INVALID_USER_AGENT',
             'received_user_agent' => $receivedUserAgent,
             'received_user_agent_normalized' => $normalized,
+            'received_user_agent_hex' => bin2hex($normalized),
+            'expected_user_agents' => $expectedDebug,
         ]));
     }
 
