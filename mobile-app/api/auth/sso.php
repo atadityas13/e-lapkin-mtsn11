@@ -51,6 +51,16 @@ $loadedDatabasePath = $requireFirstExisting([
     __DIR__ . '/../../../../config/database.php',
 ], 'database.php');
 
+$connFallbackAttempted = false;
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    $connFallbackAttempted = true;
+    // Jika database.php tidak mendefinisikan $conn tapi mendefinisikan parameter koneksi,
+    // kita inisialisasi ulang di sini.
+    if (isset($host, $user, $pass, $db_name)) {
+        $conn = new mysqli($host, $user, $pass, $db_name);
+    }
+}
+
 $connDebugOk = isset($conn) && ($conn instanceof mysqli);
 if (! $connDebugOk) {
     http_response_code(500);
@@ -58,6 +68,13 @@ if (! $connDebugOk) {
         'success' => false,
         'message' => 'Database connection not initialized (mysqli expected).',
         'database_loaded_path' => $loadedDatabasePath,
+        'conn_fallback_attempted' => $connFallbackAttempted,
+        'conn_fallback_had_params' => [
+            'host' => isset($host),
+            'user' => isset($user),
+            'pass' => isset($pass),
+            'db_name' => isset($db_name),
+        ],
         'conn_is_set' => isset($conn),
         'conn_type' => isset($conn) ? gettype($conn) : null,
         'conn_class' => (isset($conn) && is_object($conn)) ? get_class($conn) : null,
