@@ -23,6 +23,19 @@ $requireFirstExisting([
     __DIR__ . '/../config/database.php',
 ], 'database.php');
 
+$connDebugOk = isset($conn) && ($conn instanceof mysqli);
+if (! $connDebugOk) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database connection not initialized (mysqli expected).',
+        'conn_is_set' => isset($conn),
+        'conn_type' => isset($conn) ? gettype($conn) : null,
+        'conn_class' => (isset($conn) && is_object($conn)) ? get_class($conn) : null,
+    ]);
+    exit;
+}
+
 $requireFirstExisting([
     __DIR__ . '/../config/mobile_apps.php',
     __DIR__ . '/../../config/mobile_apps.php',
