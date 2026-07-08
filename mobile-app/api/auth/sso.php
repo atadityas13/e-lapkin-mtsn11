@@ -30,7 +30,7 @@ $requireFirstExisting = function (array $candidates, string $label) {
     foreach ($candidates as $path) {
         if (is_file($path)) {
             require_once $path;
-            return;
+            return $path;
         }
     }
     http_response_code(500);
@@ -42,10 +42,12 @@ $requireFirstExisting = function (array $candidates, string $label) {
     exit;
 };
 
-$requireFirstExisting([
+$loadedDatabasePath = $requireFirstExisting([
+    // Dari mobile-app/api/auth/sso.php ke root/config/database.php: naik 4 level.
+    __DIR__ . '/../../../../config/database.php',
+    // Fallback layout lain (jika suatu saat dipindah).
     __DIR__ . '/../../../config/database.php',
     __DIR__ . '/../../config/database.php',
-    __DIR__ . '/../config/database.php',
 ], 'database.php');
 
 $connDebugOk = isset($conn) && ($conn instanceof mysqli);
@@ -54,6 +56,7 @@ if (! $connDebugOk) {
     echo json_encode([
         'success' => false,
         'message' => 'Database connection not initialized (mysqli expected).',
+        'database_loaded_path' => $loadedDatabasePath,
         'conn_is_set' => isset($conn),
         'conn_type' => isset($conn) ? gettype($conn) : null,
         'conn_class' => (isset($conn) && is_object($conn)) ? get_class($conn) : null,
@@ -61,10 +64,12 @@ if (! $connDebugOk) {
     exit;
 }
 
-$requireFirstExisting([
+$loadedMobileAppsPath = $requireFirstExisting([
+    // mobile-app/config/mobile_apps.php dari mobile-app/api/auth/: naik 2 level
     __DIR__ . '/../../config/mobile_apps.php',
+    // root/config/mobile_apps.php (kalau ada)
+    __DIR__ . '/../../../../config/mobile_apps.php',
     __DIR__ . '/../../../config/mobile_apps.php',
-    __DIR__ . '/../config/mobile_apps.php',
 ], 'mobile_apps.php');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
