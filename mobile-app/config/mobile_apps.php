@@ -52,7 +52,13 @@ function resolveMobileApp(): ?array
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
     foreach ($MOBILE_APPS as $app) {
+        // Beberapa HTTP client bisa menambahkan suffix (mis. versi/library).
+        // Jadi selain exact match, kita izinkan match sebagai substring.
         if ($userAgent === $app['user_agent']) {
+            return $app;
+        }
+
+        if ($userAgent !== '' && stripos($userAgent, $app['user_agent']) !== false) {
             return $app;
         }
     }
@@ -64,10 +70,12 @@ function validateMobileUserAgentForApp(): array
 {
     $app = resolveMobileApp();
     if (!$app) {
+        $receivedUserAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         http_response_code(403);
         die(json_encode([
             'error' => 'Access denied. Mobile app access only.',
             'code' => 'INVALID_USER_AGENT',
+            'received_user_agent' => $receivedUserAgent,
         ]));
     }
 
