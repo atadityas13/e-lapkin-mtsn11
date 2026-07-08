@@ -1129,7 +1129,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <input type="text" class="form-control" value="<?= $months[$filter_month] . ' ' . $filter_year ?>" readonly>
                         </div>
                         
-                        <div class="mb-3 <?= $is_talim_embed ? 'talim-hidden' : '' ?>">
+                        <?php if ($is_talim_embed): ?>
+                        <input type="hidden" name="id_rhk" id="id_rhk_modal" value="<?= (int) $talim_technical_rhk_id ?>">
+                        <?php else: ?>
+                        <div class="mb-3">
                             <label for="id_rhk_modal" class="form-label">Pilih RHK Terkait <span class="text-danger">*</span></label>
                             <select class="form-select" id="id_rhk_modal" name="id_rhk" required>
                                 <option value="">-- Pilih RHK --</option>
@@ -1143,6 +1146,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                 <div class="form-text text-danger">Anda belum memiliki RHK. Silakan <a href="rhk.php">tambah RHK terlebih dahulu</a>.</div>
                             <?php endif; ?>
                         </div>
+                        <?php endif; ?>
                         
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -1413,6 +1417,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             document.getElementById('rkbAction').value = 'add';
             document.getElementById('rkbId').value = '';
             document.getElementById('rkbForm').reset();
+            <?php if ($is_talim_embed): ?>
+            document.getElementById('id_rhk_modal').value = '<?= (int) $talim_technical_rhk_id ?>';
+            <?php endif; ?>
             document.getElementById('submitBtn').textContent = 'Simpan';
             new bootstrap.Modal(document.getElementById('rkbModal')).show();
         }
@@ -1452,12 +1459,12 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             const rhkSelect = document.getElementById('id_rhk_modal');
             let selected = false;
             
-            if (idRhk) {
+            if (idRhk && rhkSelect) {
                 rhkSelect.value = idRhk;
                 selected = (rhkSelect.value === String(idRhk));
             }
             
-            if (!selected && namaRhk) {
+            if (!selected && namaRhk && rhkSelect && rhkSelect.options) {
                 const target = namaRhk.toLowerCase().replace(/\s+/g, ' ').trim();
                 Array.from(rhkSelect.options).forEach(function(option) {
                     const optionText = (option.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();

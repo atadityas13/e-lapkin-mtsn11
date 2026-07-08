@@ -48,18 +48,13 @@ $stmt->execute();
 $stmt->bind_result($todayLkh);
 $stmt->fetch();
 $stmt->close();
-
-function talim_link(string $path): string
-{
-    return '../' . $path . '?talim=1';
-}
 ?>
 <!doctype html>
 <html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kinerja Ta'lim</title>
+    <title>Kinerja Guru</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -94,6 +89,16 @@ function talim_link(string $path): string
         .stat-card {
             padding: 16px;
             height: 100%;
+        }
+        a.stat-card {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        a.stat-card:active {
+            transform: scale(0.97);
+            box-shadow: 0 8px 20px rgba(6,95,70,0.12);
         }
         .stat-value {
             color: #065f46;
@@ -132,8 +137,7 @@ function talim_link(string $path): string
         <div class="d-flex justify-content-between align-items-start gap-3">
             <div>
                 <div class="small opacity-75">Kinerja Guru</div>
-                <h1 class="h4 fw-bold mb-2">RKB, LKH & Laporan</h1>
-                <div class="small opacity-75">Mode Ta'lim: tanpa RHK manual dan tanpa approval generate.</div>
+                <h1 class="h4 fw-bold mb-0">RKB, LKH & Laporan</h1>
             </div>
             <div class="period-chip">
                 <i class="fas fa-calendar"></i>
@@ -144,37 +148,37 @@ function talim_link(string $path): string
 
     <div class="row g-2 mb-3">
         <div class="col-4">
-            <div class="stat-card">
+            <a class="stat-card" href="talim://tab/rkb">
                 <div class="stat-value"><?= (int) $rkbCount ?></div>
                 <div class="stat-label">RKB bulan ini</div>
-            </div>
+            </a>
         </div>
         <div class="col-4">
-            <div class="stat-card">
+            <a class="stat-card" href="talim://tab/lkh">
                 <div class="stat-value"><?= (int) $lkhCount ?></div>
                 <div class="stat-label">LKH bulan ini</div>
-            </div>
+            </a>
         </div>
         <div class="col-4">
-            <div class="stat-card">
+            <a class="stat-card" href="talim://tab/lkh">
                 <div class="stat-value"><?= ((int) $todayLkh) > 0 ? '✓' : '!' ?></div>
                 <div class="stat-label">LKH hari ini</div>
-            </div>
+            </a>
         </div>
     </div>
 
     <div class="d-grid gap-2">
-        <a class="action-card" href="<?= htmlspecialchars(talim_link('rkb.php')) ?>">
+        <a class="action-card" href="talim://tab/rkb">
             <div class="d-flex align-items-center">
                 <span class="action-icon"><i class="fas fa-calendar-check"></i></span>
                 <div>
                     <div class="fw-semibold">Rencana Kerja Bulanan</div>
-                    <small class="text-muted">Buat dan kelola RKB tanpa memilih RHK.</small>
+                    <small class="text-muted">Buat dan kelola RKB periode aktif.</small>
                 </div>
             </div>
             <i class="fas fa-chevron-right text-muted"></i>
         </a>
-        <a class="action-card" href="<?= htmlspecialchars(talim_link('lkh.php')) ?>">
+        <a class="action-card" href="talim://tab/lkh">
             <div class="d-flex align-items-center">
                 <span class="action-icon"><i class="fas fa-list-check"></i></span>
                 <div>
@@ -184,12 +188,12 @@ function talim_link(string $path): string
             </div>
             <i class="fas fa-chevron-right text-muted"></i>
         </a>
-        <a class="action-card" href="<?= htmlspecialchars(talim_link('laporan.php')) ?>">
+        <a class="action-card" href="talim://tab/laporan">
             <div class="d-flex align-items-center">
                 <span class="action-icon"><i class="fas fa-file-pdf"></i></span>
                 <div>
                     <div class="fw-semibold">Generate Laporan</div>
-                    <small class="text-muted">Unduh LKB/LKH langsung tanpa approval.</small>
+                    <small class="text-muted">Unduh LKB/LKH PDF periode ini.</small>
                 </div>
             </div>
             <i class="fas fa-chevron-right text-muted"></i>

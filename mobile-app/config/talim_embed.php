@@ -81,6 +81,16 @@ function talimEmbedCss(): string
         body.talim-embed .floating-action {
             bottom: 150px !important;
         }
+        body.talim-embed .modal {
+            z-index: 9999 !important;
+        }
+        body.talim-embed .modal-backdrop {
+            z-index: 9998 !important;
+        }
+        body.talim-embed .btn-outline-info {
+            border-color: #0891b2 !important;
+            color: #0e7490 !important;
+        }
     </style>';
 }
 ?>
