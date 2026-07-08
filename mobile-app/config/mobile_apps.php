@@ -59,21 +59,42 @@ function resolveMobileApp(): ?array
     $userAgent = trim($userAgent);
     $userAgent = preg_replace('/\s+/', ' ', $userAgent);
 
-    foreach ($MOBILE_APPS as $app) {
-        $expectedUa = (string) ($app['user_agent'] ?? '');
-        $expectedUa = preg_replace('/^\xEF\xBB\xBF/', '', $expectedUa);
-        $expectedUa = trim($expectedUa);
-        $expectedUa = preg_replace('/\s+/', ' ', $expectedUa);
+    // Primary path: pakai konfigurasi $MOBILE_APPS
+    if (is_array($MOBILE_APPS)) {
+        foreach ($MOBILE_APPS as $app) {
+            $expectedUa = (string) ($app['user_agent'] ?? '');
+            $expectedUa = preg_replace('/^\xEF\xBB\xBF/', '', $expectedUa);
+            $expectedUa = trim($expectedUa);
+            $expectedUa = preg_replace('/\s+/', ' ', $expectedUa);
 
-        // Beberapa HTTP client bisa menambahkan suffix (mis. versi/library).
-        // Jadi selain exact match, kita izinkan match sebagai substring.
-        if ($userAgent === $expectedUa) {
-            return $app;
-        }
+            // Beberapa HTTP client bisa menambahkan suffix (mis. versi/library).
+            // Jadi selain exact match, kita izinkan match sebagai substring.
+            if ($userAgent === $expectedUa) {
+                return $app;
+            }
 
-        if ($userAgent !== '' && $expectedUa !== '' && stripos($userAgent, $expectedUa) !== false) {
-            return $app;
+            if ($userAgent !== '' && $expectedUa !== '' && stripos($userAgent, $expectedUa) !== false) {
+                return $app;
+            }
         }
+    }
+
+    // Fallback: jika $MOBILE_APPS tidak ter-load/empty di runtime, tetap kenali app Talim.
+    // Ini memastikan fitur bridge tidak mati hanya karena konfigurasi tidak ikut terbaca.
+    if ($userAgent !== '' && stripos($userAgent, 'ATADevLabs_TalimSuperApp_MTsN11') !== false) {
+        return [
+            'user_agent' => 'ATADevLabs_TalimSuperApp_MTsN11',
+            'package' => 'com.atadevlabs.talim',
+            'name' => "Ta'lim SuperApp",
+        ];
+    }
+
+    if ($userAgent !== '' && stripos($userAgent, 'E-LAPKIN-MTSN11-Mobile-App/1.0') !== false) {
+        return [
+            'user_agent' => 'E-LAPKIN-MTSN11-Mobile-App/1.0',
+            'package' => 'id.sch.mtsn11majalengka.elapkin',
+            'name' => 'E-LAPKIN',
+        ];
     }
 
     return null;
@@ -94,20 +115,24 @@ function validateMobileUserAgentForApp(): array
         // Detail debugging: tampilkan hex supaya bisa melihat karakter tak terlihat
         global $MOBILE_APPS;
         $expectedDebug = [];
-        foreach ($MOBILE_APPS as $key => $a) {
-            $expectedUa = (string) ($a['user_agent'] ?? '');
-            $expectedUaNorm = $expectedUa;
-            $expectedUaNorm = str_replace("\r", '', $expectedUaNorm);
-            $expectedUaNorm = str_replace("\n", '', $expectedUaNorm);
-            $expectedUaNorm = preg_replace('/^\xEF\xBB\xBF/', '', $expectedUaNorm);
-            $expectedUaNorm = trim($expectedUaNorm);
-            $expectedUaNorm = preg_replace('/\s+/', ' ', $expectedUaNorm);
-            $expectedDebug[] = [
-                'key' => $key,
-                'user_agent' => $expectedUa,
-                'user_agent_normalized' => $expectedUaNorm,
-                'hex' => bin2hex($expectedUaNorm),
-            ];
+        $mpType = is_array($MOBILE_APPS) ? 'array' : gettype($MOBILE_APPS);
+        $mpIsArray = is_array($MOBILE_APPS);
+        if ($mpIsArray) {
+            foreach ($MOBILE_APPS as $key => $a) {
+                $expectedUa = (string) ($a['user_agent'] ?? '');
+                $expectedUaNorm = $expectedUa;
+                $expectedUaNorm = str_replace("\r", '', $expectedUaNorm);
+                $expectedUaNorm = str_replace("\n", '', $expectedUaNorm);
+                $expectedUaNorm = preg_replace('/^\xEF\xBB\xBF/', '', $expectedUaNorm);
+                $expectedUaNorm = trim($expectedUaNorm);
+                $expectedUaNorm = preg_replace('/\s+/', ' ', $expectedUaNorm);
+                $expectedDebug[] = [
+                    'key' => $key,
+                    'user_agent' => $expectedUa,
+                    'user_agent_normalized' => $expectedUaNorm,
+                    'hex' => bin2hex($expectedUaNorm),
+                ];
+            }
         }
 
         http_response_code(403);
@@ -118,6 +143,10 @@ function validateMobileUserAgentForApp(): array
             'received_user_agent_normalized' => $normalized,
             'received_user_agent_hex' => bin2hex($normalized),
             'expected_user_agents' => $expectedDebug,
+            'mobile_apps_debug' => [
+                'mobile_apps_is_array' => $mpIsArray,
+                'mobile_apps_type' => $mpType,
+            ],
         ]));
     }
 
