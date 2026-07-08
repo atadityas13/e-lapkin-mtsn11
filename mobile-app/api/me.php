@@ -2,8 +2,32 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../config/mobile_apps.php';
+$requireFirstExisting = function (array $candidates, string $label) {
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => "Konfigurasi e-Lapkin tidak ditemukan ({$label}).",
+    ]);
+    exit;
+};
+
+$requireFirstExisting([
+    __DIR__ . '/../../config/database.php',
+    __DIR__ . '/../../../config/database.php',
+    __DIR__ . '/../config/database.php',
+], 'database.php');
+
+$requireFirstExisting([
+    __DIR__ . '/../config/mobile_apps.php',
+    __DIR__ . '/../../config/mobile_apps.php',
+    __DIR__ . '/../../../config/mobile_apps.php',
+], 'mobile_apps.php');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);

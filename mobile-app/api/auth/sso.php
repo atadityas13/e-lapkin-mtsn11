@@ -24,8 +24,35 @@ register_shutdown_function(function () {
     ]);
 });
 
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../config/mobile_apps.php';
+// Lokasi file config bisa berbeda antar layout (root config/ vs mobile-app/config/).
+// Cari di beberapa kandidat agar tahan terhadap perbedaan struktur folder.
+$requireFirstExisting = function (array $candidates, string $label) {
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => "Konfigurasi e-Lapkin tidak ditemukan ({$label}).",
+        'detail' => 'Tried: ' . implode(' | ', $candidates),
+    ]);
+    exit;
+};
+
+$requireFirstExisting([
+    __DIR__ . '/../../../config/database.php',
+    __DIR__ . '/../../config/database.php',
+    __DIR__ . '/../config/database.php',
+], 'database.php');
+
+$requireFirstExisting([
+    __DIR__ . '/../../config/mobile_apps.php',
+    __DIR__ . '/../../../config/mobile_apps.php',
+    __DIR__ . '/../config/mobile_apps.php',
+], 'mobile_apps.php');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
