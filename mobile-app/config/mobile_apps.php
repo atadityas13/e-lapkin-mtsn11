@@ -184,13 +184,12 @@ function getMobileDashboardStats(mysqli $conn, int $idPegawai): array
  * SSO Ta'lim/SimpatiSans — identitas guru 100% dari SimpatiSans.
  * Tabel pegawai e-Lapkin hanya shadow teknis agar fitur LKH (id_pegawai FK) bisa jalan.
  */
-function verifyTalimSsoSignature(string $nip, int $timestamp, string $signature, array $profile): bool
+function verifyTalimSsoSignature(string $nip, int $timestamp, string $signature, string $profileHash): bool
 {
     if (abs(time() - $timestamp) > 300) {
         return false;
     }
 
-    $profileHash = hash('sha256', json_encode($profile, JSON_UNESCAPED_UNICODE));
     $payload = $nip . '|' . $timestamp . '|' . $profileHash;
     $expected = hash_hmac('sha256', $payload, TALIM_SSO_SECRET);
 
@@ -245,13 +244,17 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
     return $id > 0 ? $id : null;
 }
 
-function performMobileSsoLogin(mysqli $conn, string $nip, int $timestamp, string $signature, array $profile): array
+function performMobileSsoLogin(mysqli $conn, string $nip, int $timestamp, string $signature, array $profile, string $profileHash = ''): array
 {
     if (trim($profile['nip'] ?? '') !== $nip) {
         return ['success' => false, 'message' => 'Profil SSO tidak cocok dengan NIP.'];
     }
 
-    if (!verifyTalimSsoSignature($nip, $timestamp, $signature, $profile)) {
+    if ($profileHash === '') {
+        $profileHash = hash('sha256', json_encode($profile, JSON_UNESCAPED_UNICODE));
+    }
+
+    if (!verifyTalimSsoSignature($nip, $timestamp, $signature, $profileHash)) {
         return ['success' => false, 'message' => 'Token SSO tidak valid.'];
     }
 
