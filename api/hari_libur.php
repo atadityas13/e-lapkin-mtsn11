@@ -16,21 +16,17 @@
  * ========================================================
  */
 
-// Allow only AJAX requests
+// Only JSON responses
 header('Content-Type: application/json');
-
-// Prevent direct access
-if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid request']);
-    exit();
-}
 
 // Start session
 session_start();
 
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+// Check if user is logged in (web) OR mobile-logged-in (e-Lapkin mobile session)
+$isLoggedIn = (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true)
+    || (isset($_SESSION['mobile_loggedin']) && $_SESSION['mobile_loggedin'] === true);
+
+if (! $isLoggedIn) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
