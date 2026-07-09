@@ -125,15 +125,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $bulan_aktif_baru = (int)$_POST['bulan_aktif'];
         set_bulan_aktif($conn, $id_pegawai_login, $bulan_aktif_baru);
         set_mobile_notification('success', 'Periode Diubah', 'Periode bulan aktif berhasil diubah.');
-        header('Location: ' . talimRedirect('rkb.php'));
-        exit();
+        talimRedirectLocation('rkb.php');
     }
 
     // Prevent actions if RKB is already approved
     if (!$is_talim_embed && $status_verval_rkb == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah.');
-        header('Location: ' . talimRedirect('rkb.php'));
-        exit();
+        talimRedirectLocation('rkb.php');
     }
 
     if (isset($_POST['action'])) {
@@ -155,14 +153,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if (!in_array($file_extension, $allowed_extensions)) {
                     set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                    header('Location: ' . talimRedirect('rkb.php'));
-                    exit();
+                    talimRedirectLocation('rkb.php');
                 }
                 
                 if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
                     set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                    header('Location: ' . talimRedirect('rkb.php'));
-                    exit();
+                    talimRedirectLocation('rkb.php');
                 }
                 
                 $file_name = 'rkb_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
@@ -177,8 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $lampiran = $file_name;
                 } else {
                     set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
-                    header('Location: ' . talimRedirect('rkb.php'));
-                    exit();
+                    talimRedirectLocation('rkb.php');
                 }
             } elseif ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
                 // Handle other upload errors
@@ -196,8 +191,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
                     
                 set_mobile_notification('error', 'Gagal Upload', $error_msg);
-                header('Location: ' . talimRedirect('rkb.php'));
-                exit();
+                talimRedirectLocation('rkb.php');
             }
 
             // Validation - lampiran is now truly optional
@@ -208,8 +202,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $valid_satuan = ['Kegiatan','JP','Dokumen','Laporan','Hari','Jam','Menit','Unit'];
                 if (!in_array($satuan, $valid_satuan)) {
                     set_mobile_notification('error', 'Gagal', 'Satuan tidak valid. Pilih salah satu: ' . implode(', ', $valid_satuan));
-                    header('Location: ' . talimRedirect('rkb.php'));
-                    exit();
+                    talimRedirectLocation('rkb.php');
                 }
                 
                 try {
@@ -244,8 +237,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                 }
             }
-            header('Location: ' . talimRedirect('rkb.php'));
-            exit();
+            talimRedirectLocation('rkb.php');
             
         } elseif ($action == 'delete') {
             $id_rkb_to_delete = (int)$_POST['id_rkb'];
@@ -260,8 +252,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if ($jumlah_lkh > 0) {
                 set_mobile_notification('error', 'Gagal', 'RKB tidak dapat dihapus karena sudah digunakan pada LKH.');
-                header('Location: ' . talimRedirect('rkb.php'));
-                exit();
+                talimRedirectLocation('rkb.php');
             }
             
             // Get file name to delete
@@ -284,8 +275,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 set_mobile_notification('error', 'Gagal', "Gagal menghapus RKB: " . $stmt->error);
             }
             $stmt->close();
-            header('Location: ' . talimRedirect('rkb.php'));
-            exit();
+            talimRedirectLocation('rkb.php');
         }
     }
     
@@ -293,8 +283,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['ajukan_verval_rkb'])) {
         if ($status_verval_rkb == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: ' . talimRedirect('rkb.php'));
-            exit();
+            talimRedirectLocation('rkb.php');
         }
         
         // Check if there's RKB data for this period
@@ -307,8 +296,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         if ($count_rkb == 0) {
             set_mobile_notification('error', 'Gagal', 'Tidak dapat mengajukan verval karena belum ada data RKB untuk periode ini.');
-            header('Location: ' . talimRedirect('rkb.php'));
-            exit();
+            talimRedirectLocation('rkb.php');
         }
         
         $stmt = $conn->prepare("UPDATE rkb SET status_verval = 'diajukan' WHERE id_pegawai = ? AND bulan = ? AND tahun = ?");
@@ -319,14 +307,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal mengajukan verval RKB: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: ' . talimRedirect('rkb.php'));
-        exit();
+        talimRedirectLocation('rkb.php');
         
     } elseif (isset($_POST['batal_verval_rkb'])) {
         if ($status_verval_rkb == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'RKB periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: ' . talimRedirect('rkb.php'));
-            exit();
+            talimRedirectLocation('rkb.php');
         }
         
         $stmt = $conn->prepare("UPDATE rkb SET status_verval = NULL WHERE id_pegawai = ? AND bulan = ? AND tahun = ?");
@@ -337,8 +323,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal membatalkan verval RKB: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: ' . talimRedirect('rkb.php'));
-        exit();
+        talimRedirectLocation('rkb.php');
     }
 }
 
@@ -1139,7 +1124,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
     <!-- Add/Edit RKB Modal -->
     <div class="modal fade" id="rkbModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-scrollable">
             <form id="rkbForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('rkb.php')) ?>">
                 <div class="modal-content">
                     <div class="modal-header">

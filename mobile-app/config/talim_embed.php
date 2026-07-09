@@ -19,22 +19,28 @@ function talimCanDirectGenerate(): bool
     return isTalimEmbed();
 }
 
-function talimRedirect(string $path): string
+function talimRedirect(string $path, bool $fresh = false): string
 {
     if (!isTalimEmbed()) {
         return $path;
     }
-    if (str_contains($path, 'talim=1')) {
-        return $path;
-    }
-    $separator = str_contains($path, '?') ? '&' : '?';
 
-    return $path . $separator . 'talim=1';
+    $url = $path;
+    if (!str_contains($url, 'talim=1')) {
+        $separator = str_contains($url, '?') ? '&' : '?';
+        $url .= $separator . 'talim=1';
+    }
+
+    if ($fresh) {
+        $url .= (str_contains($url, '?') ? '&' : '?') . '_=' . time();
+    }
+
+    return $url;
 }
 
 function talimRedirectLocation(string $path): never
 {
-    header('Location: ' . talimRedirect($path));
+    header('Location: ' . talimRedirect($path, true));
     exit();
 }
 
@@ -183,37 +189,22 @@ function talimEmbedCss(): string
             justify-content: center;
             border-radius: 12px;
         }
+        body.talim-embed .modal.show {
+            display: block !important;
+        }
         body.talim-embed .modal-dialog {
-            margin: 16px auto 156px !important;
-            max-width: calc(100% - 24px);
-            max-height: calc(100vh - 188px);
+            margin: 1rem auto 9.5rem !important;
+            max-width: calc(100% - 2rem);
         }
-        body.talim-embed .modal-dialog-centered {
-            align-items: flex-start !important;
-            min-height: calc(100% - 172px) !important;
-            padding-top: 4px;
-        }
-        body.talim-embed .modal-content {
-            max-height: calc(100vh - 188px);
-            display: flex;
-            flex-direction: column;
-            border-radius: 18px !important;
-            overflow: hidden;
-        }
-        body.talim-embed .modal-body {
+        body.talim-embed .modal-dialog-scrollable .modal-body {
+            max-height: calc(100vh - 17rem);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 12px;
         }
         body.talim-embed .modal-footer {
-            flex-shrink: 0;
-            position: sticky;
-            bottom: 0;
             background: #fff;
             border-top: 1px solid #e5e7eb;
-            padding-top: 12px;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-            z-index: 2;
+            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
         }
         body.talim-embed .dropdown-menu {
             z-index: 10050 !important;

@@ -77,8 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Prevent actions if LKH is already approved
     if (!$is_talim_embed && $status_verval_lkh == 'disetujui') {
         set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah.');
-        header('Location: ' . talimRedirect('lkh.php'));
-        exit();
+        talimRedirectLocation('lkh.php');
     }
 
     if (isset($_POST['action'])) {
@@ -113,8 +112,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'text' => 'Tanggal LKH harus dalam periode RKB aktif: ' . $nama_bulan[$filter_month] . ' ' . $filter_year,
                         'form_data' => $_POST
                     ];
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
                 
                 // Validasi: Cek apakah tanggal adalah hari libur atau weekend
@@ -133,8 +131,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'text' => $error_msg,
                         'form_data' => $_POST
                     ];
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
             }
 
@@ -147,14 +144,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if (!in_array($file_extension, $allowed_extensions)) {
                     set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
                 
                 if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
                     set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
                 
                 $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
@@ -169,8 +164,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $lampiran = $file_name;
                 } else {
                     set_mobile_notification('error', 'Gagal', 'Gagal mengunggah lampiran.');
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
             } elseif ($action == 'add' && isset($_FILES['lampiran']) && $_FILES['lampiran']['error'] != UPLOAD_ERR_NO_FILE) {
                 // Handle other upload errors
@@ -188,8 +182,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     : 'Error upload tidak dikenal: ' . $_FILES['lampiran']['error'];
                     
                 set_mobile_notification('error', 'Gagal Upload', $error_msg);
-                header('Location: ' . talimRedirect('lkh.php'));
-                exit();
+                talimRedirectLocation('lkh.php');
             }
 
             // Validation
@@ -267,8 +260,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     set_mobile_notification('error', 'Gagal', 'Terjadi kesalahan database. Periksa data yang dimasukkan.');
                 }
             }
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
             
         } elseif ($action == 'delete') {
             $id_lkh_to_delete = (int)$_POST['id_lkh'];
@@ -312,8 +304,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 set_mobile_notification('error', 'Gagal', "Gagal menghapus LKH: " . $stmt->error);
             }
             $stmt->close();
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
         } elseif ($action == 'add_attachment') {
             $id_lkh = (int)$_POST['id_lkh'];
             
@@ -325,14 +316,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if (!in_array($file_extension, $allowed_extensions)) {
                     set_mobile_notification('error', 'Gagal', 'Format file tidak diizinkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
                 
                 if ($_FILES['lampiran']['size'] > 2 * 1024 * 1024) {
                     set_mobile_notification('error', 'Gagal', 'Ukuran file terlalu besar. Maksimal 2MB.');
-                    header('Location: ' . talimRedirect('lkh.php'));
-                    exit();
+                    talimRedirectLocation('lkh.php');
                 }
                 
                 $file_name = 'lkh_' . $id_pegawai_login . '_' . date('YmdHis') . '_' . uniqid() . '.' . $file_extension;
@@ -364,8 +353,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 set_mobile_notification('error', 'Gagal', 'Tidak ada file yang dipilih atau terjadi kesalahan upload.');
             }
             
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
         } elseif ($action == 'remove_attachment') {
             $id_lkh = (int)$_POST['id_lkh'];
             
@@ -392,8 +380,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             $stmt->close();
             
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
         }
     }
     
@@ -401,8 +388,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['ajukan_verval_lkh'])) {
         if ($status_verval_lkh == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
         }
         
         // Check if there's LKH data for this period
@@ -415,8 +401,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         if ($count_lkh == 0) {
             set_mobile_notification('error', 'Gagal', 'Tidak dapat mengajukan verval karena belum ada data LKH untuk periode ini.');
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
         }
         
         $stmt = $conn->prepare("UPDATE lkh SET status_verval = 'diajukan' WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?");
@@ -427,14 +412,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal mengajukan verval LKH: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: ' . talimRedirect('lkh.php'));
-        exit();
+        talimRedirectLocation('lkh.php');
         
     } elseif (isset($_POST['batal_verval_lkh'])) {
         if ($status_verval_lkh == 'disetujui') {
             set_mobile_notification('error', 'Tidak Diizinkan', 'LKH periode ini sudah diverifikasi dan tidak dapat diubah statusnya.');
-            header('Location: ' . talimRedirect('lkh.php'));
-            exit();
+            talimRedirectLocation('lkh.php');
         }
         
         $stmt = $conn->prepare("UPDATE lkh SET status_verval = NULL WHERE id_pegawai = ? AND MONTH(tanggal_lkh) = ? AND YEAR(tanggal_lkh) = ?");
@@ -445,8 +428,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             set_mobile_notification('error', 'Gagal', 'Gagal membatalkan verval LKH: ' . htmlspecialchars($stmt->error));
         }
         $stmt->close();
-        header('Location: ' . talimRedirect('lkh.php'));
-        exit();
+        talimRedirectLocation('lkh.php');
     }
 }
 
@@ -1629,7 +1611,7 @@ ob_clean();
 
     <!-- Add/Edit LKH Modal -->
     <div class="modal fade" id="lkhModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-scrollable">
             <form id="lkhForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('lkh.php')) ?>">
                 <div class="modal-content">
                     <div class="modal-header">
