@@ -32,7 +32,9 @@
  * 
  * ========================================================
  */
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header("Location: ../login.php");
     exit();
@@ -311,8 +313,10 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Cell($col_width, 4, 'NIP. ' . $nip, 0, 1, 'L'); // NIP Pegawai
 
     // Simpan PDF dengan nama LKH_Bulan_Tahun_NIP.pdf
-    $dir = "../generated";
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
+    $dir = __DIR__ . '/../generated';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+    }
 
     // Bersihkan NIP dari karakter yang tidak valid untuk nama file
     $nama_file_nip = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nip);
@@ -321,6 +325,35 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Output('F', $filename);
 
     return $filename;
+}
+
+if (defined('MOBILE_LKH_GENERATE_ONLY') && MOBILE_LKH_GENERATE_ONLY) {
+    $generatedDir = __DIR__ . '/../generated';
+    if (!is_dir($generatedDir)) {
+        mkdir($generatedDir, 0777, true);
+    }
+
+    $stmtNip = $conn->prepare('SELECT nip FROM pegawai WHERE id_pegawai = ?');
+    $stmtNip->bind_param('i', $id_pegawai);
+    $stmtNip->execute();
+    $stmtNip->bind_result($nipPegawai);
+    $stmtNip->fetch();
+    $stmtNip->close();
+
+    $namaFileNip = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $nipPegawai);
+    $pdfPath = "{$generatedDir}/LKH_{$months[$bulan]}_{$tahun}_{$namaFileNip}.pdf";
+
+    if (file_exists($pdfPath)) {
+        unlink($pdfPath);
+    }
+
+    generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
+
+    if (!file_exists($pdfPath)) {
+        throw new RuntimeException('File PDF LKH gagal dibuat.');
+    }
+
+    return;
 }
 
 $page_title = "Generate LKH";
