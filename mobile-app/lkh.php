@@ -1611,9 +1611,9 @@ ob_clean();
 
     <!-- Add/Edit LKH Modal -->
     <div class="modal fade" id="lkhModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <form id="lkhForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('lkh.php')) ?>">
-                <div class="modal-content">
+        <div class="<?= htmlspecialchars(talimModalDialogClass()) ?>">
+            <div class="modal-content">
+                <form id="lkhForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('lkh.php')) ?>">
                     <div class="modal-header">
                         <h5 class="modal-title" id="lkhModalTitle">Tambah LKH</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -1695,8 +1695,8 @@ ob_clean();
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -1827,7 +1827,7 @@ ob_clean();
 
     <!-- Previous LKH Modal -->
     <div class="modal fade" id="previousLkhModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="<?= htmlspecialchars(talimModalDialogClass('modal-lg')) ?>">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title">
@@ -2797,5 +2797,6 @@ ob_clean();
         }
         
     </script>
+    <?= function_exists('talimEmbedModalJs') ? talimEmbedModalJs() : '' ?>
 </body>
 </html>

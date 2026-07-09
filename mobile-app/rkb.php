@@ -1124,9 +1124,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
     <!-- Add/Edit RKB Modal -->
     <div class="modal fade" id="rkbModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <form id="rkbForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('rkb.php')) ?>">
-                <div class="modal-content">
+        <div class="<?= htmlspecialchars(talimModalDialogClass()) ?>">
+            <div class="modal-content">
+                <form id="rkbForm" method="POST" enctype="multipart/form-data" action="<?= htmlspecialchars(talimRedirect('rkb.php')) ?>">
                     <div class="modal-header">
                         <h5 class="modal-title" id="rkbModalTitle">Tambah RKB</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -1199,8 +1199,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -1295,7 +1295,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
     <!-- Previous RKB Modal -->
     <div class="modal fade" id="previousRkbModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="<?= htmlspecialchars(talimModalDialogClass('modal-lg')) ?>">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title">
@@ -1583,5 +1583,6 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             });
         });
     </script>
+    <?= function_exists('talimEmbedModalJs') ? talimEmbedModalJs() : '' ?>
 </body>
 </html>
