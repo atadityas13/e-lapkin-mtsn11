@@ -1,7 +1,6 @@
 <?php
 /**
- * Lightweight vector cover graphics for LKB PDF (FPDF).
- * Dual-curve wave ribbons — matches modern report cover style.
+ * Formal LKB cover page for FPDF — lightweight vector, institutional style.
  */
 
 require_once __DIR__ . '/../vendor/fpdf/fpdf.php';
@@ -11,56 +10,137 @@ class LkbFpdf extends FPDF
     private const PAGE_W = 210.0;
     private const PAGE_H = 297.0;
 
-    private const COLOR_TEAL = [0, 169, 157];
-    private const COLOR_NAVY = [0, 74, 77];
-    private const COLOR_GREY = [166, 166, 166];
+    private const GREEN = [14, 92, 72];
+    private const GREEN_DARK = [9, 62, 49];
+    private const GOLD = [184, 150, 75];
+    private const PANEL = [248, 251, 249];
+
+    public function renderLkbCoverPage(
+        string $bulanLabel,
+        int $tahun,
+        string $namaPegawai,
+        string $nip,
+        string $logoPath
+    ): void {
+        $this->drawLkbCoverBackground();
+
+        $this->SetTextColor(...self::GREEN_DARK);
+        $this->SetFont('Times', 'B', 20);
+        $this->SetXY(0, 52);
+        $this->Cell(self::PAGE_W, 9, 'LAPORAN KINERJA BULANAN', 0, 1, 'C');
+
+        $this->drawOrnament(66);
+
+        $this->SetTextColor(30, 30, 30);
+        $this->SetFont('Times', 'B', 15);
+        $this->Cell(self::PAGE_W, 8, 'BULAN ' . strtoupper($bulanLabel), 0, 1, 'C');
+
+        $this->SetTextColor(...self::GREEN_DARK);
+        $this->SetFont('Times', 'B', 26);
+        $this->Cell(self::PAGE_W, 12, (string) $tahun, 0, 1, 'C');
+
+        $logoY = 108;
+        if ($logoPath !== '' && file_exists($logoPath)) {
+            $this->Image($logoPath, (self::PAGE_W / 2) - 22, $logoY, 44, 44);
+        }
+
+        $this->drawOrnament(168);
+
+        $this->SetTextColor(20, 20, 20);
+        $this->SetFont('Times', 'B', 14);
+        $this->SetXY(0, 178);
+        $this->Cell(self::PAGE_W, 8, $namaPegawai, 0, 1, 'C');
+
+        $this->SetFont('Times', '', 12);
+        $this->Cell(self::PAGE_W, 7, 'NIP. ' . $nip, 0, 1, 'C');
+
+        $this->SetTextColor(...self::GREEN_DARK);
+        $this->SetFont('Times', 'B', 13);
+        $this->SetXY(0, 228);
+        $this->Cell(self::PAGE_W, 7, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+
+        $this->SetFont('Times', 'B', 11);
+        $this->Cell(self::PAGE_W, 6, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
+
+        $this->resetDrawingDefaults();
+    }
 
     public function drawLkbCoverBackground(): void
     {
         $this->SetFillColor(255, 255, 255);
         $this->Rect(0, 0, self::PAGE_W, self::PAGE_H, 'F');
 
-        // Top-right corner — back to front
-        $this->drawCornerRibbon(
-            [210, 0],
-            [[210, 58], [152, 4], [82, 32], [52, 52], [68, 108], [210, 168]],
-            [[192, 136], [142, 86], [210, 72], [210, 46], [210, 20], [210, 0]],
-            self::COLOR_GREY
-        );
-        $this->drawCornerRibbon(
-            [210, 0],
-            [[208, 38], [170, 6], [118, 24], [82, 42], [98, 82], [210, 112]],
-            [[194, 88], [158, 58], [210, 52], [210, 32], [210, 14], [210, 0]],
-            self::COLOR_NAVY
-        );
-        $this->drawCornerRibbon(
-            [210, 0],
-            [[210, 26], [190, 2], [158, 14], [138, 26], [146, 48], [210, 62]],
-            [[202, 50], [184, 32], [210, 24], [210, 12], [210, 4], [210, 0]],
-            self::COLOR_TEAL
-        );
+        // Top institutional band
+        $this->SetFillColor(...self::GREEN);
+        $this->Rect(0, 0, self::PAGE_W, 22, 'F');
+        $this->SetFillColor(...self::GOLD);
+        $this->Rect(0, 22, self::PAGE_W, 0.8, 'F');
 
-        // Bottom-left corner — mirrored
-        $this->drawCornerRibbon(
-            [0, 297],
-            [[0, 239], [58, 293], [128, 265], [158, 245], [142, 189], [0, 129]],
-            [[18, 161], [68, 211], [0, 225], [0, 251], [0, 277], [0, 297]],
-            self::COLOR_GREY
-        );
-        $this->drawCornerRibbon(
-            [0, 297],
-            [[2, 259], [40, 291], [92, 273], [128, 255], [112, 215], [0, 185]],
-            [[16, 209], [52, 239], [0, 245], [0, 265], [0, 283], [0, 297]],
-            self::COLOR_NAVY
-        );
-        $this->drawCornerRibbon(
-            [0, 297],
-            [[0, 271], [20, 295], [52, 283], [72, 271], [64, 249], [0, 235]],
-            [[8, 247], [26, 265], [0, 273], [0, 285], [0, 293], [0, 297]],
-            self::COLOR_TEAL
-        );
+        $this->SetTextColor(255, 255, 255);
+        $this->SetFont('Times', 'B', 10);
+        $this->SetXY(0, 7);
+        $this->Cell(self::PAGE_W, 5, 'REPUBLIK INDONESIA', 0, 1, 'C');
+        $this->SetFont('Times', '', 9);
+        $this->Cell(self::PAGE_W, 5, 'KEMENTERIAN AGAMA REPUBLIK INDONESIA', 0, 1, 'C');
+
+        // Bottom band
+        $this->SetFillColor(...self::GOLD);
+        $this->Rect(0, self::PAGE_H - 17.8, self::PAGE_W, 0.8, 'F');
+        $this->SetFillColor(...self::GREEN);
+        $this->Rect(0, self::PAGE_H - 17, self::PAGE_W, 17, 'F');
+
+        // Inner content panel
+        $this->SetFillColor(...self::PANEL);
+        $this->Rect(16, 38, self::PAGE_W - 32, 205, 'F');
+
+        // Double frame
+        $this->SetDrawColor(...self::GREEN);
+        $this->SetLineWidth(0.55);
+        $this->Rect(12, 34, self::PAGE_W - 24, 213);
+
+        $this->SetDrawColor(...self::GOLD);
+        $this->SetLineWidth(0.25);
+        $this->Rect(14.5, 36.5, self::PAGE_W - 29, 208);
+
+        $this->drawCornerBrackets(18, 40, 10);
+        $this->drawCornerBrackets(self::PAGE_W - 18, 40, 10, true, false);
+        $this->drawCornerBrackets(18, self::PAGE_H - 40, 10, false, false);
+        $this->drawCornerBrackets(self::PAGE_W - 18, self::PAGE_H - 40, 10, true, true);
 
         $this->resetDrawingDefaults();
+    }
+
+    private function drawOrnament(float $y): void
+    {
+        $center = self::PAGE_W / 2;
+        $half = 36.0;
+
+        $this->SetDrawColor(...self::GOLD);
+        $this->SetFillColor(...self::GOLD);
+        $this->SetLineWidth(0.35);
+
+        $this->Line($center - $half, $y, $center - 4, $y);
+        $this->Line($center + 4, $y, $center + $half, $y);
+
+        $size = 2.2;
+        $this->Rect($center - $size, $y - $size, $size * 2, $size * 2, 'DF');
+    }
+
+    private function drawCornerBrackets(
+        float $x,
+        float $y,
+        float $len,
+        bool $right = false,
+        bool $bottom = false
+    ): void {
+        $this->SetDrawColor(...self::GREEN);
+        $this->SetLineWidth(0.45);
+
+        $dx = $right ? -$len : $len;
+        $dy = $bottom ? -$len : $len;
+
+        $this->Line($x, $y, $x + $dx, $y);
+        $this->Line($x, $y, $x, $y + $dy);
     }
 
     private function resetDrawingDefaults(): void
@@ -69,65 +149,5 @@ class LkbFpdf extends FPDF
         $this->SetFillColor(255);
         $this->SetTextColor(0);
         $this->SetLineWidth(0.2);
-    }
-
-    /**
-     * @param array{0: float, 1: float} $start
-     * @param array<int, array{0: float, 1: float}> $outer
-     * @param array<int, array{0: float, 1: float}> $inner
-     * @param array{0: int, 1: int, 2: int} $rgb
-     */
-    private function drawCornerRibbon(array $start, array $outer, array $inner, array $rgb): void
-    {
-        if (count($outer) % 3 !== 0 || count($inner) % 3 !== 0) {
-            return;
-        }
-
-        $this->SetFillColor($rgb[0], $rgb[1], $rgb[2]);
-
-        $path = $this->pathMove($start[0], $start[1]);
-
-        for ($i = 0; $i < count($outer); $i += 3) {
-            $path .= $this->pathCurve(
-                $outer[$i][0],
-                $outer[$i][1],
-                $outer[$i + 1][0],
-                $outer[$i + 1][1],
-                $outer[$i + 2][0],
-                $outer[$i + 2][1]
-            );
-        }
-
-        for ($i = 0; $i < count($inner); $i += 3) {
-            $path .= $this->pathCurve(
-                $inner[$i][0],
-                $inner[$i][1],
-                $inner[$i + 1][0],
-                $inner[$i + 1][1],
-                $inner[$i + 2][0],
-                $inner[$i + 2][1]
-            );
-        }
-
-        $path .= ' h f';
-        $this->_out($path);
-    }
-
-    private function pathMove(float $x, float $y): string
-    {
-        return sprintf('%F %F m ', $x * $this->k, ($this->h - $y) * $this->k);
-    }
-
-    private function pathCurve(float $x1, float $y1, float $x2, float $y2, float $x3, float $y3): string
-    {
-        return sprintf(
-            '%F %F %F %F %F %F c ',
-            $x1 * $this->k,
-            ($this->h - $y1) * $this->k,
-            $x2 * $this->k,
-            ($this->h - $y2) * $this->k,
-            $x3 * $this->k,
-            ($this->h - $y3) * $this->k
-        );
     }
 }
