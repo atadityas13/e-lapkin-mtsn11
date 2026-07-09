@@ -39,7 +39,6 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 require_once '../config/database.php';
 require_once '../vendor/fpdf/fpdf.php'; // Pastikan path sesuai lokasi fpdf.php Anda
-require_once __DIR__ . '/../config/lkb_cover_graphics.php';
 
 $id_pegawai = $_SESSION['id_pegawai'];
 $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : date('n');
@@ -92,7 +91,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     }
     $stmt->close();
 
-    $pdf = new LkbFpdf('P', 'mm', 'A4');
+    $pdf = new FPDF('P', 'mm', 'A4');
 
     // --- COVER PAGE ---
     $pdf->AddPage();
@@ -101,13 +100,48 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->SetMargins(20, 20, 20); // Adjust margins for cover if needed, example wider margins
     $pdf->SetAutoPageBreak(false); // No auto page break for cover
 
-    $pdf->renderLkbCoverPage(
-        $months[$bulan],
-        $tahun,
-        $nama_pegawai,
-        $nip,
-        __DIR__ . '/../assets/img/logo_kemenag.png'
-    );
+    // If you have a background image for the cover, uncomment and adjust path:
+    $pdf->Image('../assets/img/cover_background.jpg', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
+
+    // LAPORAN KINERJA HARIAN
+    $pdf->SetFont('Times', 'B', 24);
+    $pdf->SetY(40); // Adjust Y position
+    $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
+
+    // BULAN [MONTH]
+    $pdf->SetFont('Times', 'B', 22);
+    $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
+
+    // TAHUN [YEAR]
+    $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
+    $pdf->Ln(30); // Space after title
+
+    // Logo (adjust path and position as needed)
+    $logo_path = '../assets/img/logo_kemenag.png'; // Make sure this path is correct
+    if (file_exists($logo_path)) {
+        $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50); // Centered, 50x50mm
+    } else {
+        // Fallback if logo not found (e.g., text placeholder)
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
+    }
+    $pdf->Ln(20); // Space after logo
+
+    // Nama dan NIP Pegawai
+    $pdf->SetFont('Times', 'B', 16);
+    $pdf->SetY($pdf->GetPageHeight() - 100); // Position relative to bottom
+    $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
+    $pdf->SetFont('Times', '', 14);
+    $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
+    $pdf->Ln(30);
+
+    // MTSN 11 MAJALENGKA
+    $pdf->SetFont('Times', 'B', 18);
+    $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+
+    // KEMENTERIAN AGAMA KABUPATEN MAJALENGKA
+    $pdf->SetFont('Times', 'B', 16);
+    $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
 
     // --- END OF COVER PAGE ---
 

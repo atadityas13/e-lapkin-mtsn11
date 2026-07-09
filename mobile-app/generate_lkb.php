@@ -30,7 +30,6 @@ if (!$bulan || !$tahun || $aksi !== 'generate') {
 }
 
 require_once __DIR__ . '/../vendor/fpdf/fpdf.php';
-require_once __DIR__ . '/../config/lkb_cover_graphics.php';
 
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -78,17 +77,36 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     }
     $stmt->close();
 
-    $pdf = new LkbFpdf('P', 'mm', 'A4');
+    $pdf = new FPDF('P', 'mm', 'A4');
     $pdf->AddPage();
     $pdf->SetMargins(20, 20, 20);
     $pdf->SetAutoPageBreak(false);
-    $pdf->renderLkbCoverPage(
-        $months[$bulan],
-        $tahun,
-        $nama_pegawai,
-        $nip,
-        __DIR__ . '/../assets/img/logo_kemenag.png'
-    );
+    $pdf->Image(__DIR__ . '/../assets/img/cover_background.jpg', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
+    $pdf->SetFont('Times', 'B', 24);
+    $pdf->SetY(40);
+    $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
+    $pdf->SetFont('Times', 'B', 22);
+    $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
+    $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
+    $pdf->Ln(30);
+    $logo_path = __DIR__ . '/../assets/img/logo_kemenag.png';
+    if (file_exists($logo_path)) {
+        $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50);
+    } else {
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
+    }
+    $pdf->Ln(20);
+    $pdf->SetFont('Times', 'B', 16);
+    $pdf->SetY($pdf->GetPageHeight() - 100);
+    $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
+    $pdf->SetFont('Times', '', 14);
+    $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
+    $pdf->Ln(30);
+    $pdf->SetFont('Times', 'B', 18);
+    $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+    $pdf->SetFont('Times', 'B', 16);
+    $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
 
     $pdf->AddPage();
     $bottom_margin_for_content = 15;
