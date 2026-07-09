@@ -22,6 +22,10 @@ $id_pegawai_login = $userData['id_pegawai'];
 $nama_pegawai_login = $userData['nama'];
 $is_talim_embed = function_exists('isTalimEmbed') && isTalimEmbed();
 
+if ($is_talim_embed) {
+    ensureTalimPeriod($conn, $id_pegawai_login);
+}
+
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
     5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
@@ -514,6 +518,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
     </style>
     <?= getMobileHeaderCSS() ?>
+    <?= ($is_talim_embed && function_exists('talimEmbedCss')) ? talimEmbedCss() : '' ?>
 </head>
 <body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">
     <div class="mobile-container">
@@ -545,7 +550,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <div class="fw-semibold text-info mb-1">Informasi Laporan</div>
                     <small class="text-muted">
                         <?= $is_talim_embed
-                            ? 'LKB & LKH dapat digenerate langsung dari Ta\'lim setelah data RKB/LKH tersedia.'
+                            ? 'LKB & LKH dapat digenerate langsung. LKH muncul jika data harian sudah ada — tidak perlu generate LKB dulu.'
                             : 'LKB & LKH dapat digenerate jika data sudah disetujui oleh Pejabat Penilai.' ?> 
                         File akan tersimpan dalam format PDF dan dapat diunduh kapan saja.
                     </small>
@@ -593,6 +598,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <?php foreach ($years as $tahun): ?>
                         <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
                             <?php
+                            $pdf_exists_lkb = lkb_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
+                            $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
+
                             // Check RKB existence and status
                             $stmt = $conn->prepare("SELECT id_rkb, status_verval FROM rkb WHERE id_pegawai=? AND bulan=? AND tahun=?");
                             $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
@@ -607,11 +615,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             }
                             $stmt->close();
 
-                            if ($count_rkb == 0) continue; // Skip months without RKB
+                            if ($count_rkb == 0 && !$pdf_exists_lkb) continue;
                             
-                            if ($status_verval_rkb === 'disetujui' || talimCanDirectGenerate()):
-                                $pdf_exists_lkb = lkb_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
-                                $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
+                            if ($is_talim_embed || $status_verval_rkb === 'disetujui'):
                             ?>
                                 <div class="report-item lkb-card">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -623,10 +629,14 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         </div>
                                         <div class="report-actions">
                                             <?php if ($pdf_exists_lkb): ?>
+                                                <?php if ($is_talim_embed): ?>
+                                                    <?= talimRenderPdfActions($lkb_filename_for_download) ?>
+                                                <?php else: ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
                                                         onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
                                                     <i class="fas fa-download me-1"></i>Download
                                                 </button>
+                                                <?php endif; ?>
                                                 <button type="button" class="btn btn-regenerate btn-sm" 
                                                         data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
                                                         data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
@@ -687,25 +697,29 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <?php foreach ($years as $tahun): ?>
                         <?php for ($bulan = 1; $bulan <= 12; $bulan++): ?>
                             <?php
-                            // Check LKH existence and status
-                            $stmt = $conn->prepare("SELECT id_lkh, status_verval FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=?");
+                            $pdf_exists_lkh = lkh_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
+                            $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
+
+                            $stmt = $conn->prepare("SELECT COUNT(*) FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=?");
                             $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
                             $stmt->execute();
-                            $stmt->store_result();
-                            $count_lkh = $stmt->num_rows;
-                            $id_lkh = null;
-                            $status_verval_lkh = null;
-                            if ($count_lkh > 0) {
-                                $stmt->bind_result($id_lkh, $status_verval_lkh);
-                                $stmt->fetch();
-                            }
+                            $stmt->bind_result($count_lkh);
+                            $stmt->fetch();
                             $stmt->close();
 
-                            if ($count_lkh == 0) continue; // Skip months without LKH
+                            $status_verval_lkh = '';
+                            if (!$is_talim_embed && $count_lkh > 0) {
+                                $stmt = $conn->prepare("SELECT status_verval FROM lkh WHERE id_pegawai=? AND MONTH(tanggal_lkh)=? AND YEAR(tanggal_lkh)=? LIMIT 1");
+                                $stmt->bind_param("iii", $id_pegawai_login, $bulan, $tahun);
+                                $stmt->execute();
+                                $stmt->bind_result($status_verval_lkh);
+                                $stmt->fetch();
+                                $stmt->close();
+                            }
+
+                            if ($count_lkh == 0 && !$pdf_exists_lkh) continue;
                             
-                            if ($status_verval_lkh === 'disetujui' || talimCanDirectGenerate()):
-                                $pdf_exists_lkh = lkh_pdf_exists($id_pegawai_login, $bulan, $tahun, $nama_file_nip, $months);
-                                $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
+                            if ($is_talim_embed || $status_verval_lkh === 'disetujui'):
                             ?>
                                 <div class="report-item lkh-card">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -717,10 +731,14 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                         </div>
                                         <div class="report-actions">
                                             <?php if ($pdf_exists_lkh): ?>
+                                                <?php if ($is_talim_embed): ?>
+                                                    <?= talimRenderPdfActions($lkh_filename_for_download) ?>
+                                                <?php else: ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
                                                         onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
                                                     <i class="fas fa-download me-1"></i>Download
                                                 </button>
+                                                <?php endif; ?>
                                                 <button type="button" class="btn btn-regenerate btn-sm" 
                                                         data-bs-toggle="modal" data-bs-target="#generateLkhModal" 
                                                         data-bulan="<?= $bulan ?>" data-tahun="<?= $tahun ?>">
@@ -961,6 +979,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" id="generateLkbForm" action="">
+                    <?php if ($is_talim_embed): ?>
+                    <input type="hidden" name="talim" value="1">
+                    <?php endif; ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="tempat_cetak_lkb" class="form-label">Tempat Cetak</label>
@@ -993,6 +1014,9 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" id="generateLkhForm" action="">
+                    <?php if ($is_talim_embed): ?>
+                    <input type="hidden" name="talim" value="1">
+                    <?php endif; ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="tempat_cetak_lkh" class="form-label">Tempat Cetak</label>
@@ -1024,14 +1048,40 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         // Show notifications
         <?php if (isset($_SESSION['mobile_notification'])): ?>
             Swal.fire({
-                icon: '<?= $_SESSION['mobile_notification']['type'] ?>',
-                title: '<?= $_SESSION['mobile_notification']['title'] ?>',
-                text: '<?= $_SESSION['mobile_notification']['text'] ?>',
+                icon: <?= json_encode($_SESSION['mobile_notification']['type']) ?>,
+                title: <?= json_encode($_SESSION['mobile_notification']['title']) ?>,
+                text: <?= json_encode($_SESSION['mobile_notification']['text']) ?>,
                 timer: 3000,
                 showConfirmButton: false
             });
             <?php unset($_SESSION['mobile_notification']); ?>
         <?php endif; ?>
+
+        function talimPreviewPdf(url) {
+            if (window.TalimAndroid && typeof TalimAndroid.previewPdf === 'function') {
+                TalimAndroid.previewPdf(url);
+                return;
+            }
+            window.location.href = url;
+        }
+
+        function talimDownloadPdf(url, filename) {
+            if (window.TalimAndroid && typeof TalimAndroid.downloadPdf === 'function') {
+                TalimAndroid.downloadPdf(url, filename);
+                return;
+            }
+            downloadFile(url, filename);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab === 'lkh') {
+                document.getElementById('lkh-tab')?.click();
+            } else if (tab === 'lkb') {
+                document.getElementById('lkb-tab')?.click();
+            }
+        });
 
         // Set form action when LKB modal is opened
         document.getElementById('generateLkbModal').addEventListener('show.bs.modal', function (event) {
@@ -1039,7 +1089,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             var bulan = button.getAttribute('data-bulan');
             var tahun = button.getAttribute('data-tahun');
             var form = document.getElementById('generateLkbForm');
-            form.action = 'generate_lkb.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+            form.action = 'generate_lkb.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate<?= $is_talim_embed ? '&talim=1' : '' ?>';
         });
 
         // Set form action when LKH modal is opened
@@ -1048,7 +1098,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             var bulan = button.getAttribute('data-bulan');
             var tahun = button.getAttribute('data-tahun');
             var form = document.getElementById('generateLkhForm');
-            form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate';
+            form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate<?= $is_talim_embed ? '&talim=1' : '' ?>';
         });
 
         // Loader on form submit for Generate LKB
@@ -1099,6 +1149,11 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             console.log('Download initiated:', url, filename);
             
             try {
+                if (window.TalimAndroid && typeof TalimAndroid.downloadPdf === 'function') {
+                    TalimAndroid.downloadPdf(url, filename);
+                    return;
+                }
+
                 // Method 1: Try Android interface first
                 if (typeof Android !== 'undefined' && Android.downloadFile) {
                     console.log('Using Android interface');

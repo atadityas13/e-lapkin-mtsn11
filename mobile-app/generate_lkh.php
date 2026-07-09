@@ -26,8 +26,7 @@ $aksi = isset($_GET['aksi']) ? $_GET['aksi'] : '';
 
 // Validate parameters
 if (!$bulan || !$tahun || $aksi !== 'generate') {
-    header('Location: laporan.php');
-    exit();
+    talimRedirectLocation('laporan.php?tab=lkh');
 }
 
 // Helper function for notifications
@@ -47,8 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate required fields
     if (empty($tempat_cetak) || empty($tanggal_cetak)) {
         set_mobile_notification('error', 'Gagal', 'Tempat cetak dan tanggal cetak harus diisi.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkh');
     }
     
     // Check if LKH exists and is approved for this period.
@@ -64,10 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($count_approved == 0) {
         set_mobile_notification('error', 'Gagal', $directGenerate ? 'Data LKH belum tersedia untuk periode tersebut.' : 'LKH belum disetujui untuk periode tersebut.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkh');
     }
-    
+
     try {
         // Include the web version's LKH generation script
         // Set required variables for the web script
@@ -87,18 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If we reach here, generation was successful
         set_mobile_notification('success', 'Berhasil', 'LKH berhasil digenerate dan dapat diunduh.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkh');
         
     } catch (Exception $e) {
         error_log("LKH Generation Error: " . $e->getMessage());
         set_mobile_notification('error', 'Gagal', 'Terjadi kesalahan saat generate LKH. Silakan coba lagi.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkh');
     }
 } else {
     // If not POST request, redirect back to laporan
-    header('Location: laporan.php');
-    exit();
+    talimRedirectLocation('laporan.php?tab=lkh');
 }
 ?>

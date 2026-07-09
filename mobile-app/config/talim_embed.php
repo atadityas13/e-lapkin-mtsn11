@@ -139,6 +139,42 @@ function resolveTalimRhkId(mysqli $conn, int $idPegawai, int $tahun, int $posted
     return $postedRhkId > 0 ? $postedRhkId : 0;
 }
 
+function talimGeneratedPdfUrl(string $filename, bool $inline = false): string
+{
+    $file = rawurlencode(basename($filename));
+    $query = 'download_pdf.php?file=' . $file;
+    if ($inline) {
+        $query .= '&inline=1';
+    }
+
+    return talimRedirect($query);
+}
+
+function talimRenderPdfActions(string $filename): string
+{
+    $previewUrl = htmlspecialchars(talimGeneratedPdfUrl($filename, true), ENT_QUOTES);
+    $downloadUrl = htmlspecialchars(talimGeneratedPdfUrl($filename, false), ENT_QUOTES);
+    $name = htmlspecialchars($filename, ENT_QUOTES);
+
+    return <<<HTML
+<button type="button" class="btn btn-outline-primary btn-sm" onclick="talimPreviewPdf('{$previewUrl}')">
+    <i class="fas fa-eye me-1"></i>Lihat
+</button>
+<button type="button" class="btn btn-download btn-sm" onclick="talimDownloadPdf('{$downloadUrl}', '{$name}')">
+    <i class="fas fa-download me-1"></i>Download
+</button>
+HTML;
+}
+
+function talimLaporanReady(bool $isTalimEmbed, int $dataCount, bool $pdfExists, string $statusVerval): bool
+{
+    if ($isTalimEmbed) {
+        return $dataCount > 0 || $pdfExists;
+    }
+
+    return $dataCount > 0 && $statusVerval === 'disetujui';
+}
+
 function talimModalDialogClass(string $extra = ''): string
 {
     $extra = trim($extra);

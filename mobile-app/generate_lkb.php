@@ -26,8 +26,7 @@ $aksi = isset($_GET['aksi']) ? $_GET['aksi'] : '';
 
 // Validate parameters
 if (!$bulan || !$tahun || $aksi !== 'generate') {
-    header('Location: laporan.php');
-    exit();
+    talimRedirectLocation('laporan.php?tab=lkb');
 }
 
 require_once __DIR__ . '/../vendor/fpdf/fpdf.php'; // Pastikan path sesuai
@@ -241,8 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($tempat_cetak) || empty($tanggal_cetak)) {
         set_mobile_notification('error', 'Gagal', 'Tempat cetak dan tanggal cetak harus diisi.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkb');
     }
 
     // Set loader flag for laporan.php
@@ -260,25 +258,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($count_approved == 0) {
         unset($_SESSION['mobile_loader']);
         set_mobile_notification('error', 'Gagal', $directGenerate ? 'Data RKB belum tersedia untuk periode tersebut.' : 'RKB belum disetujui untuk periode tersebut.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkb');
     }
 
     try {
         $pdf_file = generate_lkb_pdf($id_pegawai_login, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
         unset($_SESSION['mobile_loader']);
         set_mobile_notification('success', 'Berhasil', 'LKB berhasil digenerate dan dapat diunduh.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkb');
     } catch (Exception $e) {
         unset($_SESSION['mobile_loader']);
         error_log("LKB Generation Error: " . $e->getMessage());
         set_mobile_notification('error', 'Gagal', 'Terjadi kesalahan saat generate LKB. Silakan coba lagi.');
-        header('Location: laporan.php');
-        exit();
+        talimRedirectLocation('laporan.php?tab=lkb');
     }
 } else {
-    header('Location: laporan.php');
-    exit();
+    talimRedirectLocation('laporan.php?tab=lkb');
 }
 ?>
