@@ -39,6 +39,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 require_once '../config/database.php';
 require_once '../vendor/fpdf/fpdf.php'; // Pastikan path sesuai lokasi fpdf.php Anda
+require_once __DIR__ . '/../config/lkb_cover_graphics.php';
 
 $id_pegawai = $_SESSION['id_pegawai'];
 $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : date('n');
@@ -54,48 +55,6 @@ $months = [
     5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
-
-function draw_lkb_cover_background(FPDF $pdf): void
-{
-    $pageWidth = $pdf->GetPageWidth();
-    $pageHeight = $pdf->GetPageHeight();
-
-    $pdf->SetFillColor(250, 252, 250);
-    $pdf->Rect(0, 0, $pageWidth, $pageHeight, 'F');
-
-    $pdf->SetFillColor(17, 94, 89);
-    $pdf->Rect(0, 0, $pageWidth, 10, 'F');
-    $pdf->SetFillColor(207, 160, 55);
-    $pdf->Rect(0, 10, $pageWidth, 1.4, 'F');
-
-    $pdf->SetDrawColor(17, 94, 89);
-    $pdf->SetLineWidth(0.55);
-    $pdf->Rect(12, 16, $pageWidth - 24, $pageHeight - 32);
-
-    $pdf->SetDrawColor(207, 160, 55);
-    $pdf->SetLineWidth(0.25);
-    $pdf->Rect(16, 20, $pageWidth - 32, $pageHeight - 40);
-
-    $pdf->SetDrawColor(231, 239, 235);
-    $pdf->SetLineWidth(0.2);
-    for ($x = -30; $x < $pageWidth + 40; $x += 12) {
-        $pdf->Line($x, $pageHeight - 48, $x + 38, $pageHeight - 10);
-    }
-
-    $pdf->SetDrawColor(17, 94, 89);
-    $pdf->SetLineWidth(1.2);
-    $pdf->Line(24, 34, 64, 34);
-    $pdf->Line(24, 34, 24, 74);
-    $pdf->Line($pageWidth - 24, $pageHeight - 34, $pageWidth - 64, $pageHeight - 34);
-    $pdf->Line($pageWidth - 24, $pageHeight - 34, $pageWidth - 24, $pageHeight - 74);
-
-    $pdf->SetDrawColor(207, 160, 55);
-    $pdf->SetLineWidth(0.7);
-    $pdf->Line(29, 40, 57, 40);
-    $pdf->Line(29, 40, 29, 68);
-    $pdf->Line($pageWidth - 29, $pageHeight - 40, $pageWidth - 57, $pageHeight - 40);
-    $pdf->Line($pageWidth - 29, $pageHeight - 40, $pageWidth - 29, $pageHeight - 68);
-}
 
 function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null) {
     global $conn, $months;
@@ -133,7 +92,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     }
     $stmt->close();
 
-    $pdf = new FPDF('P', 'mm', 'A4');
+    $pdf = new LkbFpdf('P', 'mm', 'A4');
 
     // --- COVER PAGE ---
     $pdf->AddPage();
@@ -142,7 +101,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->SetMargins(20, 20, 20); // Adjust margins for cover if needed, example wider margins
     $pdf->SetAutoPageBreak(false); // No auto page break for cover
 
-    draw_lkb_cover_background($pdf);
+    $pdf->drawLkbCoverBackground();
 
     // LAPORAN KINERJA BULANAN
     $pdf->SetFont('Times', 'B', 24);
