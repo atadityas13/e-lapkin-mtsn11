@@ -45,10 +45,23 @@ function renderMobileHeader($pageTitle, $pageSubtitle, $backUrl = 'dashboard.php
 
 function getMobileHeaderCSS() {
     if (function_exists('isTalimEmbed') && isTalimEmbed()) {
-        return function_exists('talimEmbedCss') ? talimEmbedCss() : '';
+        $css = '';
+        if (function_exists('elapkinFormModalCss')) {
+            $css .= elapkinFormModalCss();
+        }
+        if (function_exists('talimEmbedCss')) {
+            $css .= talimEmbedCss();
+        }
+
+        return $css;
     }
 
-    return '
+    $css = '';
+    if (function_exists('elapkinFormModalCss')) {
+        $css .= elapkinFormModalCss();
+    }
+
+    return $css . '
     <style>
         .nav-header {
             background: var(--primary-gradient);

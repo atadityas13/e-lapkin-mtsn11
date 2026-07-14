@@ -829,6 +829,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
     </style>
     <?= getMobileHeaderCSS() ?>
+    <?= function_exists('elapkinFormModalCss') ? elapkinFormModalCss() : '' ?>
     <?= ($is_talim_embed && function_exists('talimEmbedCss')) ? talimEmbedCss() : '' ?>
 </head>
 <body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">

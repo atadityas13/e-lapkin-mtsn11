@@ -179,10 +179,83 @@ function talimModalDialogClass(string $extra = ''): string
 {
     $extra = trim($extra);
     if (!isTalimEmbed()) {
-        return 'modal-dialog modal-dialog-scrollable' . ($extra !== '' ? ' ' . $extra : '');
+        return 'modal-dialog modal-dialog-scrollable elapkin-form-modal' . ($extra !== '' ? ' ' . $extra : '');
     }
 
-    return 'modal-dialog talim-form-modal' . ($extra !== '' ? ' ' . $extra : '');
+    return 'modal-dialog talim-form-modal elapkin-form-modal' . ($extra !== '' ? ' ' . $extra : '');
+}
+
+/**
+ * Shared form-modal CSS so sticky Simpan/Batal stays visible
+ * when a <form> wraps modal-header/body/footer (breaks Bootstrap scrollable otherwise).
+ */
+function elapkinFormModalCss(): string
+{
+    return '<style>
+        .modal-dialog-scrollable.elapkin-form-modal {
+            max-height: calc(100dvh - 1.5rem);
+            margin: 0.75rem auto;
+        }
+        .modal-dialog-scrollable.elapkin-form-modal .modal-content {
+            max-height: calc(100dvh - 1.5rem);
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+        .elapkin-form-modal .modal-content > form {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
+            height: 100%;
+        }
+        .elapkin-form-modal .modal-content > form > .modal-header,
+        .elapkin-form-modal .modal-content > form > .modal-footer {
+            flex-shrink: 0 !important;
+        }
+        .elapkin-form-modal .modal-content > form > .modal-body {
+            flex: 1 1 auto !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            min-height: 0 !important;
+            max-height: none !important;
+        }
+        .elapkin-form-modal .modal-footer {
+            display: flex !important;
+            background: #fff !important;
+            border-top: 1px solid #e5e7eb;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+            gap: 8px;
+            z-index: 5;
+            position: relative;
+        }
+        .elapkin-form-modal .modal-footer .btn {
+            min-height: 44px;
+        }
+        /* Standalone mobile: keep modal above bottom-nav (~72px) */
+        body:not(.talim-embed) .modal-dialog-scrollable.elapkin-form-modal {
+            max-height: calc(100dvh - 5.5rem);
+        }
+        body:not(.talim-embed) .modal-dialog-scrollable.elapkin-form-modal .modal-content {
+            max-height: calc(100dvh - 5.5rem);
+        }
+        @media (max-width: 576px) {
+            body:not(.talim-embed) .modal-dialog-scrollable.elapkin-form-modal {
+                margin: 0.5rem;
+                width: calc(100% - 1rem);
+                max-width: none;
+                max-height: calc(100dvh - 5rem);
+            }
+            body:not(.talim-embed) .modal-dialog-scrollable.elapkin-form-modal .modal-content {
+                max-height: calc(100dvh - 5rem);
+            }
+            .elapkin-form-modal .modal-footer .btn {
+                flex: 1 1 0;
+            }
+        }
+    </style>';
 }
 
 function talimEmbedCss(): string
@@ -243,7 +316,7 @@ function talimEmbedCss(): string
         body.talim-embed .talim-form-modal {
             position: fixed !important;
             top: 72px !important;
-            bottom: 136px !important;
+            bottom: max(96px, calc(72px + env(safe-area-inset-bottom, 0px))) !important;
             left: 12px !important;
             right: 12px !important;
             margin: 0 !important;
@@ -269,13 +342,6 @@ function talimEmbedCss(): string
             box-shadow: 0 16px 48px rgba(6, 95, 70, 0.22) !important;
             border: 1px solid rgba(6, 95, 70, 0.1) !important;
         }
-        body.talim-embed .talim-form-modal .modal-content > form {
-            display: flex;
-            flex-direction: column;
-            flex: 1 1 auto;
-            min-height: 0;
-            height: 100%;
-        }
         body.talim-embed .talim-form-modal .modal-header {
             flex-shrink: 0;
             border-bottom: 1px solid #e5e7eb;
@@ -289,15 +355,10 @@ function talimEmbedCss(): string
             max-height: none !important;
         }
         body.talim-embed .talim-form-modal .modal-footer {
-            flex-shrink: 0;
-            display: flex;
-            background: #fff;
-            border-top: 1px solid #e5e7eb;
-            padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
-            gap: 8px;
+            flex-shrink: 0 !important;
+            display: flex !important;
         }
         body.talim-embed .talim-form-modal .modal-footer .btn {
-            min-height: 44px;
             flex: 1 1 0;
         }
         body.talim-embed .dropdown-menu {

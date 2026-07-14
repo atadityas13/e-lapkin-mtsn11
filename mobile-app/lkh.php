@@ -1372,6 +1372,7 @@ ob_clean();
             background: rgba(102, 126, 234, 0.5);
         }
     </style>
+    <?= function_exists('elapkinFormModalCss') ? elapkinFormModalCss() : '' ?>
     <?= (function_exists('isTalimEmbed') && isTalimEmbed() && function_exists('talimEmbedCss')) ? talimEmbedCss() : '' ?>
 </head>
 <body class="<?= $is_talim_embed ? 'talim-embed' : '' ?>">
