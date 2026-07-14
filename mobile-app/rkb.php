@@ -1295,7 +1295,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     </div>
 
     <!-- Previous RKB Modal -->
-    <div class="modal fade" id="previousRkbModal" tabindex="-1">
+    <div class="modal fade talim-picker-modal" id="previousRkbModal" tabindex="-1">
         <div class="<?= htmlspecialchars(talimModalDialogClass('modal-lg')) ?>">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
@@ -1460,42 +1460,50 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
         }
 
         function showPreviousRkb() {
-            new bootstrap.Modal(document.getElementById('previousRkbModal')).show();
+            if (typeof window.talimShowPickerModal === 'function') {
+                window.talimShowPickerModal('previousRkbModal');
+                return;
+            }
+            const el = document.getElementById('previousRkbModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(el);
+            modal.show();
         }
 
         function selectPreviousRkb(btn) {
             const item = btn.closest('.previous-rkb-item');
             const uraian = item.getAttribute('data-uraian');
-            const kuantitas = item.getAttribute('data-kuantitas');
             const satuan = item.getAttribute('data-satuan');
             const idRhk = item.getAttribute('data-id-rhk');
             const namaRhk = item.getAttribute('data-nama-rhk');
             document.getElementById('uraian_kegiatan_modal').value = uraian;
-            // Kuantitas tidak perlu diisi, otomatis dari LKH
             document.getElementById('satuan_modal').value = satuan;
             
-            // Auto-select RHK terkait
+            // Auto-select RHK terkait (skip hidden input used by Ta'lim technical RHK)
             const rhkSelect = document.getElementById('id_rhk_modal');
             let selected = false;
             
-            if (idRhk && rhkSelect) {
-                rhkSelect.value = idRhk;
-                selected = (rhkSelect.value === String(idRhk));
-            }
-            
-            if (!selected && namaRhk && rhkSelect && rhkSelect.options) {
-                const target = namaRhk.toLowerCase().replace(/\s+/g, ' ').trim();
-                Array.from(rhkSelect.options).forEach(function(option) {
-                    const optionText = (option.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
-                    if (!selected && optionText && (optionText === target || optionText.includes(target) || target.includes(optionText))) {
-                        rhkSelect.value = option.value;
-                        selected = true;
-                    }
-                });
+            if (rhkSelect && rhkSelect.tagName === 'SELECT') {
+                if (idRhk) {
+                    rhkSelect.value = idRhk;
+                    selected = (rhkSelect.value === String(idRhk));
+                }
+                
+                if (!selected && namaRhk && rhkSelect.options) {
+                    const target = namaRhk.toLowerCase().replace(/\s+/g, ' ').trim();
+                    Array.from(rhkSelect.options).forEach(function(option) {
+                        const optionText = (option.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                        if (!selected && optionText && (optionText === target || optionText.includes(target) || target.includes(optionText))) {
+                            rhkSelect.value = option.value;
+                            selected = true;
+                        }
+                    });
+                }
             }
             
             // Close previous RKB modal
-            bootstrap.Modal.getInstance(document.getElementById('previousRkbModal')).hide();
+            const previousModal = bootstrap.Modal.getInstance(document.getElementById('previousRkbModal'));
+            if (previousModal) previousModal.hide();
+            document.body.classList.remove('talim-picker-open');
             
             // Show success message
             Swal.fire({
@@ -1510,8 +1518,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             setTimeout(function() {
                 const modalRkb = bootstrap.Modal.getInstance(document.getElementById('rkbModal'));
                 if (!modalRkb || !modalRkb._isShown) {
-                    const newModalRkb = new bootstrap.Modal(document.getElementById('rkbModal'));
-                    newModalRkb.show();
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('rkbModal')).show();
                 }
             }, 100);
         }

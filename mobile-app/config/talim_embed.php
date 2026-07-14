@@ -298,7 +298,17 @@ function talimEmbedCss(): string
             overflow: hidden !important;
         }
         body.talim-embed .modal-backdrop {
-            z-index: 9999 !important;
+            z-index: 9990 !important;
+        }
+        /* Nested picker (RKB/LKH terdahulu) must sit above form modal */
+        body.talim-embed .modal.talim-picker-modal {
+            z-index: 10120 !important;
+        }
+        body.talim-embed .modal-backdrop.talim-picker-backdrop {
+            z-index: 10110 !important;
+        }
+        body.talim-embed.talim-picker-open .modal.show:not(.talim-picker-modal) .talim-form-modal {
+            pointer-events: none !important;
         }
         body.talim-embed .btn-outline-info {
             border-color: #0891b2 !important;
@@ -376,6 +386,41 @@ function talimEmbedModalJs(): string
 
     return <<<'JS'
 <script>
+window.talimShowPickerModal = function (modalId) {
+    var el = document.getElementById(modalId);
+    if (!el || typeof bootstrap === 'undefined') return;
+
+    el.classList.add('talim-picker-modal');
+
+    var modal = bootstrap.Modal.getOrCreateInstance(el, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+
+    function markBackdrop() {
+        var backs = document.querySelectorAll('.modal-backdrop');
+        if (backs.length) {
+            var top = backs[backs.length - 1];
+            top.classList.add('talim-picker-backdrop');
+            top.style.zIndex = '10110';
+        }
+        el.style.zIndex = '10120';
+        document.body.classList.add('talim-picker-open');
+    }
+
+    function clearPickerState() {
+        document.body.classList.remove('talim-picker-open');
+        document.querySelectorAll('.modal-backdrop.talim-picker-backdrop').forEach(function (b) {
+            b.classList.remove('talim-picker-backdrop');
+        });
+    }
+
+    el.addEventListener('shown.bs.modal', markBackdrop, { once: true });
+    el.addEventListener('hidden.bs.modal', clearPickerState, { once: true });
+    modal.show();
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.modal').forEach(function (modalEl) {
         modalEl.addEventListener('show.bs.modal', function () {
@@ -384,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modalEl.addEventListener('hidden.bs.modal', function () {
             if (!document.querySelector('.modal.show')) {
                 document.body.classList.remove('talim-modal-open');
+                document.body.classList.remove('talim-picker-open');
             }
         });
     });

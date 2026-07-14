@@ -1827,7 +1827,7 @@ ob_clean();
     </div>
 
     <!-- Previous LKH Modal -->
-    <div class="modal fade" id="previousLkhModal" tabindex="-1">
+    <div class="modal fade talim-picker-modal" id="previousLkhModal" tabindex="-1">
         <div class="<?= htmlspecialchars(talimModalDialogClass('modal-lg')) ?>">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
@@ -2143,7 +2143,13 @@ ob_clean();
         }
 
         function showPreviousLkh() {
-            new bootstrap.Modal(document.getElementById('previousLkhModal')).show();
+            if (typeof window.talimShowPickerModal === 'function') {
+                window.talimShowPickerModal('previousLkhModal');
+                return;
+            }
+            const el = document.getElementById('previousLkhModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(el);
+            modal.show();
         }
 
         function selectPreviousLkh(btn) {
@@ -2191,6 +2197,7 @@ ob_clean();
             if (previousLkhModal) {
                 previousLkhModal.hide();
             }
+            document.body.classList.remove('talim-picker-open');
             
             // Show success message
             Swal.fire({
@@ -2203,10 +2210,10 @@ ob_clean();
             
             // Ensure add LKH modal stays open
             setTimeout(function() {
-                const modalLkh = bootstrap.Modal.getInstance(document.getElementById('lkhModal'));
+                const modalLkhEl = document.getElementById('lkhModal');
+                const modalLkh = bootstrap.Modal.getInstance(modalLkhEl);
                 if (!modalLkh || !modalLkh._isShown) {
-                    const newModalLkh = new bootstrap.Modal(document.getElementById('lkhModal'));
-                    newModalLkh.show();
+                    bootstrap.Modal.getOrCreateInstance(modalLkhEl).show();
                 }
             }, 100);
         }
