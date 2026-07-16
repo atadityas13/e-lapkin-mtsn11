@@ -3,12 +3,14 @@ ob_start();
 session_start();
 
 require_once __DIR__ . '/../config/mobile_session.php';
+require_once __DIR__ . '/../config/talim_embed.php';
 require_once __DIR__ . '/../../config/database.php';
 
 checkMobileLogin();
 
 $userData = getMobileSessionData();
 $idPegawai = (int) $userData['id_pegawai'];
+ensureTalimPeriod($conn, $idPegawai);
 
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',

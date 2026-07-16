@@ -6,6 +6,8 @@
 define('MOBILE_SECRET_KEY', 'MTSN11-MOBILE-KEY-2025');
 define('TALIM_SSO_SECRET', 'MTSN11-TALIM-SSO-2026');
 
+require_once __DIR__ . '/talim_embed.php';
+
 $MOBILE_APPS = [
     'elapkin' => [
         'user_agent' => 'E-LAPKIN-MTSN11-Mobile-App/1.0',
@@ -366,6 +368,7 @@ function performMobileSsoLogin(mysqli $conn, string $nip, int $timestamp, string
     if (!$idPegawai) {
         return ['success' => false, 'message' => 'Gagal menyiapkan modul kinerja.'];
     }
+    ensureTalimPeriod($conn, $idPegawai);
 
     $_SESSION['mobile_loggedin'] = true;
     $_SESSION['mobile_id_pegawai'] = $idPegawai;

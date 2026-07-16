@@ -61,14 +61,18 @@ function ensureTalimPeriod(mysqli $conn, int $idPegawai): void
     $stmt->fetch();
     $stmt->close();
 
-    if ($bulanAktif !== null && $tahunAktif !== null) {
+    $originalTimezone = date_default_timezone_get();
+    date_default_timezone_set('Asia/Jakarta');
+    $bulanNow = (int) date('m');
+    $tahunNow = (int) date('Y');
+    date_default_timezone_set($originalTimezone);
+
+    if ((int) $bulanAktif === $bulanNow && (int) $tahunAktif === $tahunNow) {
         return;
     }
 
-    $bulanNow = (int) date('m');
-    $tahunNow = (int) date('Y');
     $stmt = $conn->prepare(
-        'UPDATE pegawai SET bulan_aktif = COALESCE(bulan_aktif, ?), tahun_aktif = COALESCE(tahun_aktif, ?) WHERE id_pegawai = ?'
+        'UPDATE pegawai SET bulan_aktif = ?, tahun_aktif = ? WHERE id_pegawai = ?'
     );
     if ($stmt === false) {
         return;
