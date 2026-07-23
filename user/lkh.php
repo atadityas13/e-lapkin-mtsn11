@@ -236,7 +236,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
 
                     if ($stmt->execute()) {
-                        // Auto-update kuantitas RKB berdasarkan jumlah LKH yang menggunakan RKB tersebut
+                        // Auto-update kuantitas RKB dari total realisasi LKH (bukan jumlah baris LKH)
                         $lkh_month = date('m', strtotime($tanggal_lkh));
                         $lkh_year = date('Y', strtotime($tanggal_lkh));
                         
@@ -244,7 +244,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $stmt_update_rkb = $conn->prepare("
                             UPDATE rkb 
                             SET kuantitas = (
-                                SELECT COUNT(*) 
+                                SELECT COALESCE(SUM(lkh.jumlah_realisasi), 0)
                                 FROM lkh 
                                 WHERE lkh.id_rkb = rkb.id_rkb 
                                 AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
@@ -261,7 +261,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             $stmt_update_old = $conn->prepare("
                                 UPDATE rkb 
                                 SET kuantitas = (
-                                    SELECT COUNT(*) 
+                                    SELECT COALESCE(SUM(lkh.jumlah_realisasi), 0)
                                     FROM lkh 
                                     WHERE lkh.id_rkb = rkb.id_rkb 
                                     AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
@@ -398,12 +398,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     unlink(__DIR__ . '/../uploads/lkh/' . $file_to_delete);
                 }
                 
-                // Auto-update kuantitas RKB
+                // Auto-update kuantitas RKB dari total realisasi LKH
                 if ($deleted_id_rkb) {
                     $stmt_update_rkb = $conn->prepare("
                         UPDATE rkb 
                         SET kuantitas = (
-                            SELECT COUNT(*) 
+                            SELECT COALESCE(SUM(lkh.jumlah_realisasi), 0)
                             FROM lkh 
                             WHERE lkh.id_rkb = rkb.id_rkb 
                             AND MONTH(lkh.tanggal_lkh) = rkb.bulan 
