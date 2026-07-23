@@ -11,6 +11,7 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/rkb_kuantitas_helper.php';
 require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
@@ -344,6 +345,9 @@ function ensure_lampiran_column_rkb($conn) {
     }
 }
 ensure_lampiran_column_rkb($conn);
+
+// Pastikan kuantitas RKB periode aktif = total JP/realisasi LKH (bukan jumlah baris)
+sync_rkb_kuantitas_for_pegawai($conn, (int) $id_pegawai_login, (int) $filter_month, (int) $filter_year);
 
 // Get RKB data for current period (match web version structure)
 $rkbs = [];

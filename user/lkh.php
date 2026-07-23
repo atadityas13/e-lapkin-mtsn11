@@ -34,6 +34,7 @@
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/rkb_kuantitas_helper.php';
 require_once __DIR__ . '/../template/session_user.php';
 
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -69,6 +70,9 @@ function get_periode_aktif($conn, $id_pegawai) {
 $periode_aktif = get_periode_aktif($conn, $id_pegawai_login);
 $filter_month = $periode_aktif['bulan'];
 $filter_year = $periode_aktif['tahun'];
+
+// Pastikan kuantitas RKB periode aktif = total JP/realisasi LKH (bukan jumlah baris)
+sync_rkb_kuantitas_for_pegawai($conn, (int) $id_pegawai_login, (int) $filter_month, (int) $filter_year);
 
 // Ambil status_verval_lkh untuk periode aktif
 $status_verval_lkh = '';

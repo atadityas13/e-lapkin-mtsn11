@@ -34,6 +34,7 @@
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/rkb_kuantitas_helper.php';
 require_once __DIR__ . '/../template/session_user.php';
 
 // Periksa apakah pengguna sudah login, jika tidak, arahkan kembali ke halaman login
@@ -239,6 +240,9 @@ $stmt_check_bulan->close();
 
 // Periode bulan belum diatur jika bulan_aktif masih NULL di database
 $periode_bulan_belum_diatur = ($bulan_aktif_db === null);
+
+// Pastikan kuantitas RKB periode aktif = total JP/realisasi LKH (bukan jumlah baris)
+sync_rkb_kuantitas_for_pegawai($conn, (int) $id_pegawai_login, (int) $filter_month, (int) $filter_year);
 
 // Gunakan $filter_year = $periode_aktif
 $rkbs = [];

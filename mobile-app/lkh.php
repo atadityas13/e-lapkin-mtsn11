@@ -11,6 +11,7 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/rkb_kuantitas_helper.php';
 require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
@@ -53,6 +54,9 @@ if ($is_talim_embed) {
 
 // Get active period for display
 $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
+
+// Pastikan kuantitas RKB periode aktif = total JP/realisasi LKH (bukan jumlah baris)
+sync_rkb_kuantitas_for_pegawai($conn, (int) $id_pegawai_login, (int) $filter_month, (int) $filter_year);
 
 // Get LKH verification status
 $status_verval_lkh = '';
