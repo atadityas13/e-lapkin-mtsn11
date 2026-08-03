@@ -44,6 +44,11 @@ function talimRedirectLocation(string $path): never
     exit();
 }
 
+/**
+ * Inisialisasi periode Ta'lim hanya jika belum diatur.
+ * Jangan timpa pilihan user (mis. ubah periode RKB ke bulan lalu) —
+ * RKB dan LKH memakai bulan_aktif/tahun_aktif yang sama di tabel pegawai.
+ */
 function ensureTalimPeriod(mysqli $conn, int $idPegawai): void
 {
     if (!isTalimEmbed()) {
@@ -61,18 +66,19 @@ function ensureTalimPeriod(mysqli $conn, int $idPegawai): void
     $stmt->fetch();
     $stmt->close();
 
+    // Sudah ada periode aktif (dari RKB/LKH) — hormati pilihan user.
+    if ($bulanAktif !== null && $tahunAktif !== null) {
+        return;
+    }
+
     $originalTimezone = date_default_timezone_get();
     date_default_timezone_set('Asia/Jakarta');
     $bulanNow = (int) date('m');
     $tahunNow = (int) date('Y');
     date_default_timezone_set($originalTimezone);
 
-    if ((int) $bulanAktif === $bulanNow && (int) $tahunAktif === $tahunNow) {
-        return;
-    }
-
     $stmt = $conn->prepare(
-        'UPDATE pegawai SET bulan_aktif = ?, tahun_aktif = ? WHERE id_pegawai = ?'
+        'UPDATE pegawai SET bulan_aktif = COALESCE(bulan_aktif, ?), tahun_aktif = COALESCE(tahun_aktif, ?) WHERE id_pegawai = ?'
     );
     if ($stmt === false) {
         return;
@@ -267,7 +273,7 @@ function talimEmbedCss(): string
     return '<style>
         body.talim-embed {
             background: #ecfdf5 !important;
-            padding-bottom: 132px !important;
+            padding-bottom: 96px !important;
         }
         body.talim-embed.talim-modal-open {
             overflow: hidden !important;
@@ -293,8 +299,19 @@ function talimEmbedCss(): string
             background: linear-gradient(135deg, #047857, #059669) !important;
             border-color: #047857 !important;
         }
+        /* FAB pojok kanan bawah (di atas safe-area Android) */
         body.talim-embed .floating-action {
-            bottom: 150px !important;
+            bottom: max(20px, calc(12px + env(safe-area-inset-bottom, 0px))) !important;
+            right: 16px !important;
+            z-index: 1040 !important;
+        }
+        body.talim-embed.talim-modal-open .floating-action {
+            display: none !important;
+        }
+        body.talim-embed .floating-btn {
+            width: 58px !important;
+            height: 58px !important;
+            box-shadow: 0 10px 28px rgba(4, 120, 87, 0.35) !important;
         }
         body.talim-embed .modal {
             z-index: 10000 !important;
@@ -329,10 +346,10 @@ function talimEmbedCss(): string
         }
         body.talim-embed .talim-form-modal {
             position: fixed !important;
-            top: 72px !important;
-            bottom: max(96px, calc(72px + env(safe-area-inset-bottom, 0px))) !important;
-            left: 12px !important;
-            right: 12px !important;
+            top: 56px !important;
+            bottom: max(16px, calc(12px + env(safe-area-inset-bottom, 0px))) !important;
+            left: 10px !important;
+            right: 10px !important;
             margin: 0 !important;
             width: auto !important;
             max-width: none !important;
@@ -341,6 +358,14 @@ function talimEmbedCss(): string
             display: flex !important;
             flex-direction: column !important;
             pointer-events: none;
+        }
+        /* Picker & preview: hampir full layar agar daftar terbaca */
+        body.talim-embed .modal.talim-picker-modal .talim-form-modal,
+        body.talim-embed .modal.talim-preview-modal .talim-form-modal {
+            top: 28px !important;
+            bottom: max(12px, calc(8px + env(safe-area-inset-bottom, 0px))) !important;
+            left: 8px !important;
+            right: 8px !important;
         }
         body.talim-embed .modal.show .talim-form-modal {
             pointer-events: auto;
@@ -363,10 +388,13 @@ function talimEmbedCss(): string
         }
         body.talim-embed .talim-form-modal .modal-body {
             flex: 1 1 auto;
+            min-height: 0 !important;
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch;
             padding: 16px;
             max-height: none !important;
+            display: flex;
+            flex-direction: column;
         }
         body.talim-embed .talim-form-modal .modal-footer {
             flex-shrink: 0 !important;
@@ -374,6 +402,35 @@ function talimEmbedCss(): string
         }
         body.talim-embed .talim-form-modal .modal-footer .btn {
             flex: 1 1 0;
+        }
+        /* Daftar RKB/LKH terdahulu: isi sisa tinggi modal */
+        body.talim-embed .talim-picker-list {
+            flex: 1 1 auto !important;
+            min-height: 220px !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            margin: 0 -4px;
+            padding: 4px;
+        }
+        body.talim-embed .talim-picker-list .card {
+            margin-bottom: 10px !important;
+        }
+        body.talim-embed .talim-preview-scroll {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+        body.talim-embed .talim-preview-scroll .table {
+            font-size: 12px;
+            margin-bottom: 0;
+        }
+        body.talim-embed .talim-preview-scroll .table th,
+        body.talim-embed .talim-preview-scroll .table td {
+            white-space: normal;
+            vertical-align: top;
+            padding: 8px 6px;
         }
         body.talim-embed .dropdown-menu {
             z-index: 10050 !important;

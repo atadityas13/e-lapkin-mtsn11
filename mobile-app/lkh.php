@@ -1706,8 +1706,8 @@ ob_clean();
     </div>
 
     <!-- Preview LKH Modal -->
-    <div class="modal fade" id="previewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+    <div class="modal fade talim-preview-modal" id="previewModal" tabindex="-1">
+        <div class="<?= htmlspecialchars(talimModalDialogClass('modal-lg')) ?>">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title">
@@ -1716,7 +1716,7 @@ ob_clean();
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
+                    <div class="mb-3 flex-shrink-0">
                         <h6 class="fw-bold">Periode: <?= $months[$filter_month] . ' ' . $filter_year ?></h6>
                         <h6 class="fw-bold">Nama Pegawai: <?= htmlspecialchars($userData['nama']) ?></h6>
                     </div>
@@ -1738,7 +1738,7 @@ ob_clean();
                             $lkh_grouped[$date_key][] = $lkh;
                         }
                         ?>
-                        <div class="table-responsive">
+                        <div class="table-responsive talim-preview-scroll">
                             <table class="table table-bordered table-striped table-sm">
                                 <thead class="table-primary">
                                     <tr class="text-center">
@@ -1841,7 +1841,7 @@ ob_clean();
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info">
+                    <div class="alert alert-info flex-shrink-0">
                         <i class="fas fa-info-circle me-1"></i>
                         Pilih salah satu LKH terdahulu untuk mengisi form otomatis. Data akan disalin ke form tambah LKH.
                     </div>
@@ -1852,14 +1852,14 @@ ob_clean();
                             <p class="text-muted">Belum ada data LKH terdahulu yang dapat dijadikan referensi.</p>
                         </div>
                     <?php else: ?>
-                        <div class="mb-3">
+                        <div class="mb-3 flex-shrink-0">
                             <div class="search-container">
                                 <i class="fas fa-search search-icon"></i>
                                 <input type="text" class="form-control" id="searchPreviousLkh" placeholder="Cari LKH terdahulu...">
                             </div>
                         </div>
                         
-                        <div style="max-height: 400px; overflow-y: auto;">
+                        <div class="talim-picker-list" style="max-height: 400px; overflow-y: auto;">
                             <?php foreach ($previous_lkh_list as $index => $prev_lkh): ?>
                                 <div class="card mb-2 previous-lkh-item" 
                                      data-nama="<?= htmlspecialchars($prev_lkh['nama_kegiatan_harian']) ?>"

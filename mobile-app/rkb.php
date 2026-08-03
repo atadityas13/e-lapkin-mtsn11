@@ -68,8 +68,10 @@ function get_bulan_aktif($conn, $id_pegawai) {
 }
 
 function set_bulan_aktif($conn, $id_pegawai, $bulan) {
-    $stmt = $conn->prepare("UPDATE pegawai SET bulan_aktif = ? WHERE id_pegawai = ?");
-    $stmt->bind_param("ii", $bulan, $id_pegawai);
+    // Simpan bulan + pastikan tahun_aktif terisi (RKB/LKH berbagi periode yang sama)
+    $tahun = (int) date('Y');
+    $stmt = $conn->prepare("UPDATE pegawai SET bulan_aktif = ?, tahun_aktif = COALESCE(tahun_aktif, ?) WHERE id_pegawai = ?");
+    $stmt->bind_param("iii", $bulan, $tahun, $id_pegawai);
     $stmt->execute();
     $stmt->close();
 }
@@ -1000,7 +1002,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             </div>
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Data RKB yang tampil akan mengikuti bulan yang dipilih.
+                                Data RKB dan LKH akan mengikuti bulan yang dipilih (periode bersama).
                             </div>
                             <input type="hidden" name="set_bulan_aktif" value="1">
                         </form>
@@ -1027,7 +1029,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     </div>
                     <div class="modal-body">
                         <p>Apakah Anda yakin ingin mengubah periode bulan aktif?</p>
-                        <p class="text-muted small">Data RKB yang tampil akan mengikuti bulan yang dipilih.</p>
+                        <p class="text-muted small">Data RKB dan LKH akan mengikuti bulan yang dipilih.</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -1210,8 +1212,8 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
     </div>
 
     <!-- Preview RKB Modal -->
-    <div class="modal fade" id="previewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+    <div class="modal fade talim-preview-modal" id="previewModal" tabindex="-1">
+        <div class="<?= htmlspecialchars(talimModalDialogClass('modal-lg')) ?>">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title">
@@ -1220,7 +1222,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
+                    <div class="mb-3 flex-shrink-0">
                         <h6 class="fw-bold">Periode: <?= $months[$filter_month] . ' ' . $filter_year ?></h6>
                         <h6 class="fw-bold">Nama Pegawai: <?= htmlspecialchars($userData['nama']) ?></h6>
                     </div>
@@ -1231,7 +1233,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <p class="text-muted mb-0">Belum ada data RKB untuk periode ini.</p>
                         </div>
                     <?php else: ?>
-                        <div class="table-responsive">
+                        <div class="table-responsive talim-preview-scroll">
                             <table class="table table-bordered table-striped table-sm">
                                 <thead class="table-primary">
                                     <tr class="text-center">
@@ -1309,7 +1311,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info">
+                    <div class="alert alert-info flex-shrink-0">
                         <i class="fas fa-info-circle me-1"></i>
                         Pilih salah satu RKB terdahulu untuk mengisi form otomatis. Data akan disalin ke form tambah RKB.
                     </div>
@@ -1320,11 +1322,11 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <p class="text-muted">Belum ada data RKB terdahulu yang dapat dijadikan referensi.</p>
                         </div>
                     <?php else: ?>
-                        <div class="mb-3">
+                        <div class="mb-3 flex-shrink-0">
                             <input type="text" class="form-control" id="searchPreviousRkb" placeholder="🔍 Cari RKB terdahulu...">
                         </div>
                         
-                        <div style="max-height: 400px; overflow-y: auto;">
+                        <div class="talim-picker-list" style="max-height: 400px; overflow-y: auto;">
                             <?php foreach ($previous_rkb_list as $index => $prev_rkb): ?>
                                 <div class="card mb-2 previous-rkb-item" 
                                      data-uraian="<?= htmlspecialchars($prev_rkb['uraian_kegiatan']) ?>"

@@ -111,8 +111,9 @@ function get_bulan_aktif($conn, $id_pegawai) {
     return $bulan_aktif ?: (int)date('m');
 }
 function set_bulan_aktif($conn, $id_pegawai, $bulan) {
-    $stmt = $conn->prepare("UPDATE pegawai SET bulan_aktif = ? WHERE id_pegawai = ?");
-    $stmt->bind_param("ii", $bulan, $id_pegawai);
+    $tahun = (int) date('Y');
+    $stmt = $conn->prepare("UPDATE pegawai SET bulan_aktif = ?, tahun_aktif = COALESCE(tahun_aktif, ?) WHERE id_pegawai = ?");
+    $stmt->bind_param("iii", $bulan, $tahun, $id_pegawai);
     $stmt->execute();
     $stmt->close();
 }
