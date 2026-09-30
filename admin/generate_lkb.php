@@ -343,7 +343,7 @@ include '../template/topbar.php';
                                         unlink($pdf_path);
                                     }
                                     $pdf_file = generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
-                                    $pdf_url = str_replace('../', '', $pdf_file);
+                                    $pdf_url = str_replace('../', '', $pdf_file) . '?v=' . filemtime($pdf_file);
                                     // SweetAlert success
                                     echo "
                                         <script>
