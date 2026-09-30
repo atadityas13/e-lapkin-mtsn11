@@ -373,15 +373,8 @@ include '../template/topbar.php';
 
                             if ($count_rkb == 0) {
                                 echo '<div class="alert alert-danger">Data RKB bulan ini belum ada. Mohon input RKB terlebih dahulu.</div>';
-                            } elseif ($status_verval_rkb !== 'disetujui') {
-                                echo '<div class="alert alert-warning">RKB bulan ini belum disetujui. Silakan ajukan dan tunggu approval.</div>';
-                            }
-                            // Kondisi ini dihapus karena LKH tidak lagi jadi bagian dari tampilan LKB
-                            /* elseif ($unapproved_lkh_count > 0) {
-                                echo '<div class="alert alert-warning">Masih ada LKH bulan ini yang belum disetujui. Pastikan semua LKH sudah disetujui sebelum membuat LKB.</div>';
-                            } */
-                            else {
-                                // Sudah ada data RKB dan disetujui
+                            } else {
+                                // Sudah ada data RKB (tidak perlu menunggu approval)
                                 if ($aksi === 'generate' && isset($_POST['tempat_cetak']) && isset($_POST['tanggal_cetak'])) {
                                     // Hapus file lama jika ada
                                     if (file_exists($pdf_path)) {

@@ -12,6 +12,7 @@ session_start();
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/rkb_kuantitas_helper.php';
+require_once __DIR__ . '/../config/periode_berikutnya_helper.php';
 require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login (only validate session, not headers for dashboard)
@@ -75,6 +76,8 @@ function set_mobile_notification($type, $title, $text) {
         'text' => $text
     ];
 }
+
+handle_tawaran_periode_berikutnya($conn, (int) $id_pegawai_login, 'LKH', (int) $filter_month, (int) $filter_year, 'lkh.php');
 
 // Handle POST requests
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -2001,6 +2004,11 @@ ob_clean();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <?php if (!isset($_SESSION['mobile_notification_keep_modal'])
+        && !periode_berikutnya_ditunda('LKH', (int) $filter_month, (int) $filter_year)
+        && laporan_periode_sudah_digenerate($conn, (int) $id_pegawai_login, 'LKH', (int) $filter_month, (int) $filter_year)): ?>
+        <?= render_tawaran_periode_berikutnya_script('LKH', (int) $filter_month, (int) $filter_year) ?>
+    <?php endif; ?>
     
     <script>
         // Show notifications

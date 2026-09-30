@@ -401,12 +401,8 @@ include '../template/topbar.php';
                   echo '<div class="alert alert-danger">Data LKH bulan ini belum ada.</div>';
                   $show_generate = false;
                   $show_download = false;
-              } elseif ($status_verval !== 'disetujui') {
-                  echo '<div class="alert alert-warning">LKH bulan ini belum disetujui. Silakan ajukan dan tunggu approval.</div>';
-                  $show_generate = false;
-                  $show_download = false;
               } else {
-                  // Sudah ada data dan sudah disetujui
+                  // Sudah ada data LKH (tidak perlu menunggu approval)
                   if ($aksi === 'generate' && isset($_POST['tempat_cetak']) && isset($_POST['tanggal_cetak'])) {
                       // Hapus file lama jika ada
                       if (file_exists($pdf_path)) {

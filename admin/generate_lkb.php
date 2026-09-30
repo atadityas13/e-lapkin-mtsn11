@@ -95,6 +95,39 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $stmt->close();
 
     $pdf = new FPDF('P', 'mm', 'A4');
+
+    // --- COVER PAGE (sama dengan generate LKB mobile/user) ---
+    $pdf->AddPage();
+    $pdf->SetMargins(20, 20, 20);
+    $pdf->SetAutoPageBreak(false);
+    $pdf->Image(__DIR__ . '/../assets/img/cover_background.jpg', 0, 0, $pdf->GetPageWidth(), $pdf->GetPageHeight());
+    $pdf->SetFont('Times', 'B', 24);
+    $pdf->SetY(40);
+    $pdf->Cell(0, 10, 'LAPORAN KINERJA HARIAN', 0, 1, 'C');
+    $pdf->SetFont('Times', 'B', 22);
+    $pdf->Cell(0, 10, 'BULAN ' . strtoupper($months[$bulan]), 0, 1, 'C');
+    $pdf->Cell(0, 10, 'TAHUN ' . $tahun, 0, 1, 'C');
+    $pdf->Ln(30);
+    $logo_path = __DIR__ . '/../assets/img/logo_kemenag.png';
+    if (file_exists($logo_path)) {
+        $pdf->Image($logo_path, ($pdf->GetPageWidth() / 2) - 25, $pdf->GetY(), 50, 50);
+    } else {
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 50, '[LOGO NOT FOUND]', 0, 1, 'C');
+    }
+    $pdf->Ln(20);
+    $pdf->SetFont('Times', 'B', 16);
+    $pdf->SetY($pdf->GetPageHeight() - 100);
+    $pdf->Cell(0, 8, $nama_pegawai, 0, 1, 'C');
+    $pdf->SetFont('Times', '', 14);
+    $pdf->Cell(0, 8, 'NIP. ' . $nip, 0, 1, 'C');
+    $pdf->Ln(30);
+    $pdf->SetFont('Times', 'B', 18);
+    $pdf->Cell(0, 8, 'MTsN 11 MAJALENGKA', 0, 1, 'C');
+    $pdf->SetFont('Times', 'B', 16);
+    $pdf->Cell(0, 8, 'KEMENTERIAN AGAMA KABUPATEN MAJALENGKA', 0, 1, 'C');
+    // --- END OF COVER PAGE ---
+
     $pdf->AddPage();
 
     // Set margins
@@ -298,10 +331,8 @@ include '../template/topbar.php';
 
                             if ($count_rkb == 0) {
                                 echo '<div class="alert alert-danger">Data RKB bulan ini belum ada. Mohon input RKB terlebih dahulu.</div>';
-                            } elseif ($status_verval_rkb !== 'disetujui') {
-                                echo '<div class="alert alert-warning">RKB bulan ini belum disetujui. Silakan ajukan dan tunggu approval.</div>';
                             } else {
-                                // Sudah ada data RKB dan disetujui
+                                // Sudah ada data RKB (tidak perlu menunggu approval)
                                 if ($aksi === 'generate' && isset($_POST['tempat_cetak']) && isset($_POST['tanggal_cetak'])) {
                                     // Hapus file lama jika ada
                                     if (file_exists($pdf_path)) {

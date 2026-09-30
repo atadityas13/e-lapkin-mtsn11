@@ -202,22 +202,8 @@ include __DIR__ . '/../template/topbar.php';
                                                     continue;
                                                 }
 
-                                                if ($status_verval_rkb === null || $status_verval_rkb === '' || $status_verval_rkb === 'draft') {
-                                                    echo '<tr>
-                                                            <td>' . $months[$bulan] . '</td>
-                                                            <td>' . $tahun . '</td>
-                                                            <td class="text-center"><span class="badge bg-secondary">Belum Terkirim</span></td>
-                                                        </tr>';
-                                                    continue;
-                                                } elseif ($status_verval_rkb === 'diajukan') {
-                                                    echo '<tr>
-                                                            <td>' . $months[$bulan] . '</td>
-                                                            <td>' . $tahun . '</td>
-                                                            <td class="text-center"><span class="badge bg-warning text-dark">Menunggu Approval</span></td>
-                                                        </tr>';
-                                                    continue;
-                                                } elseif ($status_verval_rkb === 'disetujui') {
-                                                    // Sudah disetujui, cek file PDF LKB
+                                                if ($count_rkb > 0) {
+                                                    // Tanpa approval: langsung bisa generate, cek file PDF LKB
                                                     $pdf_exists_lkb = lkb_pdf_exists($selected_id_pegawai, $bulan, $tahun, $nama_file_nip, $months);
                                                     $lkb_filename_for_download = "LKB_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
                                                     echo '<tr>
@@ -246,7 +232,7 @@ include __DIR__ . '/../template/topbar.php';
                                         </tbody>
                                     </table>
                                 </div>
-                                <small class="text-muted d-block mt-2">* LKB dapat digenerate jika RKB sudah diapprove pada bulan tersebut.</small>
+                                <small class="text-muted d-block mt-2">* LKB dapat langsung digenerate jika data RKB bulan tersebut sudah ada.</small>
                             </div>
                         </div>
                     </div>
@@ -292,22 +278,8 @@ include __DIR__ . '/../template/topbar.php';
                                                     continue;
                                                 }
 
-                                                if ($status_verval_lkh === null || $status_verval_lkh === '' || $status_verval_lkh === 'draft') {
-                                                    echo '<tr>
-                                                            <td>' . $months[$bulan] . '</td>
-                                                            <td>' . $tahun . '</td>
-                                                            <td class="text-center"><span class="badge bg-secondary">Belum Terkirim</span></td>
-                                                        </tr>';
-                                                    continue;
-                                                } elseif ($status_verval_lkh === 'diajukan') {
-                                                    echo '<tr>
-                                                            <td>' . $months[$bulan] . '</td>
-                                                            <td>' . $tahun . '</td>
-                                                            <td class="text-center"><span class="badge bg-warning text-dark">Menunggu Approval</span></td>
-                                                        </tr>';
-                                                    continue;
-                                                } elseif ($status_verval_lkh === 'disetujui') {
-                                                    // Sudah disetujui, cek file PDF LKH
+                                                if ($count_lkh > 0) {
+                                                    // Tanpa approval: langsung bisa generate, cek file PDF LKH
                                                     $pdf_exists_lkh = lkh_pdf_exists($selected_id_pegawai, $bulan, $tahun, $nama_file_nip, $months);
                                                     $lkh_filename_for_download = "LKH_{$months[$bulan]}_{$tahun}_{$nama_file_nip}.pdf";
                                                     echo '<tr>
@@ -336,7 +308,7 @@ include __DIR__ . '/../template/topbar.php';
                                         </tbody>
                                     </table>
                                 </div>
-                                <small class="text-muted d-block mt-2">* LKH dapat digenerate jika LKH sudah diapprove pada bulan tersebut.</small>
+                                <small class="text-muted d-block mt-2">* LKH dapat langsung digenerate jika data LKH bulan tersebut sudah ada.</small>
                             </div>
                         </div>
                     </div>
