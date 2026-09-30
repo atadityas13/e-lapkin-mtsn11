@@ -36,6 +36,7 @@ session_start();
 require_once __DIR__ . '/../template/session_admin.php';
 require_once '../config/database.php';
 require_once '../vendor/fpdf/fpdf.php'; // Pastikan path sesuai lokasi fpdf.php Anda
+require_once __DIR__ . '/../config/ttd_helper.php';
 
 // Validasi parameter
 $id_pegawai = $_GET['id_pegawai'] ?? '';
@@ -256,6 +257,8 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Cell($col_width, 4, 'Pejabat Penilai,', 0, 0, 'L'); // Pejabat Penilai
     $pdf->Cell($gap); // Jarak antar kolom
     $pdf->Cell($col_width, 4, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
+
+    pdf_bubuhkan_ttd_laporan($conn, $pdf, (int) $id_pegawai, $unit_kerja, $nip_penilai, $left_margin, $left_margin + $col_width + $gap, $pdf->GetY());
 
     $pdf->Ln(20); // Reduced signature space for compactness
 
