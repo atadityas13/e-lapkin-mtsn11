@@ -137,7 +137,8 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
 
     // Header
     $pdf->SetFont('Arial', 'B', 13);
-    $pdf->Cell(0, 8, '    LAPORAN KINERJA BULANAN', 0, 1, 'C');
+    $pdf->SetX(15);
+    $pdf->Cell(0, 8, 'LAPORAN KINERJA BULANAN', 0, 1, 'C');
     $pdf->Cell(0, 8, 'SASARAN KINERJA PEGAWAI', 0, 1, 'C');
     $pdf->Ln(4);
 

@@ -327,7 +327,7 @@ if (!function_exists('ensure_ttd_schema')) {
 
         $tipe = tipe_penilai_pegawai($unit_kerja, $nip_penilai);
         pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'ttd'), $x_penilai + $lebar_area / 2, $tengah_y, 16, 45, true);
-        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'cap'), $x_penilai, $tengah_y, 30, 32, true);
+        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'cap'), $x_penilai, $tengah_y, 40, 42, true);
 
         pdf_tempel_ttd($pdf, get_ttd_pegawai($conn, $id_pegawai), $x_pegawai, $y, 20, 45);
     }
