@@ -287,8 +287,6 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
     $nama = trim($profile['nama'] ?? 'Guru');
     $jabatan = trim($profile['jabatan'] ?? 'Guru');
     $unitKerja = trim($profile['unit_kerja'] ?? 'MTsN 11 Majalengka');
-    $nipPenilai = trim($profile['nip_penilai'] ?? '');
-    $namaPenilai = trim($profile['nama_penilai'] ?? '');
 
     $stmt = $conn->prepare('SELECT id_pegawai FROM pegawai WHERE nip = ? LIMIT 1');
     if ($stmt === false) {
@@ -309,15 +307,16 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
 
     if ($row) {
         $id = (int) $row['id_pegawai'];
+        // Pejabat penilai diatur dari e-Lapkin (pengaturan / manajemen user), bukan dari profil SSO.
         $stmt = $conn->prepare(
-            'UPDATE pegawai SET nama = ?, jabatan = ?, unit_kerja = ?, nip_penilai = ?, nama_penilai = ?, status = ? WHERE id_pegawai = ?'
+            'UPDATE pegawai SET nama = ?, jabatan = ?, unit_kerja = ?, status = ? WHERE id_pegawai = ?'
         );
         if ($stmt === false) {
             error_log('syncFeatureShadowPegawai prepare(update) failed: '.$conn->error);
             return null;
         }
         $status = 'approved';
-        $stmt->bind_param('ssssssi', $nama, $jabatan, $unitKerja, $nipPenilai, $namaPenilai, $status, $id);
+        $stmt->bind_param('ssssi', $nama, $jabatan, $unitKerja, $status, $id);
         if ($stmt->execute() === false) {
             error_log('syncFeatureShadowPegawai execute(update) failed: '.$conn->error);
             $stmt->close();
@@ -327,6 +326,7 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
         return $id;
     }
 
+    [$nipPenilai, $namaPenilai] = defaultPenilaiForUnitKerja($unitKerja);
     $passwordHash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
     $role = 'user';
     $status = 'approved';
@@ -348,6 +348,48 @@ function syncFeatureShadowPegawai(mysqli $conn, array $profile): ?int
     $stmt->close();
 
     return $id > 0 ? $id : null;
+}
+
+/**
+ * Penilai default dari config/penilai_settings.json (sama seperti register.php).
+ *
+ * @return array{0: string, 1: string} [nip_penilai, nama_penilai]
+ */
+function defaultPenilaiForUnitKerja(string $unitKerja): array
+{
+    $settingsFile = __DIR__ . '/../../config/penilai_settings.json';
+    if (!is_file($settingsFile)) {
+        return ['', ''];
+    }
+
+    $settings = json_decode((string) file_get_contents($settingsFile), true);
+    if (!is_array($settings)) {
+        return ['', ''];
+    }
+
+    $key = $unitKerja === 'Tata Usaha MTsN 11 Majalengka' ? 'penilai_tata_usaha' : 'penilai_mtsn';
+    $penilai = $settings[$key] ?? [];
+
+    return [trim((string) ($penilai['nip'] ?? '')), trim((string) ($penilai['nama'] ?? ''))];
+}
+
+/**
+ * @return array{0: string, 1: string} [nip_penilai, nama_penilai]
+ */
+function fetchPegawaiPenilai(mysqli $conn, int $idPegawai): array
+{
+    $stmt = $conn->prepare('SELECT nip_penilai, nama_penilai FROM pegawai WHERE id_pegawai = ? LIMIT 1');
+    if ($stmt === false) {
+        return ['', ''];
+    }
+
+    $stmt->bind_param('i', $idPegawai);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
+    $stmt->close();
+
+    return [(string) ($row['nip_penilai'] ?? ''), (string) ($row['nama_penilai'] ?? '')];
 }
 
 function performMobileSsoLogin(mysqli $conn, string $nip, int $timestamp, string $signature, array $profile, string $profileHash = ''): array
@@ -379,8 +421,9 @@ function performMobileSsoLogin(mysqli $conn, string $nip, int $timestamp, string
     $_SESSION['mobile_role'] = 'user';
     $_SESSION['mobile_sso'] = true;
     $_SESSION['mobile_simpatisans'] = true;
-    $_SESSION['mobile_nip_penilai'] = $profile['nip_penilai'] ?? '';
-    $_SESSION['mobile_nama_penilai'] = $profile['nama_penilai'] ?? '';
+    [$nipPenilai, $namaPenilai] = fetchPegawaiPenilai($conn, $idPegawai);
+    $_SESSION['mobile_nip_penilai'] = $nipPenilai;
+    $_SESSION['mobile_nama_penilai'] = $namaPenilai;
     $_SESSION['mobile_kode_guru'] = $profile['kode_guru'] ?? '';
 
     return [
