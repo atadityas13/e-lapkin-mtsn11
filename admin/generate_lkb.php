@@ -258,7 +258,7 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Cell($gap); // Jarak antar kolom
     $pdf->Cell($col_width, 4, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
 
-    pdf_bubuhkan_ttd_laporan($conn, $pdf, (int) $id_pegawai, $unit_kerja, $nip_penilai, $left_margin, $left_margin + $col_width + $gap, $pdf->GetY());
+    pdf_bubuhkan_ttd_laporan($conn, $pdf, (int) $id_pegawai, $unit_kerja, $nip_penilai, $left_margin, $left_margin + $col_width + $gap, $pdf->GetY(), $nama_penilai);
 
     $pdf->Ln(20); // Reduced signature space for compactness
 

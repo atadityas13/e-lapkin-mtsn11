@@ -276,8 +276,9 @@ if (!function_exists('ensure_ttd_schema')) {
 
     /**
      * Tempel gambar TTD ke PDF (tinggi tetap, lebar proporsional dengan batas maksimum).
+     * Jika $tengah = true, ($x, $y) adalah titik tengah gambar.
      */
-    function pdf_tempel_ttd(FPDF $pdf, ?string $data_uri, float $x, float $y, float $tinggi = 18, float $lebar_maks = 50): void
+    function pdf_tempel_ttd(FPDF $pdf, ?string $data_uri, float $x, float $y, float $tinggi = 18, float $lebar_maks = 50, bool $tengah = false): void
     {
         if (!$data_uri || !preg_match('#^data:image/(png|jpeg);base64,(.+)$#s', $data_uri, $m)) {
             return;
@@ -293,6 +294,10 @@ if (!function_exists('ensure_ttd_schema')) {
             $lebar = $lebar_maks;
             $tinggi = $lebar * $info[1] / $info[0];
         }
+        if ($tengah) {
+            $x -= $lebar / 2;
+            $y -= $tinggi / 2;
+        }
 
         $tmp = tempnam(sys_get_temp_dir(), 'ttd');
         file_put_contents($tmp, $biner);
@@ -305,18 +310,25 @@ if (!function_exists('ensure_ttd_schema')) {
 
     /**
      * Tempel TTD penilai (kolom kiri) & pegawai (kolom kanan) di ruang tanda tangan laporan.
-     * $y = baris setelah "Pejabat Penilai,"; nama dicetak ±20 mm di bawahnya.
-     * Cap (±30 mm) menimpa sepertiga kiri TTD penilai dan sedikit mengenai nama, seperti cap basah.
+     * $y = baris setelah "Pejabat Penilai,"; nama dicetak 20 mm di bawahnya.
+     * Area TTD penilai = lebar blok teks (label/nama/NIP) × 20 mm; TTD di tengah area,
+     * titik tengah cap tepat di tepi kiri teks.
+     * Font dikembalikan ke Arial 10 reguler (sama dengan baris label).
      */
-    function pdf_bubuhkan_ttd_laporan(mysqli $conn, FPDF $pdf, int $id_pegawai, ?string $unit_kerja, ?string $nip_penilai, float $x_penilai, float $x_pegawai, float $y): void
+    function pdf_bubuhkan_ttd_laporan(mysqli $conn, FPDF $pdf, int $id_pegawai, ?string $unit_kerja, ?string $nip_penilai, float $x_penilai, float $x_pegawai, float $y, ?string $nama_penilai = null): void
     {
-        $tipe = tipe_penilai_pegawai($unit_kerja, $nip_penilai);
-        $cap = get_ttd_penilai($conn, $tipe, 'cap');
+        $tinggi_area = 20;
+        $tengah_y = $y + $tinggi_area / 2;
 
-        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'ttd'), $cap ? $x_penilai + 12 : $x_penilai, $y, 20, 45);
-        if ($cap) {
-            pdf_tempel_ttd($pdf, $cap, $x_penilai - 3, $y - 6, 30, 32);
-        }
+        $pdf->SetFont('Arial', 'B', 10);
+        $lebar_area = $pdf->GetStringWidth((string) $nama_penilai);
+        $pdf->SetFont('Arial', '', 10);
+        $lebar_area = max($lebar_area, $pdf->GetStringWidth('NIP. ' . $nip_penilai), $pdf->GetStringWidth('Pejabat Penilai,'));
+
+        $tipe = tipe_penilai_pegawai($unit_kerja, $nip_penilai);
+        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'ttd'), $x_penilai + $lebar_area / 2, $tengah_y, 16, 45, true);
+        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'cap'), $x_penilai, $tengah_y, 30, 32, true);
+
         pdf_tempel_ttd($pdf, get_ttd_pegawai($conn, $id_pegawai), $x_pegawai, $y, 20, 45);
     }
 
