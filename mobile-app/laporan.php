@@ -27,7 +27,8 @@ if ($is_talim_embed) {
     ensureTalimPeriod($conn, $id_pegawai_login);
 }
 
-$punya_ttd = get_ttd_pegawai($conn, (int) $id_pegawai_login) !== null;
+$ttd_tersimpan = get_ttd_pegawai($conn, (int) $id_pegawai_login);
+$punya_ttd = $ttd_tersimpan !== null;
 
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -1118,7 +1119,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             ctx.lineWidth = 2.5;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.strokeStyle = '#1a237e';
+            ctx.strokeStyle = '#000000';
             let drawing = false;
             pad.dataset.empty = '1';
 
@@ -1147,19 +1148,48 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             });
         }
 
+        function ttdPakaiEditor(pad) {
+            return !pad.querySelector('.ttd-editor').classList.contains('d-none');
+        }
+
         document.querySelectorAll('.js-ttd-toggle').forEach(function (toggle) {
             toggle.addEventListener('change', function () {
                 const pad = document.getElementById(this.dataset.pad);
                 if (!pad) return;
                 pad.classList.toggle('d-none', !this.checked);
-                if (this.checked) initTtdPad(pad);
+                if (this.checked && ttdPakaiEditor(pad)) initTtdPad(pad);
             });
+        });
+
+        document.querySelectorAll('.ttd-pad').forEach(function (pad) {
+            const preview = pad.querySelector('.ttd-preview');
+            const editor = pad.querySelector('.ttd-editor');
+            const ganti = pad.querySelector('.js-ttd-ganti');
+            const batal = pad.querySelector('.js-ttd-batal');
+            if (ganti) {
+                ganti.addEventListener('click', function () {
+                    preview.classList.add('d-none');
+                    editor.classList.remove('d-none');
+                    initTtdPad(pad);
+                });
+            }
+            if (batal) {
+                batal.addEventListener('click', function () {
+                    editor.classList.add('d-none');
+                    preview.classList.remove('d-none');
+                    pad.querySelector('input[name="ttd_data"]').value = '';
+                });
+            }
         });
 
         function siapkanTtd(form) {
             const toggle = form.querySelector('.js-ttd-toggle');
             const pad = toggle ? document.getElementById(toggle.dataset.pad) : null;
             if (!toggle || !toggle.checked || !pad) {
+                return true;
+            }
+            if (!ttdPakaiEditor(pad)) {
+                pad.querySelector('input[name="ttd_data"]').value = '';
                 return true;
             }
             if (pad.dataset.empty !== '0') {

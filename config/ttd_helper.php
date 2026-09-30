@@ -200,11 +200,11 @@ if (!function_exists('ensure_ttd_schema')) {
             return ['ok' => true, 'dengan_ttd' => false];
         }
 
-        if (get_ttd_pegawai($conn, $id_pegawai) !== null) {
+        $data = (string) ($post['ttd_data'] ?? '');
+        if ($data === '' && get_ttd_pegawai($conn, $id_pegawai) !== null) {
             return ['ok' => true, 'dengan_ttd' => true];
         }
 
-        $data = (string) ($post['ttd_data'] ?? '');
         if ($data === '' || !simpan_ttd_pegawai($conn, $id_pegawai, $data)) {
             return ['ok' => false, 'dengan_ttd' => true, 'message' => 'Tanda tangan belum dibuat atau tidak valid. Silakan buat tanda tangan terlebih dahulu.'];
         }
