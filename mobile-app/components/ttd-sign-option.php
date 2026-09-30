@@ -43,5 +43,4 @@
             </button>
         </div>
     </div>
-    <input type="hidden" name="ttd_data" value="">
 </div>

@@ -69,6 +69,19 @@ if (!function_exists('ensure_ttd_schema')) {
         return $ttd ?: null;
     }
 
+    function simpan_ttd_pegawai_file(mysqli $conn, int $id_pegawai, string $path): bool
+    {
+        if (!is_file($path) || filesize($path) > TTD_MAKS_BYTE) {
+            return false;
+        }
+        $biner = file_get_contents($path);
+        if ($biner === false || $biner === '') {
+            return false;
+        }
+
+        return simpan_ttd_pegawai($conn, $id_pegawai, 'data:image/png;base64,' . base64_encode($biner));
+    }
+
     function simpan_ttd_pegawai(mysqli $conn, int $id_pegawai, string $data_uri): bool
     {
         ensure_ttd_schema($conn);

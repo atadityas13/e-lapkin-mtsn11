@@ -1177,63 +1177,79 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                 batal.addEventListener('click', function () {
                     editor.classList.add('d-none');
                     preview.classList.remove('d-none');
-                    pad.querySelector('input[name="ttd_data"]').value = '';
                 });
             }
         });
 
-        function siapkanTtd(form) {
-            const toggle = form.querySelector('.js-ttd-toggle');
-            const pad = toggle ? document.getElementById(toggle.dataset.pad) : null;
-            if (!toggle || !toggle.checked || !pad) {
-                return true;
-            }
-            if (!ttdPakaiEditor(pad)) {
-                pad.querySelector('input[name="ttd_data"]').value = '';
-                return true;
-            }
-            if (pad.dataset.empty !== '0') {
-                Swal.fire({ icon: 'warning', title: 'Tanda Tangan', text: 'Silakan buat tanda tangan terlebih dahulu di kotak yang tersedia.' });
-                return false;
-            }
-            pad.querySelector('input[name="ttd_data"]').value = pad.querySelector('.ttd-canvas').toDataURL('image/png');
-            return true;
+        function tampilkanLoaderGenerate(jenis) {
+            Swal.fire({
+                title: 'Tunggu sebentar...',
+                text: jenis + ' sedang diproses. Mohon tunggu hingga selesai.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
         }
 
-        // Loader on form submit for Generate LKB
-        document.getElementById('generateLkbForm').addEventListener('submit', function(e) {
-            if (!siapkanTtd(this)) {
-                e.preventDefault();
-                return;
-            }
-            Swal.fire({
-                title: 'Tunggu sebentar...',
-                text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+        function uploadTtd(canvas) {
+            return new Promise(function (resolve, reject) {
+                canvas.toBlob(function (blob) {
+                    if (!blob) {
+                        reject(new Error('Gagal membaca tanda tangan.'));
+                        return;
+                    }
+                    const data = new FormData();
+                    data.append('ttd', blob, 'ttd.png');
+                    fetch('simpan_ttd.php', { method: 'POST', body: data, credentials: 'same-origin' })
+                        .then(function (res) {
+                            return res.json().catch(function () {
+                                throw new Error('Server menolak tanda tangan (HTTP ' + res.status + ').');
+                            });
+                        })
+                        .then(function (json) {
+                            if (!json.ok) {
+                                throw new Error(json.message || 'Tanda tangan gagal disimpan.');
+                            }
+                            resolve();
+                        })
+                        .catch(reject);
+                }, 'image/png');
             });
-            // Form will submit normally after showing loader
-        });
+        }
 
-        // Loader on form submit for Generate LKH
-        document.getElementById('generateLkhForm').addEventListener('submit', function(e) {
-            if (!siapkanTtd(this)) {
-                e.preventDefault();
-                return;
-            }
-            Swal.fire({
-                title: 'Tunggu sebentar...',
-                text: 'LKH sedang diproses. Mohon tunggu hingga selesai.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
+        function pasangSubmitGenerate(formId, jenis) {
+            const form = document.getElementById(formId);
+            form.addEventListener('submit', function (e) {
+                const toggle = form.querySelector('.js-ttd-toggle');
+                const pad = toggle ? document.getElementById(toggle.dataset.pad) : null;
+                const perluUpload = toggle && toggle.checked && pad && ttdPakaiEditor(pad);
+
+                if (!perluUpload) {
+                    tampilkanLoaderGenerate(jenis);
+                    return;
                 }
+
+                e.preventDefault();
+                if (pad.dataset.empty !== '0') {
+                    Swal.fire({ icon: 'warning', title: 'Tanda Tangan', text: 'Silakan buat tanda tangan terlebih dahulu di kotak yang tersedia.' });
+                    return;
+                }
+
+                tampilkanLoaderGenerate(jenis);
+                uploadTtd(pad.querySelector('.ttd-canvas'))
+                    .then(function () {
+                        form.submit();
+                    })
+                    .catch(function (err) {
+                        Swal.fire({ icon: 'error', title: 'Tanda Tangan', text: err.message });
+                    });
             });
-        });
+        }
+
+        pasangSubmitGenerate('generateLkbForm', 'LKB');
+        pasangSubmitGenerate('generateLkhForm', 'LKH');
 
         // Loader if session mobile_loader is set (server-side)
         <?php if (isset($_SESSION['mobile_loader']) && $_SESSION['mobile_loader']): ?>
