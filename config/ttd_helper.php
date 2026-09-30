@@ -46,7 +46,7 @@ if (!function_exists('ensure_ttd_schema')) {
     }
 
     /**
-     * Ubah latar putih/terang jadi transparan, potong area kosong, dan batasi ukuran (maks 800px).
+     * Ubah latar putih/terang jadi transparan, potong area kosong, dan batasi ukuran (maks 1200px).
      * Mengembalikan biner PNG, atau null jika GD tidak tersedia / gambar tidak terbaca.
      */
     function olah_gambar_ttd(string $biner): ?string
@@ -61,7 +61,7 @@ if (!function_exists('ensure_ttd_schema')) {
 
         $w = imagesx($src);
         $h = imagesy($src);
-        $skala = min(1, 800 / max($w, $h));
+        $skala = min(1, 1200 / max($w, $h));
         $nw = max(1, (int) round($w * $skala));
         $nh = max(1, (int) round($h * $skala));
 
@@ -326,10 +326,10 @@ if (!function_exists('ensure_ttd_schema')) {
         $lebar_area = max($lebar_area, $pdf->GetStringWidth('NIP. ' . $nip_penilai), $pdf->GetStringWidth('Pejabat Penilai,'));
 
         $tipe = tipe_penilai_pegawai($unit_kerja, $nip_penilai);
-        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'ttd'), $x_penilai + $lebar_area / 2, $tengah_y, 16, 45, true);
+        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'ttd'), $x_penilai + $lebar_area / 2, $tengah_y, 14, 40, true);
         pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'cap'), $x_penilai, $tengah_y, 40, 42, true);
 
-        pdf_tempel_ttd($pdf, get_ttd_pegawai($conn, $id_pegawai), $x_pegawai, $y, 20, 45);
+        pdf_tempel_ttd($pdf, get_ttd_pegawai($conn, $id_pegawai), $x_pegawai, $y + 2, 16, 40);
     }
 
     /**

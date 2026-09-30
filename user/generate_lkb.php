@@ -400,7 +400,7 @@ include '../template/topbar.php';
                                     $show_generate = false;
                                     $show_download = true;
                                 } elseif (file_exists($pdf_path)) {
-                                    $pdf_url = str_replace('../', '', $pdf_path);
+                                    $pdf_url = str_replace('../', '', $pdf_path) . '?v=' . filemtime($pdf_path);
                                     $show_generate = false;
                                     $show_download = true;
                                 } else {

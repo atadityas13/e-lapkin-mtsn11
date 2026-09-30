@@ -156,7 +156,7 @@ include '../template/topbar.php';
                                                         <td>' . $tahun . '</td>
                                                         <td class="text-center">';
                                                 if ($pdf_exists_lkb) {
-                                                    echo '<a href="../generated/' . $lkb_filename_for_download . '" class="btn btn-success btn-sm" target="_blank">
+                                                    echo '<a href="../generated/' . $lkb_filename_for_download . '?v=' . @filemtime('../generated/' . $lkb_filename_for_download) . '" class="btn btn-success btn-sm" target="_blank">
                                                                 <i class="fas fa-download"></i> Download
                                                             </a>
                                                             <button type="button" class="btn btn-warning btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#generateLkbModal" 
@@ -233,7 +233,7 @@ include '../template/topbar.php';
                                                         <td>' . $tahun . '</td>
                                                         <td class="text-center">';
                                                 if ($pdf_exists_lkh) {
-                                                    echo '<a href="../generated/' . $lkh_filename_for_download . '" class="btn btn-success btn-sm" target="_blank">
+                                                    echo '<a href="../generated/' . $lkh_filename_for_download . '?v=' . @filemtime('../generated/' . $lkh_filename_for_download) . '" class="btn btn-success btn-sm" target="_blank">
                                                                 <i class="fas fa-download"></i> Download
                                                             </a>
                                                             <button type="button" class="btn btn-warning btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#generateLkhModal" 

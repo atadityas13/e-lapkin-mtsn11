@@ -637,7 +637,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                                     <?= talimRenderPdfActions($lkb_filename_for_download) ?>
                                                 <?php else: ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
-                                                        onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>', '<?= $lkb_filename_for_download ?>')">
+                                                        onclick="downloadFile('../generated/<?= $lkb_filename_for_download ?>?v=<?= @filemtime(__DIR__ . '/../generated/' . $lkb_filename_for_download) ?>', '<?= $lkb_filename_for_download ?>')">
                                                     <i class="fas fa-download me-1"></i>Download
                                                 </button>
                                                 <?php endif; ?>
@@ -739,7 +739,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                                                     <?= talimRenderPdfActions($lkh_filename_for_download) ?>
                                                 <?php else: ?>
                                                 <button type="button" class="btn btn-download btn-sm" 
-                                                        onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>', '<?= $lkh_filename_for_download ?>')">
+                                                        onclick="downloadFile('../generated/<?= $lkh_filename_for_download ?>?v=<?= @filemtime(__DIR__ . '/../generated/' . $lkh_filename_for_download) ?>', '<?= $lkh_filename_for_download ?>')">
                                                     <i class="fas fa-download me-1"></i>Download
                                                 </button>
                                                 <?php endif; ?>
@@ -1114,34 +1114,53 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             }
             pad.dataset.ready = '1';
             const canvas = pad.querySelector('.ttd-canvas');
-            canvas.width = canvas.clientWidth || 300;
+            const skala = Math.min(4, Math.max(3, window.devicePixelRatio || 1));
+            const lebarCss = canvas.clientWidth || 300;
+            const tinggiCss = canvas.clientHeight || 160;
+            canvas.width = Math.round(lebarCss * skala);
+            canvas.height = Math.round(tinggiCss * skala);
             const ctx = canvas.getContext('2d');
-            ctx.lineWidth = 2.5;
+            ctx.scale(skala, skala);
+            ctx.lineWidth = 1.6;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = '#000000';
+            ctx.imageSmoothingEnabled = true;
             let drawing = false;
+            let titik = [];
             pad.dataset.empty = '1';
 
             const pos = (e) => {
                 const r = canvas.getBoundingClientRect();
-                return [(e.clientX - r.left) * (canvas.width / r.width), (e.clientY - r.top) * (canvas.height / r.height)];
+                return [(e.clientX - r.left) * (lebarCss / r.width), (e.clientY - r.top) * (tinggiCss / r.height)];
             };
             canvas.addEventListener('pointerdown', (e) => {
                 drawing = true;
                 canvas.setPointerCapture(e.pointerId);
-                const [x, y] = pos(e);
-                ctx.beginPath();
-                ctx.moveTo(x, y);
+                titik = [pos(e)];
             });
             canvas.addEventListener('pointermove', (e) => {
                 if (!drawing) return;
-                const [x, y] = pos(e);
-                ctx.lineTo(x, y);
+                titik.push(pos(e));
+                if (titik.length < 3) return;
+                const [p0, p1, p2] = titik.slice(-3);
+                ctx.beginPath();
+                ctx.moveTo((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2);
+                ctx.quadraticCurveTo(p1[0], p1[1], (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2);
                 ctx.stroke();
                 pad.dataset.empty = '0';
             });
-            ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => canvas.addEventListener(ev, () => { drawing = false; }));
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => canvas.addEventListener(ev, () => {
+                if (drawing && titik.length >= 2) {
+                    const [p1, p2] = titik.slice(-2);
+                    ctx.beginPath();
+                    ctx.moveTo((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2);
+                    ctx.lineTo(p2[0], p2[1]);
+                    ctx.stroke();
+                }
+                drawing = false;
+                titik = [];
+            }));
             pad.querySelector('.js-ttd-clear').addEventListener('click', () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 pad.dataset.empty = '1';
