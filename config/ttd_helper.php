@@ -10,6 +10,11 @@ if (!function_exists('ensure_ttd_schema')) {
         'penilai_tata_usaha' => 'Kepala Tata Usaha',
     ]);
 
+    define('TTD_JENIS_PENILAI', [
+        'ttd' => 'Tanda Tangan',
+        'cap' => 'Cap / Stempel',
+    ]);
+
     define('TTD_MAKS_BYTE', 1048576);
 
     function ensure_ttd_schema(mysqli $conn): void
@@ -32,6 +37,90 @@ if (!function_exists('ensure_ttd_schema')) {
                 updated_at DATETIME NOT NULL
             )'
         );
+
+        $kolom_cap = $conn->query("SHOW COLUMNS FROM ttd_penilai LIKE 'cap'");
+        if ($kolom_cap && $kolom_cap->num_rows === 0) {
+            $conn->query('ALTER TABLE ttd_penilai MODIFY ttd MEDIUMTEXT NULL');
+            $conn->query('ALTER TABLE ttd_penilai ADD COLUMN cap MEDIUMTEXT NULL AFTER ttd');
+        }
+    }
+
+    /**
+     * Ubah latar putih/terang jadi transparan, potong area kosong, dan batasi ukuran (maks 800px).
+     * Mengembalikan biner PNG, atau null jika GD tidak tersedia / gambar tidak terbaca.
+     */
+    function olah_gambar_ttd(string $biner): ?string
+    {
+        if (!function_exists('imagecreatefromstring')) {
+            return null;
+        }
+        $src = @imagecreatefromstring($biner);
+        if ($src === false) {
+            return null;
+        }
+
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $skala = min(1, 800 / max($w, $h));
+        $nw = max(1, (int) round($w * $skala));
+        $nh = max(1, (int) round($h * $skala));
+
+        $img = imagecreatetruecolor($nw, $nh);
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+        imagefill($img, 0, 0, imagecolorallocatealpha($img, 255, 255, 255, 127));
+        imagecopyresampled($img, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        imagedestroy($src);
+
+        $minX = $nw;
+        $minY = $nh;
+        $maxX = -1;
+        $maxY = -1;
+        for ($y = 0; $y < $nh; $y++) {
+            for ($x = 0; $x < $nw; $x++) {
+                $rgba = imagecolorat($img, $x, $y);
+                $a = ($rgba >> 24) & 0x7F;
+                $r = ($rgba >> 16) & 0xFF;
+                $g = ($rgba >> 8) & 0xFF;
+                $b = $rgba & 0xFF;
+
+                $terang = min($r, $g, $b);
+                if ($terang >= 235) {
+                    $a = 127;
+                } elseif ($terang > 190) {
+                    $a = max($a, (int) round(($terang - 190) / 45 * 127));
+                }
+                imagesetpixel($img, $x, $y, imagecolorallocatealpha($img, $r, $g, $b, $a));
+
+                if ($a < 110) {
+                    $minX = min($minX, $x);
+                    $minY = min($minY, $y);
+                    $maxX = max($maxX, $x);
+                    $maxY = max($maxY, $y);
+                }
+            }
+        }
+
+        if ($maxX >= 0) {
+            $pad = 4;
+            $minX = max(0, $minX - $pad);
+            $minY = max(0, $minY - $pad);
+            $maxX = min($nw - 1, $maxX + $pad);
+            $maxY = min($nh - 1, $maxY + $pad);
+            $crop = imagecrop($img, ['x' => $minX, 'y' => $minY, 'width' => $maxX - $minX + 1, 'height' => $maxY - $minY + 1]);
+            if ($crop !== false) {
+                imagedestroy($img);
+                $img = $crop;
+                imagealphablending($img, false);
+                imagesavealpha($img, true);
+            }
+        }
+
+        ob_start();
+        imagepng($img);
+        imagedestroy($img);
+
+        return (string) ob_get_clean();
     }
 
     /**
@@ -51,6 +140,11 @@ if (!function_exists('ensure_ttd_schema')) {
         $info = @getimagesizefromstring($biner);
         if ($info === false || !in_array($info['mime'] ?? '', ['image/png', 'image/jpeg'], true)) {
             return null;
+        }
+
+        $png = olah_gambar_ttd($biner);
+        if ($png !== null) {
+            return 'data:image/png;base64,' . base64_encode($png);
         }
 
         return 'data:' . $info['mime'] . ';base64,' . base64_encode($biner);
@@ -97,48 +191,65 @@ if (!function_exists('ensure_ttd_schema')) {
         return $ok;
     }
 
-    function get_ttd_penilai(mysqli $conn, string $tipe): ?string
+    /**
+     * @param 'ttd'|'cap' $jenis
+     */
+    function get_ttd_penilai(mysqli $conn, string $tipe, string $jenis = 'ttd'): ?string
     {
+        if (!isset(TTD_JENIS_PENILAI[$jenis])) {
+            return null;
+        }
         ensure_ttd_schema($conn);
-        $stmt = $conn->prepare('SELECT ttd FROM ttd_penilai WHERE tipe = ? LIMIT 1');
+        $stmt = $conn->prepare("SELECT {$jenis} FROM ttd_penilai WHERE tipe = ? LIMIT 1");
         $stmt->bind_param('s', $tipe);
         $stmt->execute();
-        $stmt->bind_result($ttd);
+        $stmt->bind_result($gambar);
         $stmt->fetch();
         $stmt->close();
 
-        return $ttd ?: null;
+        return $gambar ?: null;
     }
 
-    function simpan_ttd_penilai(mysqli $conn, string $tipe, string $data_uri): bool
+    /**
+     * @param 'ttd'|'cap' $jenis
+     */
+    function simpan_ttd_penilai(mysqli $conn, string $tipe, string $data_uri, string $jenis = 'ttd'): bool
     {
-        if (!isset(TTD_TIPE_PENILAI[$tipe])) {
+        if (!isset(TTD_TIPE_PENILAI[$tipe]) || !isset(TTD_JENIS_PENILAI[$jenis])) {
             return false;
         }
         ensure_ttd_schema($conn);
-        $ttd = normalisasi_ttd_data_uri($data_uri);
-        if ($ttd === null) {
+        $gambar = normalisasi_ttd_data_uri($data_uri);
+        if ($gambar === null) {
             return false;
         }
         $now = date('Y-m-d H:i:s');
         $stmt = $conn->prepare(
-            'INSERT INTO ttd_penilai (tipe, ttd, updated_at) VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE ttd = VALUES(ttd), updated_at = VALUES(updated_at)'
+            "INSERT INTO ttd_penilai (tipe, {$jenis}, updated_at) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE {$jenis} = VALUES({$jenis}), updated_at = VALUES(updated_at)"
         );
-        $stmt->bind_param('sss', $tipe, $ttd, $now);
+        $stmt->bind_param('sss', $tipe, $gambar, $now);
         $ok = $stmt->execute();
         $stmt->close();
 
         return $ok;
     }
 
-    function hapus_ttd_penilai(mysqli $conn, string $tipe): bool
+    /**
+     * @param 'ttd'|'cap' $jenis
+     */
+    function hapus_ttd_penilai(mysqli $conn, string $tipe, string $jenis = 'ttd'): bool
     {
+        if (!isset(TTD_JENIS_PENILAI[$jenis])) {
+            return false;
+        }
         ensure_ttd_schema($conn);
-        $stmt = $conn->prepare('DELETE FROM ttd_penilai WHERE tipe = ?');
+        $stmt = $conn->prepare("UPDATE ttd_penilai SET {$jenis} = NULL WHERE tipe = ?");
         $stmt->bind_param('s', $tipe);
         $ok = $stmt->execute();
         $stmt->close();
+
+        $conn->query('DELETE FROM ttd_penilai WHERE ttd IS NULL AND cap IS NULL');
 
         return $ok;
     }
@@ -194,11 +305,19 @@ if (!function_exists('ensure_ttd_schema')) {
 
     /**
      * Tempel TTD penilai (kolom kiri) & pegawai (kolom kanan) di ruang tanda tangan laporan.
+     * $y = baris setelah "Pejabat Penilai,"; nama dicetak ±20 mm di bawahnya.
+     * Cap (±30 mm) menimpa sepertiga kiri TTD penilai dan sedikit mengenai nama, seperti cap basah.
      */
     function pdf_bubuhkan_ttd_laporan(mysqli $conn, FPDF $pdf, int $id_pegawai, ?string $unit_kerja, ?string $nip_penilai, float $x_penilai, float $x_pegawai, float $y): void
     {
-        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, tipe_penilai_pegawai($unit_kerja, $nip_penilai)), $x_penilai, $y + 1);
-        pdf_tempel_ttd($pdf, get_ttd_pegawai($conn, $id_pegawai), $x_pegawai, $y + 1);
+        $tipe = tipe_penilai_pegawai($unit_kerja, $nip_penilai);
+        $cap = get_ttd_penilai($conn, $tipe, 'cap');
+
+        pdf_tempel_ttd($pdf, get_ttd_penilai($conn, $tipe, 'ttd'), $cap ? $x_penilai + 12 : $x_penilai, $y, 20, 45);
+        if ($cap) {
+            pdf_tempel_ttd($pdf, $cap, $x_penilai - 3, $y - 6, 30, 32);
+        }
+        pdf_tempel_ttd($pdf, get_ttd_pegawai($conn, $id_pegawai), $x_pegawai, $y, 20, 45);
     }
 
     /**

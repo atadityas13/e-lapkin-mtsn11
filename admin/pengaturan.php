@@ -95,31 +95,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (isset($_POST['upload_ttd_penilai'])) {
         $tipe_ttd = (string) ($_POST['tipe_penilai'] ?? '');
+        $jenis_ttd = (string) ($_POST['jenis_gambar'] ?? 'ttd');
         $file_ttd = $_FILES['ttd_file'] ?? null;
         $data_uri = null;
-        if (isset(TTD_TIPE_PENILAI[$tipe_ttd]) && $file_ttd && ($file_ttd['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK && $file_ttd['size'] <= TTD_MAKS_BYTE) {
+        if (isset(TTD_TIPE_PENILAI[$tipe_ttd], TTD_JENIS_PENILAI[$jenis_ttd]) && $file_ttd && ($file_ttd['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK && $file_ttd['size'] <= TTD_MAKS_BYTE) {
             $info_ttd = @getimagesize($file_ttd['tmp_name']);
             if ($info_ttd && in_array($info_ttd['mime'], ['image/png', 'image/jpeg'], true)) {
                 $data_uri = 'data:' . $info_ttd['mime'] . ';base64,' . base64_encode((string) file_get_contents($file_ttd['tmp_name']));
             }
         }
 
-        if ($data_uri !== null && simpan_ttd_penilai($conn, $tipe_ttd, $data_uri)) {
-            $message = "Tanda tangan " . TTD_TIPE_PENILAI[$tipe_ttd] . " berhasil disimpan.";
+        if ($data_uri !== null && simpan_ttd_penilai($conn, $tipe_ttd, $data_uri, $jenis_ttd)) {
+            $message = TTD_JENIS_PENILAI[$jenis_ttd] . " " . TTD_TIPE_PENILAI[$tipe_ttd] . " berhasil disimpan.";
             $message_type = "success";
         } else {
-            $message = "Gagal menyimpan tanda tangan. Gunakan file PNG/JPG maksimal 1 MB.";
+            $message = "Gagal menyimpan gambar. Gunakan file PNG/JPG maksimal 1 MB.";
             $message_type = "danger";
         }
     }
 
     if (isset($_POST['hapus_ttd_penilai'])) {
         $tipe_ttd = (string) ($_POST['tipe_penilai'] ?? '');
-        if (isset(TTD_TIPE_PENILAI[$tipe_ttd]) && hapus_ttd_penilai($conn, $tipe_ttd)) {
-            $message = "Tanda tangan " . TTD_TIPE_PENILAI[$tipe_ttd] . " berhasil dihapus.";
+        $jenis_ttd = (string) ($_POST['jenis_gambar'] ?? 'ttd');
+        if (isset(TTD_TIPE_PENILAI[$tipe_ttd], TTD_JENIS_PENILAI[$jenis_ttd]) && hapus_ttd_penilai($conn, $tipe_ttd, $jenis_ttd)) {
+            $message = TTD_JENIS_PENILAI[$jenis_ttd] . " " . TTD_TIPE_PENILAI[$tipe_ttd] . " berhasil dihapus.";
             $message_type = "success";
         } else {
-            $message = "Gagal menghapus tanda tangan.";
+            $message = "Gagal menghapus gambar.";
             $message_type = "danger";
         }
     }
@@ -527,41 +529,53 @@ include __DIR__ . '/../template/topbar.php';
             <!-- Tanda Tangan Pejabat Penilai -->
             <div class="row">
                 <?php foreach (TTD_TIPE_PENILAI as $tipe_ttd => $label_ttd): ?>
-                    <?php $ttd_tersimpan = get_ttd_penilai($conn, $tipe_ttd); ?>
                     <div class="col-xl-6">
                         <div class="card shadow mb-4">
                             <div class="card-header bg-secondary text-white">
                                 <i class="fas fa-signature me-1"></i>
-                                Tanda Tangan <?= htmlspecialchars($label_ttd) ?>
+                                Tanda Tangan &amp; Cap <?= htmlspecialchars($label_ttd) ?>
                             </div>
                             <div class="card-body">
-                                <div class="border rounded bg-light d-flex align-items-center justify-content-center mb-3" style="height: 120px;">
-                                    <?php if ($ttd_tersimpan): ?>
-                                        <img src="<?= htmlspecialchars($ttd_tersimpan) ?>" alt="TTD <?= htmlspecialchars($label_ttd) ?>" style="max-height: 110px; max-width: 100%;">
-                                    <?php else: ?>
-                                        <span class="text-muted small">Belum ada tanda tangan</span>
-                                    <?php endif; ?>
+                                <div class="row g-3">
+                                    <?php foreach (TTD_JENIS_PENILAI as $jenis_ttd => $label_jenis): ?>
+                                        <?php $gambar_tersimpan = get_ttd_penilai($conn, $tipe_ttd, $jenis_ttd); ?>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold mb-1"><?= htmlspecialchars($label_jenis) ?></label>
+                                            <div class="border rounded bg-light d-flex align-items-center justify-content-center mb-2" style="height: 120px;">
+                                                <?php if ($gambar_tersimpan): ?>
+                                                    <img src="<?= htmlspecialchars($gambar_tersimpan) ?>" alt="<?= htmlspecialchars($label_jenis . ' ' . $label_ttd) ?>" style="max-height: 110px; max-width: 100%;">
+                                                <?php else: ?>
+                                                    <span class="text-muted small">Belum ada <?= strtolower(htmlspecialchars($label_jenis)) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <form method="POST" enctype="multipart/form-data" class="mb-2">
+                                                <input type="hidden" name="upload_ttd_penilai" value="1">
+                                                <input type="hidden" name="tipe_penilai" value="<?= $tipe_ttd ?>">
+                                                <input type="hidden" name="jenis_gambar" value="<?= $jenis_ttd ?>">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="file" class="form-control" name="ttd_file" accept="image/png,image/jpeg" required>
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="fas fa-upload"></i>
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            <?php if ($gambar_tersimpan): ?>
+                                                <form method="POST" onsubmit="return confirm('Hapus <?= htmlspecialchars(strtolower($label_jenis) . ' ' . $label_ttd) ?>?');">
+                                                    <input type="hidden" name="hapus_ttd_penilai" value="1">
+                                                    <input type="hidden" name="tipe_penilai" value="<?= $tipe_ttd ?>">
+                                                    <input type="hidden" name="jenis_gambar" value="<?= $jenis_ttd ?>">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                        <i class="fas fa-trash"></i> Hapus
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
-                                <form method="POST" enctype="multipart/form-data" class="mb-2">
-                                    <input type="hidden" name="upload_ttd_penilai" value="1">
-                                    <input type="hidden" name="tipe_penilai" value="<?= $tipe_ttd ?>">
-                                    <div class="input-group">
-                                        <input type="file" class="form-control" name="ttd_file" accept="image/png,image/jpeg" required>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-upload"></i> Simpan
-                                        </button>
-                                    </div>
-                                    <small class="text-muted">PNG (latar transparan disarankan) atau JPG, maksimal 1 MB. Dipakai saat pegawai generate LKH/LKB dengan opsi Sign.</small>
-                                </form>
-                                <?php if ($ttd_tersimpan): ?>
-                                    <form method="POST" onsubmit="return confirm('Hapus tanda tangan <?= htmlspecialchars($label_ttd) ?>?');">
-                                        <input type="hidden" name="hapus_ttd_penilai" value="1">
-                                        <input type="hidden" name="tipe_penilai" value="<?= $tipe_ttd ?>">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            <i class="fas fa-trash"></i> Hapus Tanda Tangan
-                                        </button>
-                                    </form>
-                                <?php endif; ?>
+                                <small class="text-muted d-block mt-2">
+                                    Upload tanda tangan dan cap secara terpisah (PNG/JPG, maks 1 MB). Latar putih dibuang dan area kosong dipotong otomatis.
+                                    Saat generate dengan opsi Sign, cap ditempel ±3 cm menimpa sepertiga kiri tanda tangan.
+                                </small>
                             </div>
                         </div>
                     </div>
