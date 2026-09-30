@@ -98,62 +98,18 @@ if ($role_topbar === 'user' && isset($_SESSION['id_pegawai'])) {
         ];
     }
     
-    // Check for missing LKH entries in current period
-    $stmt_last_lkh = $conn->prepare("
-        SELECT MAX(DATE(tanggal_lkh)) as last_lkh_date 
-        FROM lkh 
-        WHERE id_pegawai = ? 
-        AND MONTH(tanggal_lkh) = ? 
-        AND YEAR(tanggal_lkh) = ?
-    ");
-    $stmt_last_lkh->bind_param("iii", $id_pegawai, $current_month, $current_year);
-    $stmt_last_lkh->execute();
-    $stmt_last_lkh->bind_result($last_lkh_date);
-    $stmt_last_lkh->fetch();
-    $stmt_last_lkh->close();
-    
-    $today = date('Y-m-d');
-    $current_period_start = date('Y-m-01', strtotime("$current_year-$current_month-01"));
-    
-    if ($last_lkh_date) {
-        $last_entry = new DateTime($last_lkh_date);
-        $today_date = new DateTime($today);
-        $days_without_lkh = $last_entry->diff($today_date)->days;
-        
-        if ($days_without_lkh > 0) {
-            if ($days_without_lkh == 1) {
-                $lkh_message = "Hari ini anda belum mengisi laporan kinerja harian, silahkan mengisi laporan";
-            } else {
-                $lkh_message = "Anda sudah $days_without_lkh hari belum mengisi laporan kinerja harian, silahkan mengisi laporan";
-            }
-            
-            $notifications[] = [
-                'type' => 'warning',
-                'icon' => 'fas fa-calendar-times',
-                'message' => $lkh_message,
-                'link' => '/user/lkh.php'
-            ];
-        }
-    } else {
-        // No LKH entries found for this period at all
-        $period_start = new DateTime($current_period_start);
-        $today_date = new DateTime($today);
-        $days_in_period = $period_start->diff($today_date)->days + 1;
-        
-        if ($days_in_period == 1) {
-            $lkh_message = "Hari ini anda belum mengisi laporan kinerja harian, silahkan mengisi laporan";
-        } else {
-            $lkh_message = "Anda sudah $days_in_period hari belum mengisi laporan kinerja harian, silahkan mengisi laporan";
-        }
-        
+    // Pengingat LKH: cek LKH hari ini di database & hitung hari kerja terlewat
+    require_once __DIR__ . '/../config/lkh_reminder_helper.php';
+    $pengingat_lkh = hitung_pengingat_lkh($conn, (int) $id_pegawai);
+    if ($pengingat_lkh !== null) {
         $notifications[] = [
             'type' => 'warning',
             'icon' => 'fas fa-calendar-times',
-            'message' => $lkh_message,
+            'message' => $pengingat_lkh['pesan'],
             'link' => '/user/lkh.php'
         ];
     }
-    
+
     // Check if reports have been generated for this period by checking filesystem
     $reports_already_generated = false;
     

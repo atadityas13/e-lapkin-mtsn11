@@ -11,6 +11,7 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/ttd_helper.php';
 require_once __DIR__ . '/components/mobile-header.php';
 
 // Check mobile login
@@ -25,6 +26,8 @@ $is_talim_embed = function_exists('isTalimEmbed') && isTalimEmbed();
 if ($is_talim_embed) {
     ensureTalimPeriod($conn, $id_pegawai_login);
 }
+
+$punya_ttd = get_ttd_pegawai($conn, (int) $id_pegawai_login) !== null;
 
 $months = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -991,6 +994,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <label for="tanggal_cetak_lkb" class="form-label">Tanggal Cetak</label>
                             <input type="date" class="form-control" id="tanggal_cetak_lkb" name="tanggal_cetak" value="<?= date('Y-m-d') ?>" required>
                         </div>
+                        <?php $ttd_suffix = 'lkb'; include __DIR__ . '/components/ttd-sign-option.php'; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -1026,6 +1030,7 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
                             <label for="tanggal_cetak_lkh" class="form-label">Tanggal Cetak</label>
                             <input type="date" class="form-control" id="tanggal_cetak_lkh" name="tanggal_cetak" value="<?= date('Y-m-d') ?>" required>
                         </div>
+                        <?php $ttd_suffix = 'lkh'; include __DIR__ . '/components/ttd-sign-option.php'; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -1101,8 +1106,76 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
             form.action = 'generate_lkh.php?bulan=' + bulan + '&tahun=' + tahun + '&aksi=generate<?= $is_talim_embed ? '&talim=1' : '' ?>';
         });
 
+        // Signature pad untuk opsi "Sign" (hanya muncul jika TTD belum tersimpan)
+        function initTtdPad(pad) {
+            if (pad.dataset.ready === '1') {
+                return;
+            }
+            pad.dataset.ready = '1';
+            const canvas = pad.querySelector('.ttd-canvas');
+            canvas.width = canvas.clientWidth || 300;
+            const ctx = canvas.getContext('2d');
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1a237e';
+            let drawing = false;
+            pad.dataset.empty = '1';
+
+            const pos = (e) => {
+                const r = canvas.getBoundingClientRect();
+                return [(e.clientX - r.left) * (canvas.width / r.width), (e.clientY - r.top) * (canvas.height / r.height)];
+            };
+            canvas.addEventListener('pointerdown', (e) => {
+                drawing = true;
+                canvas.setPointerCapture(e.pointerId);
+                const [x, y] = pos(e);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            });
+            canvas.addEventListener('pointermove', (e) => {
+                if (!drawing) return;
+                const [x, y] = pos(e);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                pad.dataset.empty = '0';
+            });
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => canvas.addEventListener(ev, () => { drawing = false; }));
+            pad.querySelector('.js-ttd-clear').addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pad.dataset.empty = '1';
+            });
+        }
+
+        document.querySelectorAll('.js-ttd-toggle').forEach(function (toggle) {
+            toggle.addEventListener('change', function () {
+                const pad = document.getElementById(this.dataset.pad);
+                if (!pad) return;
+                pad.classList.toggle('d-none', !this.checked);
+                if (this.checked) initTtdPad(pad);
+            });
+        });
+
+        function siapkanTtd(form) {
+            const toggle = form.querySelector('.js-ttd-toggle');
+            const pad = toggle ? document.getElementById(toggle.dataset.pad) : null;
+            if (!toggle || !toggle.checked || !pad) {
+                return true;
+            }
+            if (pad.dataset.empty !== '0') {
+                Swal.fire({ icon: 'warning', title: 'Tanda Tangan', text: 'Silakan buat tanda tangan terlebih dahulu di kotak yang tersedia.' });
+                return false;
+            }
+            pad.querySelector('input[name="ttd_data"]').value = pad.querySelector('.ttd-canvas').toDataURL('image/png');
+            return true;
+        }
+
         // Loader on form submit for Generate LKB
         document.getElementById('generateLkbForm').addEventListener('submit', function(e) {
+            if (!siapkanTtd(this)) {
+                e.preventDefault();
+                return;
+            }
             Swal.fire({
                 title: 'Tunggu sebentar...',
                 text: 'LKB sedang diproses. Mohon tunggu hingga selesai.',
@@ -1117,6 +1190,10 @@ $activePeriod = getMobileActivePeriod($conn, $id_pegawai_login);
 
         // Loader on form submit for Generate LKH
         document.getElementById('generateLkhForm').addEventListener('submit', function(e) {
+            if (!siapkanTtd(this)) {
+                e.preventDefault();
+                return;
+            }
             Swal.fire({
                 title: 'Tunggu sebentar...',
                 text: 'LKH sedang diproses. Mohon tunggu hingga selesai.',

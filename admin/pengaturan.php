@@ -35,6 +35,7 @@
 session_start();
 require_once __DIR__ . '/../template/session_admin.php';
 require_once '../config/database.php';
+require_once __DIR__ . '/../config/ttd_helper.php';
 
 $page_title = "Pengaturan Sistem";
 $message = '';
@@ -92,6 +93,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    if (isset($_POST['upload_ttd_penilai'])) {
+        $tipe_ttd = (string) ($_POST['tipe_penilai'] ?? '');
+        $file_ttd = $_FILES['ttd_file'] ?? null;
+        $data_uri = null;
+        if (isset(TTD_TIPE_PENILAI[$tipe_ttd]) && $file_ttd && ($file_ttd['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK && $file_ttd['size'] <= TTD_MAKS_BYTE) {
+            $info_ttd = @getimagesize($file_ttd['tmp_name']);
+            if ($info_ttd && in_array($info_ttd['mime'], ['image/png', 'image/jpeg'], true)) {
+                $data_uri = 'data:' . $info_ttd['mime'] . ';base64,' . base64_encode((string) file_get_contents($file_ttd['tmp_name']));
+            }
+        }
+
+        if ($data_uri !== null && simpan_ttd_penilai($conn, $tipe_ttd, $data_uri)) {
+            $message = "Tanda tangan " . TTD_TIPE_PENILAI[$tipe_ttd] . " berhasil disimpan.";
+            $message_type = "success";
+        } else {
+            $message = "Gagal menyimpan tanda tangan. Gunakan file PNG/JPG maksimal 1 MB.";
+            $message_type = "danger";
+        }
+    }
+
+    if (isset($_POST['hapus_ttd_penilai'])) {
+        $tipe_ttd = (string) ($_POST['tipe_penilai'] ?? '');
+        if (isset(TTD_TIPE_PENILAI[$tipe_ttd]) && hapus_ttd_penilai($conn, $tipe_ttd)) {
+            $message = "Tanda tangan " . TTD_TIPE_PENILAI[$tipe_ttd] . " berhasil dihapus.";
+            $message_type = "success";
+        } else {
+            $message = "Gagal menghapus tanda tangan.";
+            $message_type = "danger";
+        }
+    }
+
     if (isset($_POST['sync_penilai'])) {
         // Load penilai settings
         $penilai_settings_file = __DIR__ . '/../config/penilai_settings.json';
@@ -490,6 +522,50 @@ include __DIR__ . '/../template/topbar.php';
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Tanda Tangan Pejabat Penilai -->
+            <div class="row">
+                <?php foreach (TTD_TIPE_PENILAI as $tipe_ttd => $label_ttd): ?>
+                    <?php $ttd_tersimpan = get_ttd_penilai($conn, $tipe_ttd); ?>
+                    <div class="col-xl-6">
+                        <div class="card shadow mb-4">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="fas fa-signature me-1"></i>
+                                Tanda Tangan <?= htmlspecialchars($label_ttd) ?>
+                            </div>
+                            <div class="card-body">
+                                <div class="border rounded bg-light d-flex align-items-center justify-content-center mb-3" style="height: 120px;">
+                                    <?php if ($ttd_tersimpan): ?>
+                                        <img src="<?= htmlspecialchars($ttd_tersimpan) ?>" alt="TTD <?= htmlspecialchars($label_ttd) ?>" style="max-height: 110px; max-width: 100%;">
+                                    <?php else: ?>
+                                        <span class="text-muted small">Belum ada tanda tangan</span>
+                                    <?php endif; ?>
+                                </div>
+                                <form method="POST" enctype="multipart/form-data" class="mb-2">
+                                    <input type="hidden" name="upload_ttd_penilai" value="1">
+                                    <input type="hidden" name="tipe_penilai" value="<?= $tipe_ttd ?>">
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" name="ttd_file" accept="image/png,image/jpeg" required>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload"></i> Simpan
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">PNG (latar transparan disarankan) atau JPG, maksimal 1 MB. Dipakai saat pegawai generate LKH/LKB dengan opsi Sign.</small>
+                                </form>
+                                <?php if ($ttd_tersimpan): ?>
+                                    <form method="POST" onsubmit="return confirm('Hapus tanda tangan <?= htmlspecialchars($label_ttd) ?>?');">
+                                        <input type="hidden" name="hapus_ttd_penilai" value="1">
+                                        <input type="hidden" name="tipe_penilai" value="<?= $tipe_ttd ?>">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Hapus Tanda Tangan
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
 
             <!-- Status Penilai Saat Ini -->

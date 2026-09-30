@@ -11,6 +11,7 @@ session_start();
 // Include mobile session config
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/ttd_helper.php';
 
 // Check mobile login
 checkMobileLogin();
@@ -47,7 +48,7 @@ function set_mobile_notification($type, $title, $text) {
 }
 
 // Fungsi generate LKB PDF (copy dari web)
-function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null) {
+function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null, $dengan_ttd = false) {
     global $conn, $months;
 
     if (!$tanggal_cetak) {
@@ -212,6 +213,9 @@ function generate_lkb_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Cell($col_width, 4, 'Pejabat Penilai,', 0, 0, 'L');
     $pdf->Cell($gap);
     $pdf->Cell($col_width, 4, "Pegawai yang dinilai,", 0, 1, 'L');
+    if ($dengan_ttd) {
+        pdf_bubuhkan_ttd_laporan($conn, $pdf, (int) $id_pegawai, $unit_kerja, $nip_penilai, $left_margin, $left_margin + $col_width + $gap, $pdf->GetY());
+    }
     $pdf->Ln(20);
     $pdf->SetFont('Arial', 'BU', 10);
     $pdf->SetX($left_margin);
@@ -243,6 +247,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         talimRedirectLocation('laporan.php?tab=lkb');
     }
 
+    $ttd = siapkan_ttd_generate($conn, (int) $id_pegawai_login, $_POST);
+    if (!$ttd['ok']) {
+        set_mobile_notification('error', 'Gagal', $ttd['message']);
+        talimRedirectLocation('laporan.php?tab=lkb');
+    }
+
     // Set loader flag for laporan.php
     $_SESSION['mobile_loader'] = true;
 
@@ -262,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $pdf_file = generate_lkb_pdf($id_pegawai_login, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
+        $pdf_file = generate_lkb_pdf($id_pegawai_login, $bulan, $tahun, $tempat_cetak, $tanggal_cetak, $ttd['dengan_ttd']);
         unset($_SESSION['mobile_loader']);
         set_mobile_notification('success', 'Berhasil', 'LKB berhasil digenerate dan dapat diunduh.');
         talimRedirectLocation('laporan.php?tab=lkb');

@@ -9,6 +9,7 @@ session_start();
 
 require_once __DIR__ . '/config/mobile_session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/ttd_helper.php';
 
 checkMobileLogin();
 
@@ -82,6 +83,13 @@ if ((int) $countApproved === 0) {
     );
     talimRedirectLocation('laporan.php?tab=lkh');
 }
+
+$ttd = siapkan_ttd_generate($conn, $id_pegawai_login, $_POST);
+if (!$ttd['ok']) {
+    set_mobile_notification('error', 'Gagal', $ttd['message']);
+    talimRedirectLocation('laporan.php?tab=lkh');
+}
+define('MOBILE_LKH_DENGAN_TTD', $ttd['dengan_ttd']);
 
 $_POST['tempat_cetak'] = $tempat_cetak;
 $_POST['tanggal_cetak'] = $tanggal_cetak;

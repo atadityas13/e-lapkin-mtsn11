@@ -40,6 +40,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit();
 }
 require_once '../config/database.php';
+require_once __DIR__ . '/../config/ttd_helper.php';
 require_once '../vendor/fpdf/fpdf.php'; // Pastikan path sesuai lokasi fpdf.php Anda
 
 $id_pegawai = $_SESSION['id_pegawai'];
@@ -57,7 +58,7 @@ $months = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
 
-function generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null) {
+function generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambul', $tanggal_cetak = null, $dengan_ttd = false) {
     global $conn, $months;
     
     // Set default date if not provided
@@ -298,6 +299,10 @@ function generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak = 'Cingambu
     $pdf->Cell($gap); // Jarak antar kolom
     $pdf->Cell($col_width, 4, "Pegawai yang dinilai,", 0, 1, 'L'); // Pegawai yang dinilai
 
+    if ($dengan_ttd) {
+        pdf_bubuhkan_ttd_laporan($conn, $pdf, (int) $id_pegawai, $unit_kerja, $nip_penilai, $left_margin, $left_margin + $col_width + $gap, $pdf->GetY());
+    }
+
     $pdf->Ln(20); // Reduced signature space for compactness
 
     $pdf->SetFont('Arial', 'BU', 10);
@@ -347,7 +352,7 @@ if (defined('MOBILE_LKH_GENERATE_ONLY') && MOBILE_LKH_GENERATE_ONLY) {
         unlink($pdfPath);
     }
 
-    generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak, $tanggal_cetak);
+    generate_lkh_pdf($id_pegawai, $bulan, $tahun, $tempat_cetak, $tanggal_cetak, defined('MOBILE_LKH_DENGAN_TTD') && MOBILE_LKH_DENGAN_TTD);
 
     if (!file_exists($pdfPath)) {
         throw new RuntimeException('File PDF LKH gagal dibuat.');
